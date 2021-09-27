@@ -1,4 +1,4 @@
-# 1. Základní koncepty aplikací v Nette
+# 2. Základní koncepty aplikací v Nette
 
 ## Composer, Packagist
 :point_right:
@@ -18,20 +18,6 @@
 
 :blue_book:
 - [příklad jednoduchého projektu s composerem](./composer)
-
-
-## Vývojové prostředí
-:point_right:
-- vývoj lokálně vs. na serveru
-- důrazně doporučuji nainstalovat si vhodné vývojové prostředí (IDE)
-    - pomůže vám s psaním kódu pomocí našeptávání a s kontrolou základních chyb
-    - integrován GIT
-    - deploy rovnou na server
-- vhodné editory:
-    - [PhpStorm](https://www.jetbrains.com/phpstorm/)
-    - VSCode
-    - Netbeans    
-- [vhodná rozšíření pro Nette](https://doc.nette.org/cs/3.1/editors-and-tools)    
 
 ## Framework Nette
 - jeden z velmi populárních a stále vyvíjených PHP frameworků - *znáte nějaké další?*

@@ -28,7 +28,7 @@ Vyzkoušejte si připojení k serveru:
     - jmenné prostory
     - traity
     - výjimky
-    - autoload tříd
+    - autoload tříd, [composer](../02-zakladni-koncepty#composer-packagist)
     - magické metody
 
 :point_right:
@@ -126,26 +126,6 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
         //
     }
     ```
-
-## Composer, Packagist
-:point_right:
-- Pokud chceme pracovat s externími "knihovnami" (balíčky tříd), je v PHP obvyklé neskládat dané kódy ručně, ale spracovat závislosti projektu pomocí composeru.
-- Composer = správce závislostí pro PHP projekty
-    - viz [https://getcomposer.org](https://getcomposer.org)
-    - distribuován v podobě PHAR archívu (= ZIP archív s instrukcemi pro spuštění zahrnutých PHP skriptů), ale např. na windows si ho můžete nainstalovat také pomocí běžného instalátoru.
-- Jako správce balíčků se používá Packagist, nebo GITové úložiště (nejčastěji GitHub)
-    - Můžete si definovat vlastní znovupoužitelné komponenty, které jednoduše začleníte do většího množství projektů.
-    - Pokud je použitá komponenta závislá na dalších komponentách, composer automaticky vyřeší a stáhne i všechny její závislosti.
-
-### Postup použití
-:point_right:
-- vytvoříme soubor composer.json, ve kterém uvedeme potřebné závislosti
-- následně z konzole spustíme ```composer update```, respektive ```php composer.phar update```
-- kromě ručního zápisu jde composer ovládat také konzolovými příkazy, např. ```composer require mpdf/mpdf```
-
-:blue_book:
-- [příklad jednoduchého projektu s composerem](./composer)
-
 
 ## Vývojové prostředí
 :point_right:
