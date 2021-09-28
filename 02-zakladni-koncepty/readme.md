@@ -172,17 +172,17 @@ Složitější aplikace lze dále dělit do modulů - např.:
 - akce vyrábíme jen pro samostatné "stránky" - ne pro ošetření toho, že uživatel např. odeslal formulář (k tomu se dostaneme příště)
 
 :point_right:
-- postupně jsou v presenteru hledány metody:
-    1. konstruktor, *inject* methody
-    2. startup
-    3. metody *actionXXX* (např. *actionLogout*)
-        - = metody provádějící nějakou aktivní činnost, mohou končit přesměrováním, odesláním jiného typu výstupu atp.
-    4. metody signálů (subrequestů) začínající na *handle*
-        - signálem může být např. odeslání lajku na stránce s přehledem příspěvků
-    5. metody *beforeRender* a *renderXXX* 
-        - => vykreslení šablony
-        - do presenteru se píší jen v situaci, kdy potřebujeme do šablony předat nějaké proměnné (jinak stačí definovat danou šablonu)
-    6. metoda *shutdown* - pokud bychom ji případně potřebovali
+Postupně jsou v presenteru hledány metody:
+1. konstruktor, *inject* methody
+2. startup
+3. metody *actionXXX* (např. *actionLogout*)
+    - = metody provádějící nějakou aktivní činnost, mohou končit přesměrováním, odesláním jiného typu výstupu atp.
+4. metody signálů (subrequestů) začínající na *handle*
+    - signálem může být např. odeslání lajku na stránce s přehledem příspěvků
+5. metody *beforeRender* a *renderXXX* 
+    - => vykreslení šablony
+    - do presenteru se píší jen v situaci, kdy potřebujeme do šablony předat nějaké proměnné (jinak stačí definovat danou šablonu)
+6. metoda *shutdown* - pokud bychom ji případně potřebovali
     
 ```php
 public function renderHello(string $text=''): void {
@@ -230,7 +230,9 @@ public function actionData(): void {
 ```
 
 :point_right:
+
 Ukázka použití bloků:
+
 ```latte
 <!DOCTYPE html>
 <html lang="cs">
@@ -302,6 +304,7 @@ $this->redirectUrl('https://adresa'); //přesměrování na jinou, externí adre
 
 ## Praktické vyzkoušení
 :mega:
+
 Představili jsme si spoustu nových věcí, pojďme si je nyní tedy vyzkoušet na testovací aplikaci
 1. vyzkoušejte si do aplikace doplnit nový presenter a alespoň 2 nové akce a šablony
 2. zkuste v aplikaci vygenerovat chybu 404
