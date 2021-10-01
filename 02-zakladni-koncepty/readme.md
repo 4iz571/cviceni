@@ -58,7 +58,7 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
     chmod 777 temp
     chmod 777 log
     ```
-7. zkuste aplikaci načíst přes prohlížeč - adresa by měla být [https://eso.vse.cz/~xname/cviceni02/nette-demo/www](https://eso.vse.cz/~xname/cviceni01/nette-demo/www)
+7. zkuste aplikaci načíst přes prohlížeč - adresa by měla být [https://eso.vse.cz/~xname/cviceni02/nette-demo/www](https://eso.vse.cz/~xname/cviceni02/nette-demo/www)
 
 ## Základní principy funkčnosti aplikace
 :point_right:
