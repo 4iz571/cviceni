@@ -41,8 +41,8 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
 2. ve svém domovském adresáři se přepněte do ```public_html``` (reálná cesta na serveru je ```/home/httpd/users/xname```)
 3. vytvoříme si složku pro první projekt
     ```shell script
-    mkdir cviceni01
-    cd cviceni01
+    mkdir cviceni02
+    cd cviceni02
     ```
 4. stáhneme composer
     ```shell script
@@ -56,9 +56,9 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
     ```shell script
     cd nette-demo
     chmod 777 temp
-    chmod 777 cache
+    chmod 777 log
     ```
-7. zkuste aplikaci načíst přes prohlížeč - adresa by měla být [https://eso.vse.cz/~xname/cviceni01/nette-demo/www](https://eso.vse.cz/~xname/cviceni01/nette-demo/www)
+7. zkuste aplikaci načíst přes prohlížeč - adresa by měla být [https://eso.vse.cz/~xname/cviceni02/nette-demo/www](https://eso.vse.cz/~xname/cviceni01/nette-demo/www)
 
 ## Základní principy funkčnosti aplikace
 :point_right:
