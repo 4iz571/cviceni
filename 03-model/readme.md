@@ -67,7 +67,7 @@
 - základní cykly:
   ```latte
   {for $i = 0; $i < 10; $i++}
-  	<span>Položka {$i}</span>
+    <span>Položka {$i}</span>
   {/for}
   
   {while $podminka}
@@ -76,23 +76,21 @@
   ```
 - procházení kolekcí
   ```latte
-    {foreach $array as $key=>$value}
-      <span>Položka {$value}</span>
-      ....
-      {continue}
-    
-    {/foreach}
+  {foreach $array as $key=>$value}
+    <span>Položka {$value}</span>
+    ....
+    {continue}
   
-    {foreach $rows as $row}
-    	{first}<table>{/first}
-    
-    	<tr id="row-{$iterator->counter}">
-    		<td>{$row->name}</td>
-    		<td>{$row->email}</td>
-    	</tr>
-    
-    	{last}</table>{/last}
-    {/foreach}
+  {/foreach}
+  
+  {foreach $rows as $row}
+    {first}<table>{/first}
+      <tr id="row-{$iterator->counter}">
+        <td>{$row->name}</td>
+        <td>{$row->email}</td>
+      </tr>
+    {last}</table>{/last}
+  {/foreach}
   ```
 
 :blue_book:
