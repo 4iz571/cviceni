@@ -8,10 +8,10 @@ Podklady ke cvičením kurzu *4IZ571 - Vývoj pokročilých aplikací v PHP* na 
     - objektové programování v PHP
     - nové verze PHP
     - vývojové prostředí 
-2. **[](./02-zakladni-koncepty)**  
+2. **[Základní koncepty aplikací v Nette](./02-zakladni-koncepty)**  
     - Composer, Packagist
     - První aplikace v Nette
     - Základní návrhové vzory a principy Nette aplikací 
 3. **[Model aplikace](./03-model)**  
-    - 
+    - Nezbytné základní konstrukty v Latte
 4. **[Latte, komponenty a formuláře](./04-latte-komponenty-formulare)**             
