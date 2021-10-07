@@ -1,0 +1,10 @@
+{block content}
+
+<h1 n:block="title">Kategorie {$category->title}</h1>
+<p n:ifcontent>
+    {$category->description}
+</p>
+
+<div class="my-4">
+    <a href="{link list}" class="btn btn-light">&larr; zpět na seznam kategorií</a>
+</div>

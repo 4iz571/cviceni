@@ -15,3 +15,5 @@ di:
 
 services:
 	- App\Router\RouterFactory::createRouter
+
+	- App\Model\CategoriesRepository
