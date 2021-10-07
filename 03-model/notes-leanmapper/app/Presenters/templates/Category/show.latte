@@ -1,0 +1,7 @@
+{varType App\Model\Entities\Category $category}
+{block content}
+
+<h1 n:block="title">Kategorie {$category->title}</h1>
+<p n:ifcontent>
+    {$category->description}
+</p>

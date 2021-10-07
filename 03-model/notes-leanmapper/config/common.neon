@@ -1,0 +1,26 @@
+parameters:
+
+application:
+	errorPresenter: Error
+	mapping:
+		*: App\*Module\Presenters\*Presenter
+
+session:
+	expiration: 14 days
+
+di:
+	export:
+		parameters: no
+		tags: no
+
+services:
+	- App\Router\RouterFactory::createRouter
+
+	- LeanMapper\Connection(%database%)
+	- App\Model\Mappers\StandardMapper
+	- LeanMapper\DefaultEntityFactory
+
+	- App\Model\Facades\CategoriesFacade
+
+	- App\Model\Repositories\CategoriesRepository
+	- App\Model\Repositories\NotesRepository

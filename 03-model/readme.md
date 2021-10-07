@@ -99,6 +99,6 @@
 ## Příprava příkladu pro dnešní hodinu
 :mega:
 1. stáhněte si **[SQL soubor](./notes-db.sql)** s exportem databáze a naimportujte jeho obsah do MariaDB
-2. stáhněte si obě složky (**notes-nettedb**, **notes-orm**) s ukázkovými projekty, nahrajte je na server (nezapomeňte na úpravu práv )
+2. stáhněte si obě složky (**notes-nettedb**, **notes-leanmapper**) s ukázkovými projekty, nahrajte je na server (nezapomeňte na úpravu práv )
 3. otevřete si ukázkové projekty ve vývojovém prostředí
 3. v obou ukázkových příkladech upravte v souboru **config/local.neon** přístupy k databázi
