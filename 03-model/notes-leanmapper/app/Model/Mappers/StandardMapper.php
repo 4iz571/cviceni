@@ -16,9 +16,6 @@ use Nette\Utils\Strings;
  */
 class StandardMapper extends \LeanMapper\DefaultMapper {
 
-  /** @var string */
-  protected $defaultEntityNamespace = 'App\Model\Entities';
-
   /**
    * PK format [table]_id
    * @param string $table

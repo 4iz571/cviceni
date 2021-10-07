@@ -13,9 +13,10 @@
             <tbody>
                 {foreach $categories as $category}
                     <tr>
-                        <td>{$category->title}</td>
+                        <td><a href="{link show id=>$category->categoryId}">{$category->title}</a></td>
                         <td>
-                            <a href="{link show id=>$category->categoryId}" class="btn btn-primary">zobrazit</a>
+                            <a href="{link show id=>$category->categoryId}" class="btn btn-sm btn-outline-primary">zobrazit</a>
+                            <a href="{link edit id=>$category->categoryId}" class="btn btn-sm btn-outline-primary">upravit</a>
                         </td>
                     </tr>
                 {/foreach}

@@ -17,7 +17,7 @@ services:
 	- App\Router\RouterFactory::createRouter
 
 	- LeanMapper\Connection(%database%)
-	- App\Model\Mappers\StandardMapper
+	- App\Model\Mappers\StandardMapper('App\Model\Entities')
 	- LeanMapper\DefaultEntityFactory
 
 	- App\Model\Facades\CategoriesFacade

@@ -2,6 +2,8 @@
 
 namespace App\Model\Entities;
 
+use LeanMapper\Entity;
+
 /**
  * Class Note
  * @package App\Model\Entities
@@ -11,6 +13,6 @@ namespace App\Model\Entities;
  * @property string $text
  * @property \DateTime|null $updated
  */
-class Note{
+class Note extends Entity{
 
 }

@@ -1,7 +1,8 @@
 <?php
 
-
 namespace App\Model\Entities;
+
+use LeanMapper\Entity;
 
 /**
  * Class Category
@@ -11,6 +12,6 @@ namespace App\Model\Entities;
  * @property string $description
  * @property-read Note[] $notes m:belongsToMany
  */
-class Category{
+class Category extends Entity{
 
 }

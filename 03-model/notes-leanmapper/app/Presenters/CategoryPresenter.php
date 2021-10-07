@@ -27,9 +27,9 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
    * @param int $id
    * @throws \Nette\Application\BadRequestException
    */
-  public function renderShow(int $id){
+  public function renderShow(int $id):void {
     try{
-      $category=$this->categoriesFacade->getCategory($id);
+      $this->template->category=$this->categoriesFacade->getCategory($id);
     }catch (\Exception $e){
       $this->error('Požadovaná kategorie nebyla nalezena', 404);
     }
@@ -39,7 +39,7 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
    * @param int $id
    * @throws \Nette\Application\BadRequestException
    */
-  public function renderEdit(int $id){
+  public function renderEdit(int $id):void {
     try{
       $category=$this->categoriesFacade->getCategory($id);
     }catch (\Exception $e){
