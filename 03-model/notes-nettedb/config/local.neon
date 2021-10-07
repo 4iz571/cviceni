@@ -1,0 +1,6 @@
+parameters:
+
+database:
+	dsn: 'mysql:host=localhost;dbname=xname;charset=utf8'
+	user: xname
+	password: heslokdatabazi
