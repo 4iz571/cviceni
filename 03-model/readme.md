@@ -107,7 +107,68 @@ Při dnešní hodině si prakticky vyzkoušíme úpravy modelu aplikace, přiče
 3. v obou ukázkových příkladech upravte v souboru **config/local.neon** přístupy k databázi
 
 ## Model využívající Nette Database
-TODO
+:point_right:
+- pro Nette je k dispozici databázová vrstva Nette Database, která usnadňuje tvorbu SQL dotazů (*Database Core*) a také procházení databáze na základě její struktury (*Database Explorer*)
+- pro využití v projektu:
+    1. načtěte balíček nette/database pomocí composeru
+        ```shell script
+        composer require nette/database
+        ```
+    2. doplňte do [local.neon](./notes-nettedb/config/local.neon) konfiguraci připojení k databázi
+    3. do modelu, ve kterém budeme chtít databázi používat, si jako závislost předáme ```\Nette\Database\Connection``` 
+        
+
+### Database Core
+:point_right:
+- = nadstavbová vrstva nad PDO, která nám usnadňuje skládání SQL příkazů
+- buď voláme metodu *query*, která spustí dotaz a vrací ResultSet, nebo voláme metody *fetch*, *fetchColumn* a *fetchAll*
+
+:point_right:  
+```php
+$database->query('SELECT id FROM users ORDER BY', [
+	'id' => true, // vzestupně
+	'name' => false, // sestupně
+]);
+
+$database->fetchAll('SELECT * FROM users WHERE id = ?', $id);
+
+$database->query('INSERT INTO users ?', [ 
+	'name' => $name,
+	'email' => $email
+]);
+$id = $database->getInsertId();
+```    
+
+:blue_book:
+- [Database Core na webu Nette](https://doc.nette.org/cs/3.1/database-core) - doporučuji se podívat na příklady
+
+### Database Explorer
+:point_right:
+- pokud si nerozumíte s SQL, nebo si prostě chcete výběry usnadnit, poskytuje Nette v rámci databázové vrstvy také **Database Explorer**
+- jednotlivé dotazy se skládají pomocí tzv. *fluent* rozhraní  ```$table->where(...)->order(...)->limit(...)```
+- umožňuje také výběry z tabulek navázaných přes cizí klíče - tj. výsledný objekt umí donačíst navázaná data
+
+:point_right:
+- pokud chceme Database Explorer použít, jednoduše si místo ```\Nette\Database\Connection``` necháme jako závislost příslušné třídy modelu předat ```\Nette\Database\Explorer```
+
+```php
+$user = $explorer->table('users')->where(email=?,$email);
+echo $user->name;
+
+$explorer->table('users')->insert([
+  'name' => $name,
+  'year' => $email
+]);
+
+$books = $explorer->table('book');
+foreach ($books as $book) {
+  echo $book->title . ': ';
+  echo $book->author->name;
+}
+```
+
+:blue_book:
+- [Database Explorer na webu Nette](https://doc.nette.org/cs/3.1/database-explorer)
 
 ## Model využívající ORM pomocí LeanMapperu
 :point_right:
@@ -119,6 +180,7 @@ TODO
         - repozitáře slouží k ukládání entit, změnám v DB atp.
 - na příkladu si ukážeme spojení s návrhovým vzorem *Facade*
     - fasáda je třída, která zaštiťuje jeden či několik repozitářů a poskytuje tím ucelenou sadu funkcí pro volání z presenteru
+    - v zásadě nás fasáda může odstínit od samotného zdroje dat - můžeme mít např. jednotně pojmenované metody pro získání dat, které máme v databázi a také těch, které načítáme přes API 
 
 :blue_book:
 - [web LeanMapperu](https://leanmapper.com/)
@@ -144,7 +206,7 @@ TODO
     ```shell script
     composer require tharos/leanmapper
     ```
-2. upravíme common.neon - přidáme základ leanmapperu jako služby
+2. upravíme [common.neon](./notes-leanmapper/config/common.neon) - přidáme základ leanmapperu jako služby
     ```neon
    services:
    	- App\Router\RouterFactory::createRouter
@@ -153,11 +215,12 @@ TODO
    	- App\Model\Mappers\StandardMapper('App\Model\Entities')
    	- LeanMapper\DefaultEntityFactory
     ```
-3. příprava základní struktury modelu
+3. do souboru [local.neon](./notes-leanmapper/config/local.neon) doplníme parametry pro připojení k databázi    
+4. příprava základní struktury modelu
     - v našem případě [BaseRepository](./notes-leanmapper/app/Model/Repositories/BaseRepository.php) a [StandardMapper](./notes-leanmapper/app/Model/Mappers/StandardMapper.php)
-4. vytvoříme příslušnou strukturu databáze, pro každou tabulku poté vytvoříme *entitu* a *repozitář*
-5. volitelně můžeme vytvořit obalovací fasády
-6. všechny repozitáře a fasády přidáme do konfigurace aplikace, aby se v případě potřeby samy načítaly jako závislosti
+5. vytvoříme příslušnou strukturu databáze, pro každou tabulku poté vytvoříme *entitu* a *repozitář*
+6. volitelně můžeme vytvořit obalovací fasády
+7. všechny repozitáře a fasády přidáme do konfigurace aplikace, aby se v případě potřeby samy načítaly jako závislosti
 
 ### Úkoly pro procvičení
 :mega:
