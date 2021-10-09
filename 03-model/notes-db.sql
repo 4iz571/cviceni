@@ -3,7 +3,6 @@
 -- https://www.phpmyadmin.net/
 --
 -- Počítač: localhost
--- Vytvořeno: Úte 05. říj 2021, 23:47
 -- Verze serveru: 10.3.22-MariaDB-log
 -- Verze PHP: 7.3.16
 
@@ -15,10 +14,10 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Struktura tabulky `categories`
+-- Struktura tabulky `category`
 --
 
-CREATE TABLE `categories` (
+CREATE TABLE `category` (
   `category_id` smallint(5) UNSIGNED NOT NULL,
   `title` varchar(100) COLLATE utf8mb4_czech_ci NOT NULL,
   `description` varchar(300) COLLATE utf8mb4_czech_ci NOT NULL
@@ -27,10 +26,10 @@ CREATE TABLE `categories` (
 -- --------------------------------------------------------
 
 --
--- Struktura tabulky `notes`
+-- Struktura tabulky `note`
 --
 
-CREATE TABLE `notes` (
+CREATE TABLE `note` (
   `note_id` int(10) UNSIGNED NOT NULL,
   `category_id` smallint(5) UNSIGNED NOT NULL,
   `title` varchar(100) COLLATE utf8mb4_czech_ci NOT NULL,
@@ -43,9 +42,9 @@ CREATE TABLE `notes` (
 --
 
 --
--- Klíče pro tabulku `categories`
+-- Klíče pro tabulku `category`
 --
-ALTER TABLE `categories`
+ALTER TABLE `category`
   ADD PRIMARY KEY (`category_id`);
 
 --
@@ -60,15 +59,15 @@ ALTER TABLE `notes`
 --
 
 --
--- AUTO_INCREMENT pro tabulku `categories`
+-- AUTO_INCREMENT pro tabulku `category`
 --
-ALTER TABLE `categories`
+ALTER TABLE `category`
   MODIFY `category_id` smallint(5) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT pro tabulku `notes`
 --
-ALTER TABLE `notes`
+ALTER TABLE `note`
   MODIFY `note_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
@@ -78,6 +77,6 @@ ALTER TABLE `notes`
 --
 -- Omezení pro tabulku `notes`
 --
-ALTER TABLE `notes`
-  ADD CONSTRAINT `notes_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `note`
+  ADD CONSTRAINT `notes_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `category` (`category_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;

@@ -2,11 +2,13 @@
 
 namespace App\Model;
 
-use Nette\Database\ResultSet;
 use Nette\Database\Row;
 use Nette\Database\Connection;
-use Nette\Database\SqlLiteral;
 
+/**
+ * Class CategoriesRepository
+ * @package App\Model
+ */
 class CategoriesRepository{
 
   /** @var Connection $database */
@@ -20,7 +22,6 @@ class CategoriesRepository{
     $this->database=$database;
   }
 
-
   /**
    * Metoda pro načtení jedné kategorie
    * @param int $id
@@ -28,7 +29,7 @@ class CategoriesRepository{
    * @throws \Exception
    */
   public function getCategory(int $id):Row {
-    if ($category=$this->database->fetch('SELECT * FROM categories WHERE category_id=?', $id)){
+    if ($category=$this->database->fetch('SELECT * FROM category WHERE category_id=?', $id)){
       return $category;
     }else{
       throw new \Exception('Category not found.');
@@ -51,9 +52,9 @@ class CategoriesRepository{
       $order='title';
     }
     if (!empty($params)){
-      return $this->database->fetchAll('SELECT * FROM categories WHERE ',$params,' ORDER BY ?order LIMIT ? OFFSET ?',[$order=>true],$limit,$offset);
+      return $this->database->fetchAll('SELECT * FROM category WHERE ',$params,' ORDER BY ?order LIMIT ? OFFSET ?',[$order=>true],$limit,$offset);
     }else{
-      return $this->database->fetchAll('SELECT * FROM categories ORDER BY ?order LIMIT ? OFFSET ?',[$order=>true],$limit,$offset);
+      return $this->database->fetchAll('SELECT * FROM category ORDER BY ?order LIMIT ? OFFSET ?',[$order=>true],$limit,$offset);
     }
   }
 
@@ -64,9 +65,9 @@ class CategoriesRepository{
    */
   public function findCategoriesCount(array $params=null):int {
     if (!empty($params)){
-      return $this->database->fetchField('SELECT count(*) FROM categories WHERE ',$params);
+      return $this->database->fetchField('SELECT count(*) FROM category WHERE ',$params);
     }else{
-      return $this->database->fetchField('SELECT count(*) FROM categories');
+      return $this->database->fetchField('SELECT count(*) FROM category');
     }
   }
 
@@ -75,8 +76,8 @@ class CategoriesRepository{
    * @param array $categoryData
    * @return int - ID vloženého záznamu
    */
-  public function saveCategory(array $categoryData):int {
-    $this->database->query('INSERT INTO categories ',[
+  public function saveNewCategory(array $categoryData):int {
+    $this->database->query('INSERT INTO category ',[
       'title'=>@$categoryData['title'],
       'description'=>@$categoryData['description'],
     ]);

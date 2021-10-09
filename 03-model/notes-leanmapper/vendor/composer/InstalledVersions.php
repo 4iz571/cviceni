@@ -19,7 +19,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => 'b7ffe5360384105d31e2b1b77460af949547965d',
+    'reference' => 'd4130f5c136c8a076aaf60b768fce86cd76ab68b',
     'name' => '4iz571/cviceni3-nettedb',
   ),
   'versions' => 
@@ -31,7 +31,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => 'b7ffe5360384105d31e2b1b77460af949547965d',
+      'reference' => 'd4130f5c136c8a076aaf60b768fce86cd76ab68b',
     ),
     'dg/dibi' => 
     array (
@@ -219,6 +219,15 @@ private static $installed = array (
       array (
       ),
       'reference' => '8e708de7c611f626c8792d43f1c78812ea24e6f6',
+    ),
+    'vojir/leanmapper-mappers' => 
+    array (
+      'pretty_version' => 'v1.0',
+      'version' => '1.0.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '8dff46a677c34b3ebc34808d36402929f3f65029',
     ),
   ),
 );

@@ -18,7 +18,8 @@
 		"nette/utils": "^3.2",
 		"latte/latte": "^2.9",
 		"tracy/tracy": "^2.8",
-		"tharos/leanmapper": "^4.0"
+		"tharos/leanmapper": "^4.0",
+		"vojir/leanmapper-mappers": "^1.0"
 	},
 	"autoload": {
 		"psr-4": {

@@ -91,12 +91,6 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
     return $form;
   }
 
-
-
-
-
-
-
   public function injectCategoriesFacade(CategoriesFacade $categoriesFacade){
     $this->categoriesFacade=$categoriesFacade;
   }

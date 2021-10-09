@@ -8,7 +8,7 @@ use LeanMapper\Entity;
  * Class Note
  * @package App\Model\Entities
  * @property int $noteId
- * @property Category m:hasOne
+ * @property Category $category m:hasOne
  * @property string $title
  * @property string $text
  * @property \DateTime|null $updated

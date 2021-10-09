@@ -3,18 +3,18 @@
 namespace App\Model\Facades;
 
 use App\Model\Entities\Category;
-use App\Model\Repositories\CategoriesRepository;
+use App\Model\Repositories\categoryRepository;
 
 /**
  * Class CategoriesFacade - fasáda pro využívání kategorií z presenterů
  * @package App\Model\Facades
  */
 class CategoriesFacade{
-  /** @var CategoriesRepository $categoriesRepository */
-  private /*CategoriesRepository*/ $categoriesRepository;
+  /** @var CategoryRepository $categoryRepository */
+  private /*CategoryRepository*/ $categoryRepository;
 
-  public function __construct(CategoriesRepository $categoriesRepository){
-    $this->categoriesRepository=$categoriesRepository;
+  public function __construct(CategoryRepository $categoryRepository){
+    $this->categoryRepository=$categoryRepository;
   }
 
   /**
@@ -24,7 +24,7 @@ class CategoriesFacade{
    * @throws \Exception
    */
   public function getCategory(int $id):Category {
-    return $this->categoriesRepository->find($id); //buď počítáme s možností vyhození výjimky, nebo ji ošetříme už tady a můžeme vracet např. null
+    return $this->categoryRepository->find($id); //buď počítáme s možností vyhození výjimky, nebo ji ošetříme už tady a můžeme vracet např. null
   }
 
   /**
@@ -35,7 +35,7 @@ class CategoriesFacade{
    * @return Category[]
    */
   public function findCategories(array $params=null,int $offset=null,int $limit=null):array {
-    return $this->categoriesRepository->findAllBy($params,$offset,$limit);
+    return $this->categoryRepository->findAllBy($params,$offset,$limit);
   }
 
   /**
@@ -44,7 +44,7 @@ class CategoriesFacade{
    * @return int
    */
   public function findCategoriesCount(array $params=null):int {
-    return $this->categoriesRepository->findCountBy($params);
+    return $this->categoryRepository->findCountBy($params);
   }
 
   /**
@@ -53,7 +53,7 @@ class CategoriesFacade{
    * @return bool
    */
   public function saveCategory(Category &$category):bool {
-    return (bool)$this->categoriesRepository->persist($category);
+    return (bool)$this->categoryRepository->persist($category);
   }
 
 

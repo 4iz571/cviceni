@@ -11,6 +11,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
     );
 
     public static $prefixLengthsPsr4 = array (
+        'V' => 
+        array (
+            'Vojir\\LeanMapper\\Mappers\\' => 25,
+        ),
         'A' => 
         array (
             'App\\' => 4,
@@ -18,6 +22,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
     );
 
     public static $prefixDirsPsr4 = array (
+        'Vojir\\LeanMapper\\Mappers\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/vojir/leanmapper-mappers/src',
+        ),
         'App\\' => 
         array (
             0 => __DIR__ . '/../..' . '/app',

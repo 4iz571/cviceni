@@ -193,18 +193,23 @@ foreach ($books as $book) {
     - mapování sloupců z databáze a vazeb mezi tabulkami je definováno v dokumentačním komentáři na začátku třídy
 - **Repositories** = složka s repositáři, které slouží pro načítání a ukládání entit
     - většina kódu je v *BaseRepository*, do dalších repositářů napíšeme jen případná specifika pro daný typ entity
-- **Mappers** 
-    - složka obsahuje mapper, který převádí názvy properties na sloupce v databázi, názvy tříd na názvy tabulek atd.
-    - v rámci tohoto příkladu využíváme vlastní mapper, který
-        - v databázi využívá podtržítkovou syntaxi a pro názvy properties camelCase
-        - pro primární klíče využívá název tabulky doplněný o "_id"
-    - když vhodně přizpůsobíme názvy tabulek a jejich sloupců, jde využít i výchozí mapper přibalený v LeanMapperu                
+    
+### Objektově-relační mapování
+:point_right:
+- pro převod objektů na třídy a zpět je využíván tzv. "mapper"
+- podrobněji se na mappery podíváme ještě na příštím cvičení
+- v rámci tohoto projektu je využíván mapper s těmito konvencemi:
+    - v kódu používáme camelCase syntaxi pro názvy tříd a properties, u tříd začínáme velkým písmenem
+    - v databázi jsou všechny názvy malými písmeny, slova oddělena podtržítkem
+    - repozitáře se jmenují např. *NoteRepository* (tj. za jméno entity doplníme "Repository")
+    - primární klíče jsou pojmenovány jménem tabulky s doplněným "_id", tj. například *note_id*                        
     
 ### Co musíme udělat pro zprovoznění LeanMapperu v aplikaci
 :point_right:
-1. načtení LeanMapperu pomocí composeru
+1. načtení LeanMapperu pomocí composeru + v tomto případě ještě balíček s mappery
     ```shell script
     composer require tharos/leanmapper
+    composer require vojir/leanmapper-mappers 
     ```
 2. upravíme [common.neon](./notes-leanmapper/config/common.neon) - přidáme základ leanmapperu jako služby
     ```neon
@@ -212,12 +217,12 @@ foreach ($books as $book) {
    	- App\Router\RouterFactory::createRouter
    
    	- LeanMapper\Connection(%database%)
-   	- App\Model\Mappers\StandardMapper('App\Model\Entities')
+   	- Vojir\LeanMapper\Mappers\CamelcaseUnderdashMapper('App\Model\Entities')
    	- LeanMapper\DefaultEntityFactory
     ```
 3. do souboru [local.neon](./notes-leanmapper/config/local.neon) doplníme parametry pro připojení k databázi    
 4. příprava základní struktury modelu
-    - v našem případě [BaseRepository](./notes-leanmapper/app/Model/Repositories/BaseRepository.php) a [StandardMapper](./notes-leanmapper/app/Model/Mappers/StandardMapper.php)
+    - v našem případě [BaseRepository](./notes-leanmapper/app/Model/Repositories/BaseRepository.php)
 5. vytvoříme příslušnou strukturu databáze, pro každou tabulku poté vytvoříme *entitu* a *repozitář*
 6. volitelně můžeme vytvořit obalovací fasády
 7. všechny repozitáře a fasády přidáme do konfigurace aplikace, aby se v případě potřeby samy načítaly jako závislosti
@@ -225,7 +230,6 @@ foreach ($books as $book) {
 ### Úkoly pro procvičení
 :mega:
 1. spusťte aplikaci na serveru a prohlédněte si její zdrojový kód
-2. zkuste doplnit správný kód na místa TODO komentářů ve třídě CategoryPresenter (vytvoření nové kategorie, úprava kategorie)
-3. zkuste doplnit do aplikace vhodný kód tak, aby bylo možné smazat zvolenou kategorii 
-4. vytvořte fasádu pro práci s poznámkami
-5. zkuste doplnit presenter a příslušné šablony, který bude umět vypsat buď přehled všech poznámek, nebo přehled poznámek ve zvolené kategorii        
+2. zkuste doplnit správný kód na místa TODO komentářů ve třídě CategoryPresenter (vytvoření nové kategorie, úprava kategorie) 
+3. vytvořte fasádu pro práci s poznámkami
+4. zkuste doplnit presenter a příslušné šablony, který bude umět vypsat buď přehled všech poznámek, nebo přehled poznámek ve zvolené kategorii         
