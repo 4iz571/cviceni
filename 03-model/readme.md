@@ -141,6 +141,10 @@ $id = $database->getInsertId();
 
 :blue_book:
 - [Database Core na webu Nette](https://doc.nette.org/cs/3.1/database-core) - doporučuji se podívat na příklady
+- [Ukázkový příklad notes-nettedb](./notes-nettedb)
+
+:orange_book:
+- [Prezentace s postupem úprav notes-nettedb](./notes-nettedb-reseni.pptx)
 
 ### Database Explorer
 :point_right:
@@ -184,6 +188,7 @@ foreach ($books as $book) {
 
 :blue_book:
 - [web LeanMapperu](https://leanmapper.com/)
+- [Ukázkový příklad notes-leanmapper](./notes-leanmapper)
 
 ### Struktura modelu aplikace
 :point_right:
@@ -232,4 +237,7 @@ foreach ($books as $book) {
 1. spusťte aplikaci na serveru a prohlédněte si její zdrojový kód
 2. zkuste doplnit správný kód na místa TODO komentářů ve třídě CategoryPresenter (vytvoření nové kategorie, úprava kategorie) 
 3. vytvořte fasádu pro práci s poznámkami
-4. zkuste doplnit presenter a příslušné šablony, který bude umět vypsat buď přehled všech poznámek, nebo přehled poznámek ve zvolené kategorii         
+4. zkuste doplnit presenter a příslušné šablony, který bude umět vypsat buď přehled všech poznámek, nebo přehled poznámek ve zvolené kategorii
+
+:orange_book:
+- [Prezentace s postupem úprav notes-leanmapper](./notes-leanmapper-reseni.pptx)
