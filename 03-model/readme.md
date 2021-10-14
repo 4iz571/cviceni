@@ -7,7 +7,7 @@
 ## Nezbytné konstrukty v Latte šablonách
 :point_right:
 - na minulém cvičení jsme si ukázali základní výpis proměnných a princip bloků
-- podrobně se budeme Latte věnovat ještě [na příštím hodině](../04-latte-komponenty-formulare)
+- podrobně se budeme Latte ještě více věnovat na dalších cvičeních
 - na dnešní hodině se podíváme jen na pár základních konstruktů, které budeme potřebovat k ukázkové aplikaci
 
 ### Výpis proměnných
