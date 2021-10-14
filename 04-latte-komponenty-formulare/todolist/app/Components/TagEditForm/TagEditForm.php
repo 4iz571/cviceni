@@ -47,7 +47,7 @@ class TagEditForm extends Form{
    */
   private function createSubcomponents():void {
     $this->addProtection('Opakujte prosím odeslání formuláře znovu.');
-    $this->addHidden('tagId');
+    $tagId=$this->addHidden('tagId');
     $this->addText('title')
       ->setRequired('Zadejte název tagu!');
     $this->addSubmit('save', 'uložit')
@@ -73,6 +73,7 @@ class TagEditForm extends Form{
         #endregion akce pro save
       };
     $this->addSubmit('cancel','zrušit')
+      ->setValidationScope([$tagId])
       ->onClick[]=function(){
         #region akce pro cancel
         $this->onCancel();
