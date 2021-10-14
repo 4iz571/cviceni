@@ -148,10 +148,25 @@ $form->addSubmit('cancel','zrušit')
   };
 ```
 
-### Získání dat z formuláře
+### Získání dat z formuláře, nastavení výchozích hodnot
 :point_right:
+- pro získání dat máme k dispozici metody ```getValues()``` a ```getUnsafeValues()```
+    - návratovou hodnotou může být pole či objekt (ArrayHash, nebo instance námi definované třídy)   
+- pro zadání výchozích dat (např. když chceme editovat záznam, který už v databázi je) použijeme metodu ```setDefaults()``` 
+
+```php
+$valuesArr = $form->getValues('array');
 
 
+class RegistrationFormData{
+  public string $name;
+  public string $email;
+  public int $age;
+  public string $password;
+  public string $password2; 
+}
+$values = $form->getValues(RegistrationFormData::class);
+```
 
 ### Vykreslení formuláře v šabloně
 :point_right:
@@ -168,3 +183,15 @@ $form->addSubmit('cancel','zrušit')
 
 ## Ukázkový příklad todolist
 :mega:
+1. stáhněte si **[SQL soubor](./todolist-db.sql)** s exportem databáze a naimportujte jeho obsah do MariaDB (nebojte, s předchozím příkladem nijak nekoliduje)
+2. stáhněte si složku [todolis](./todolist) s ukázkovým projektem, nahrajte jej na server (nezapomeňte na úpravu práv k adresářům log a temp)
+3. otevřete si ukázkové projekty ve vývojovém prostředí
+4. v souboru **config/local.neon** přístupy k databázi
+
+### Úkoly pro procvičení
+:mega:
+1. podívejte se na strukturu databáze a doplňte do projektu entitu **TodoItem**, doplňte příslušný repozitář a chybějící metody do **TodosFacade**
+2. akce Todo:default by měla vypisovat seznam všech úkolů se znázorněním jejich stavu a tagů
+3. vytvořte formulář pro vytvoření/úpravu úkolu (entity **Todo**)
+4. vytvořte formulář pro vytvoření podúkolu (**TodoItem**)
+5. úkoly by mělo být možné označit jako hotové 
