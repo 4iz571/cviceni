@@ -35,7 +35,6 @@
   ```latte
   <a n:href="Product:show id=>$id">detail produktu</a>
   <a href="{link Product:show id=>$id}">detail produktu</a>
-  <a href="{link vote! id=>$id}">hlasovat</a>
   ```
 - odkaz na signál (subrequest), který má obvykle provést nějakou činnost a poté se vrátit na původní akci:
   ```latte
