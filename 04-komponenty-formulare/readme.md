@@ -33,7 +33,6 @@
       - Vojir\LeanMapper\Mappers\CamelcaseUnderdashMapper('App\Model\Entities')
     ```  
 
-
 ## Flash zprávy
 :point_right:
 - jednoduchý způsob, jak na webu zobrazovat potvrzovací či chybové hlášky (např. "položka byla uložena")
@@ -103,6 +102,10 @@ $this->flashMessage('zpráva', 'error'); //2. parametr je volitelný, používá
     - pomocí **addRule** přidáváme validační pravidla 
     - pomocí **addFilter** můžeme doplnit ošetření vstupu
 3. přidáme reakci na odesílací tlačítka
+
+:blue_book:
+- [Formulářové prvky](https://doc.nette.org/cs/3.1/form-controls)
+- [Validace](https://doc.nette.org/cs/3.1/form-validation)
 
 :point_right:
 ```php
