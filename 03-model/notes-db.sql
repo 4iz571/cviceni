@@ -48,9 +48,9 @@ ALTER TABLE `category`
   ADD PRIMARY KEY (`category_id`);
 
 --
--- Klíče pro tabulku `notes`
+-- Klíče pro tabulku `note`
 --
-ALTER TABLE `notes`
+ALTER TABLE `note`
   ADD PRIMARY KEY (`note_id`),
   ADD KEY `category_id` (`category_id`);
 
