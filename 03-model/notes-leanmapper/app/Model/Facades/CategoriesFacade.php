@@ -3,7 +3,7 @@
 namespace App\Model\Facades;
 
 use App\Model\Entities\Category;
-use App\Model\Repositories\categoryRepository;
+use App\Model\Repositories\CategoryRepository;
 
 /**
  * Class CategoriesFacade - fasáda pro využívání kategorií z presenterů
