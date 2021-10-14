@@ -12,7 +12,11 @@ use LeanMapper\Entity;
  * @property string $description = ''
  * @property \DateTime|null $deadline = null
  * @property bool $completed = false
- * @property Tag[] $tags m:hasOne
+ * @property Tag[] $tags m:hasMany
+ *
+ * @method addToTodos(Todo $todo)
+ * @method removeFromTodos(Todo $todo)
+ * @method removeAllTodos()
  */
 class Todo extends Entity{
 

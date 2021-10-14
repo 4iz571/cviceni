@@ -10,6 +10,10 @@ use LeanMapper\Entity;
  * @property int $tagId
  * @property string $title
  * @property Todo[] $todos m:hasMany(:todo_tag::)
+ *
+ * @method addToTodos(Todo $todo)
+ * @method removeFromTodos(Todo $todo)
+ * @method removeAllTodos()
  */
 class Tag extends Entity{
 
