@@ -184,7 +184,7 @@ $values = $form->getValues(RegistrationFormData::class);
 ## Ukázkový příklad todolist
 :mega:
 1. stáhněte si **[SQL soubor](./todolist-db.sql)** s exportem databáze a naimportujte jeho obsah do MariaDB (nebojte, s předchozím příkladem nijak nekoliduje)
-2. stáhněte si složku [todolis](./todolist) s ukázkovým projektem, nahrajte jej na server (nezapomeňte na úpravu práv k adresářům log a temp)
+2. stáhněte si složku **[todolist](./todolist)** s ukázkovým projektem, nahrajte jej na server (nezapomeňte na úpravu práv k adresářům log a temp)
 3. otevřete si ukázkové projekty ve vývojovém prostředí
 4. v souboru **config/local.neon** přístupy k databázi
 
