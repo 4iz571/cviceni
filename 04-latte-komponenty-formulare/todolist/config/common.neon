@@ -19,3 +19,11 @@ services:
 	- LeanMapper\Connection(%database%)
 	- Vojir\LeanMapper\Mappers\CamelcaseUnderdashMapper('App\Model\Entities')
 	- LeanMapper\DefaultEntityFactory
+
+	- App\Model\Facades\TagsFacade
+	- App\Model\Facades\TodosFacade
+
+	- App\Model\Repositories\TagRepository
+	- App\Model\Repositories\TodoRepository
+
+	- App\Components\TagEditForm\TagEditFormFactory
