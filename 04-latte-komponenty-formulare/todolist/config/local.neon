@@ -1,0 +1,8 @@
+parameters:
+    database:
+        driver: mysqli
+        host: localhost
+        username: xname
+        password: heslokdatabazi
+        database: xname
+        encoding: utf8
