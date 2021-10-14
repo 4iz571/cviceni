@@ -34,4 +34,134 @@
     ```  
 
 
-*podklady budou doplněny před příslušným cvičením...*
+## Flash zprávy
+:point_right:
+- jednoduchý způsob, jak na webu zobrazovat potvrzovací či chybové hlášky (např. "položka byla uložena")
+- lze je generovat jak z presenterů, tak také z komponent
+
+```php
+$this->flashMessage('zpráva', 'error'); //2. parametr je volitelný, používá se pro odlišení typu zprávy - např. info, warning, error
+```
+
+## Komponenty
+:point_right:
+- komponenta = kousek aplikace, který se "stará sám o sebe"
+    - je vykreslitelný na místě, kde jej chceme použít
+    - umí reagovat na vlastní události (požadavky na zobrazení, signály)
+    - můžeme ho použít na různých místech v aplikaci
+- příkladem může být například hlasování v anketě, menu, zobrazení přihlášeného uživatele, formulář...
+- dnes si vysvětlíme jen jejich základy a poté se podrobněji podíváme na formuláře
+
+### Vytváření a použití komponent
+:point_right:
+- dobrou praxí je oddělit komponenty do samostatného adresáře, nejčastěji **app/Components**
+    - komponentu zabalíme do samostatného adresáře, ve kterém bude třída komponenty a její šablony
+- komponenta si může vyžádat libovolné potřebné závislosti (fasády atp.)
+
+:point_right:
+- v presenteru máme definovanou metodu **createComponentJmenoKomponenty**, např.:
+    ```php
+    protected function createComponentDemo():DemoControl {
+      return new DemoControl();
+    } 
+    ```
+- pro vytvoření komponenty se používá rozhraní, které nám předá patřičné závislosti a komponentu vytvoří (pokud tedy komponenta nějaké závislosti má)
+- v ostatních metodách presenteru (např. v renderXXX či actionXXX) získáme komponentu pomocí:
+    ```php
+    $demo = $this->getComponent('demo');
+    $demo->text='Lorem ipsum...';
+    ```
+
+:point_right:  
+- v šabloně můžeme komponentu vykreslit pomocí:
+    ```latte
+    {control demo} {*vykreslí komponentu demo pomocí její metody render()*}
+    {control demo} {*vykreslí komponentu demo pomocí její metody render()*}
+    {control demo:hello 'good morning'} {*vykreslí komponentu demo pomocí její metody renderHello s předáním parametru*}
+    {*pozor, při předání parametrů jako pole najdeme v render metodě toto pole celé v 1. parametru! (rozdíl oproti presenterům)*}
+    ```
+  
+:blue_book:
+- [ukázkový příklad DemoControl](./DemoControl)
+- [Komponenty na webu Nette](https://doc.nette.org/cs/3.1/components)  
+
+## Formuláře
+:point_right:  
+- určitě už jste se dost natrápili s psaním kontrol k formulářům a jejich zpracováním, ale v Nette je formulář prostě jedním z druhů komponent
+- formulář seskládáme v PHP, přičemž k jednotlivým prvkům (vstupním polím, tlačítkům atp.) definujeme jejich vlastnosti a HTML formulář s kontrolami se z toho seskládá sám
+- formulář už jsme používali i na minulé hodině (tady), ale dnes se na ně podíváme podrobněji
+- když načteme do stránky patřičný javascriptový soubor, fungují kontroly jak v javascriptu, tak v PHP
+
+:blue_book:
+- [Formuláře na webu Nette](https://doc.nette.org/cs/3.1/forms)
+
+### Vytvoření jednoduchého formuláře
+:point_right:
+1. vytvoříme instanci třídy **Nette\Application\UI\Form**
+2. přidáme jednotlivá pole, tlačítka atp.
+    - můžeme rozhodnout, zda je prvek povinný, nebo volitelný (pomocí **setRequired**)
+    - pomocí **addRule** přidáváme validační pravidla 
+    - pomocí **addFilter** můžeme doplnit ošetření vstupu
+3. přidáme reakci na odesílací tlačítka
+
+:point_right:
+```php
+use Nette\Application\UI\Form;
+
+$form=new Form();
+
+$form->addText('name','Jméno:')
+  ->setRequired('Vyplňte jméno!');
+
+$form->addEmail('email','E-mail:')
+  ->setRequired('Vyplňte e-mail!')
+  ->addFilter(function($value){
+    return mb_strtolower($value);
+  });
+
+$form->addInteger('age','Věk')
+  ->addRule(Form::RANGE, 'Věk musí být v rozmezí od %d do %d.', [15, 40]);
+
+$password=$form->addPassword('password', 'Heslo:');
+$password
+  ->setRequired('Musíte vyplnit heslo!')
+  // pokud není heslo delší než 8 znaků, musí obsahovat číslici
+  ->addCondition($form::MAX_LENGTH, 8)
+    ->addRule($form::PATTERN, 'Musí obsahovat číslici', '.*[0-9].*');;
+
+$form->addPassword('password2', 'Heslo znovu:')
+  ->addRule(Form::EQUAL, 'Hesla se neshodují!', $password);
+
+$form->addSubmit('submit','odeslat')
+  ->onClick[]=function(SubmitButton $submitButton){
+    $values = $submitButton->form->getValues('array'); //vrací ošetřené hodnoty
+    //TODO
+  };
+
+$form->addSubmit('cancel','zrušit')
+  ->setValidationScope([])//zrušíme validace
+  ->onClick[]=function(SubmitButton $submitButton){
+    //TODO
+  };
+```
+
+### Získání dat z formuláře
+:point_right:
+
+
+
+### Vykreslení formuláře v šabloně
+:point_right:
+- je fajn nechat vykreslení na automatice (můžeme použít také jiný renderer, např. pro bootstrap)
+    ```{control registrationForm}```
+- volitelně ale můžeme vykreslovat formulář také zcela ručně pomocí latte maker
+
+### Formuláře jako samostatné komponenty
+:point_right:
+- z třídy Form odvodíme vlastní třídu, volitelně bychom případně mohli formulář vložit jako vnitřní komponentu do té námi vytvořené
+- v praxi se mi osvědčilo, aby se o uložení dat atp. postarala komponenta formuláře, následně pak v presenteru již doplníme jen zobrazení hlášek a přesměrování
+- šablonu takovéto komponenty neřešíme, formulář se umí sám vykreslit 
+- pro vytvoření komponenty i se závislostmi využijeme možnost definovat jen interface, tovární třídu nám Nette vygeneruje samo
+
+## Ukázkový příklad todolist
+:mega:
