@@ -14,9 +14,9 @@ use LeanMapper\Entity;
  * @property bool $completed = false
  * @property Tag[] $tags m:hasMany
  *
- * @method addToTodos(Todo $todo)
- * @method removeFromTodos(Todo $todo)
- * @method removeAllTodos()
+ * @method addToTags(Tag $tag)
+ * @method removeFromTags(Tag $tag)
+ * @method removeAllTags()
  */
 class Todo extends Entity{
 
