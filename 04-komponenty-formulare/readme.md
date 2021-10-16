@@ -192,6 +192,7 @@ $values = $form->getValues(RegistrationFormData::class);
 :mega:
 1. podívejte se na strukturu databáze a doplňte do projektu entitu **TodoItem**, doplňte příslušný repozitář a chybějící metody do **TodosFacade**
 2. akce Todo:default by měla vypisovat seznam všech úkolů se znázorněním jejich stavu a tagů
-3. vytvořte formulář pro vytvoření/úpravu úkolu (entity **Todo**)
-4. vytvořte formulář pro vytvoření podúkolu (**TodoItem**)
-5. úkoly by mělo být možné označit jako hotové 
+3. podívejte se na to, jak je definován formulář **TagEditForm**
+
+:orange_book:
+- [Prezentace s postupem úprav todolistu](./todolist-todoitem-reseni.pptx)
