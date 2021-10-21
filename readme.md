@@ -18,4 +18,7 @@ Podklady ke cvičením kurzu *4IZ571 - Vývoj pokročilých aplikací v PHP* na 
 4. **[Komponenty a formuláře](./04-komponenty-formulare)**
     - Opakování práce s modelem, leanmapper
     - Komponenty
-    - Formuláře             
+    - Formuláře    
+5. **[Latte, procvičení komponent a formulářů](./05-latte-formulare)**
+    - Latte makra a filtry
+    - Procvičení práce s formuláři, práce na TodoListu             
