@@ -57,14 +57,94 @@
 - [Přehled maker (tagů) na webu Nette](https://latte.nette.org/cs/tags)
 
 ### Další poznámky k Latte
+:point_right: :blue_book:
 - podle zvoleného vývojového prostředí doporučuji nainstalovat odpovídající pluginy ([návod zde](https://latte.nette.org/cs/integrations))
 - volitelně se podívejte na možnosti [definice datových typů pro šablony](https://latte.nette.org/cs/type-system)
     - na cvičeních si vystačíme s ```{varType string $text}```
 
+---
 
-## Todolist - procvičení práce s formuláři
-
-
+## Todolist
+:mega:
+1. stejně jako na minulém cvičení si stáhněte **[ukázkový příklad pro tuto hodinu](./todolist2)**, nahrajte jej na server a zprovozněte (config, práva k adresářům)
+2. 
 3. vytvořte formulář pro vytvoření/úpravu úkolu (entity **Todo**)
 4. vytvořte formulář pro vytvoření podúkolu (**TodoItem**)
 5. úkoly by mělo být možné označit jako hotové
+
+### Persistentní proměnné
+:point_right:
+- je v tom trošku "magie", ale v presenteru či komponentách můžeme mít proměnné, které chceme automaticky přidávat ve všech požadavcích
+    - např. zvolený tag, podle kterého filtrujeme, chceme mít k dispozici i při návratu z editace úkolu
+    - obdobně můžeme chtít předávat např. aktuálně zvolený jazyk ve vícejazyčné aplikaci
+- takovouto proměnnou označíme dokumentačním komentářem:
+    ```php
+    class MujPresenter extends Nette\Application\UI\Presenter {
+      /** @persistent */
+      public int $page; //pozor, nastavení typu funguje až od PHP 7.4
+    }    
+    ```
+- z hlediska Nette bude proměnná automaticky přidána jako parametr ke všem požadavkům
+- pokud chceme hodnotu persistentní proměnné změnit, jednoduše přidáme do makra pro tvorbu odkazu její hodnotu:
+    ```latte
+    <a href="{link default page=>2}">další strana</a>
+    ```   
+- pokud budeme chtít nastavení persistentní proměnné smazat, nastavíme jí hodnotu ```null```
+
+
+### Paginator
+:point_right:
+- = pomůcka pro vyřešení stránkování
+- sám o sobě neřeší vykreslení v šabloně, ale je zahrnut v některých vizuálních komponentách
+
+:point_right:
+- vytvoření paginatoru v presenteru:
+    ```php
+    // Vyrobíme si instanci Paginatoru a nastavíme jej
+    $paginator = new Nette\Utils\Paginator;
+    $paginator->setItemCount($itemsCount); // celkový počet položek
+    $paginator->setItemsPerPage(10); // počet položek na stránce
+    $paginator->setPage($page); // číslo aktuální stránky
+    
+    $selectOffset = $paginator->offset;
+    $selectLimit = $paginator->length;
+  
+    $this->template->paginator = $paginator; //paginator si předáme do šablony, abychom měli údaje pro vykreslení stránkování
+    ```
+- jednoduchý příklad stránkování:
+    ```latte
+    <div class="pagination">
+        {if !$paginator->isFirst()}
+            <a n:href="default page=>($paginator->page-1)">Předchozí</a>
+        {/if}
+    
+        Stránka {$paginator->getPage()} z {$paginator->getPageCount()}
+    
+        {if !$paginator->isLast()}
+            <a n:href="default page=>($paginator->getPage()+1)">Další</a>		
+        {/if}
+    </div>
+    ```
+
+### Multiplier - jedna komponenta ve stránce víckrát
+:point_right:
+- v některých případech narážíme na to, že chceme jeden formulář (či jinou komponentu) vykreslit ve stránce víckrát
+    - např. v e-shopu chceme v přehledu položek u každé z nich pole pro přidání zvoleného počtu kusů do košíku
+- místo konkrétní komponenty vrátí metoda createComponent instanci třídy Nette\Application\UI\Multiplier, která si při callbacku dovytvoří příslušný formulář
+
+:point_right:
+```php
+protected function createComponentCartItemForm(): Multiplier {
+	return new Multiplier(function ($itemId) {
+		$form = $this->cartItemFormFactory->create();
+        $form->setDefaults(['itemId'=>$itemId]);
+		return $form;
+	}); 
+}
+```
+```latte
+{control "cartItemForm-$item->id"} {*vykreslí konkrétní formulář, do kterého bude předána při vytvoření předán parametr $itemId s hodnotou $item->id*}
+```
+
+:blue_book:
+- [návod k použití multiplieru](https://doc.nette.org/cs/3.1/cookbook/multiplier)
