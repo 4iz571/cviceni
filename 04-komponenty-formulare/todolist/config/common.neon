@@ -25,6 +25,5 @@ services:
 
 	- App\Model\Repositories\TagRepository
 	- App\Model\Repositories\TodoRepository
-	- App\Model\Repositories\TodoItemRepository
 
 	- App\Components\TagEditForm\TagEditFormFactory
