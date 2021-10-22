@@ -1,0 +1,47 @@
+{varType App\Model\Entities\Todo[] $todos}
+{block content}
+
+{*TODO tady by bylo fajn vypsat existující tagy a umožnit podle nich filtrování*}
+
+{if !empty($todos)}
+    <div class="card-columns">
+        {foreach $todos as $todo}
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title h4">{$todo->title}</h2>
+                    {if $todo->tags}
+                        <div>
+                            {foreach $todo->tags as $tag}
+                                <span class="badge badge-warning">{$tag->title}</span>
+                            {/foreach}
+                        </div>
+                    {/if}
+                    <div class="mt-1 mb-2">
+                        {if $todo->deadline}
+                            {if $todo->deadline->getTimestamp()<time()}
+                                Mělo být dokončeno: <strong class="text-danger">{$todo->deadline|date:'j.n.Y'}</strong>
+                            {else}
+                                Dokončit do: <strong>{$todo->deadline|date:'j.n.Y'}</strong>
+                            {/if}
+                        {else}
+                            <em class="text-muted">termín nezadán</em>
+                        {/if}
+                    </div>
+                    {*TODO vypište podúkoly jako seznam*}
+                    {*TODO akce pro zobrazení a označení za splněné*}
+                    {plink show id=>$todo->todoId}
+                </div>
+            </div>
+        {/foreach}
+    </div>
+
+    {*TODO tady by bylo hezké stránkování*}
+
+{else}
+    <p class="text-danger">nemáte žádné úkoly</p>
+{/if}
+
+<div>
+    {*TODO tady by bylo hezké tlačítko pro přidání nového úkolu*}
+    <a href="{plink Tag:default}" class="btn btn-light">správa tagů</a>
+</div>
