@@ -67,10 +67,40 @@
 ## Todolist
 :mega:
 1. stejně jako na minulém cvičení si stáhněte **[ukázkový příklad pro tuto hodinu](./todolist2)**, nahrajte jej na server a zprovozněte (config, práva k adresářům)
-2. 
+2. doplňme do šablony s výpisem úkolů možnost jejich filtrování podle tagů, zkuste doplnit také stránkování
 3. vytvořte formulář pro vytvoření/úpravu úkolu (entity **Todo**)
-4. vytvořte formulář pro vytvoření podúkolu (**TodoItem**)
-5. úkoly by mělo být možné označit jako hotové
+
+### Filtrování příspěvků podle vazby na tag
+:point_right:
+- zatím jsme používali jen velmi obecné metody, které jsou definované v BasePresenteru - ty ale podle vazby na další entitu filtrovat neumí
+    - => v rámci TodoRepository zkusíme upravit metody ```findAllBy``` a ```findCountBy```
+- na vaší volbě nechávám, zda chcete možnost filtrování podle tagu doplnit do obecného $whereArr, nebo dané funkci doplníte další parametr
+
+:point_right:
+- jedna z možných variant úpravy metody:
+  ```php
+  public function findAllByTagAndState($tagId = null, $completed = null, $offset = null, $limit = null){
+    $query = $this->connection->select('*')->from($this->getTable());
+    
+    if ($tagId){
+      //pokud je zadané požadované ID tagu, najdeme ho v navázané tabulce
+      $query->where('tag_id IN (SELECT tag_id FROM todo_tag WHERE todo_id=?)',$tagId); //místo ? bychom tu mohli mít také %s či %i
+    }
+    
+    if ($state!==null){
+      //pokud je zadaný požadovaný stav, budeme podle něj filtrovat
+      $query->where(['completed'=>$completed]);
+    }
+  
+    //necháme si úkoly seřadit podle stavu a deadline
+    $query->orderBy('completed');
+    $query->orderBy('%n IS NOT NULL','deadline');//%n označuje název sloupce
+    $query->orderBy('deadline');
+    
+    //necháme vytvořit entity
+    return $this->createEntities($query->fetchAll($offset, $limit));
+  }
+  ```
 
 ### Persistentní proměnné
 :point_right:
@@ -85,12 +115,14 @@
     }    
     ```
 - z hlediska Nette bude proměnná automaticky přidána jako parametr ke všem požadavkům
-- pokud chceme hodnotu persistentní proměnné změnit, jednoduše přidáme do makra pro tvorbu odkazu její hodnotu:
-    ```latte
-    <a href="{link default page=>2}">další strana</a>
-    ```   
+- pokud chceme hodnotu persistentní proměnné změnit, máme na výběr 2 varianty:
+    - změníme její hodnotu v presenteru před vykreslením šablony (např. do ní dáme hodnotu z formuláře)
+    - přidáme do makra pro tvorbu odkazu její hodnotu:
+        ```latte
+        <a href="{link default page=>2}">další strana</a>
+        ```   
 - pokud budeme chtít nastavení persistentní proměnné smazat, nastavíme jí hodnotu ```null```
-
+- **POZOR:** nezapomeňte, že jde o data získaná od uživatele (může je podstrčit do URL) => musíme zkontrolovat, že např. daná stránka vůbec je k dispozici 
 
 ### Paginator
 :point_right:
@@ -148,3 +180,11 @@ protected function createComponentCartItemForm(): Multiplier {
 
 :blue_book:
 - [návod k použití multiplieru](https://doc.nette.org/cs/3.1/cookbook/multiplier)
+
+---
+
+## Smazání adresáře cache
+:point_right:
+- pár z vás narazilo na potřebu smazat adresář *temp/cache*, ale smazání přes sftp připojení k serveru eso.vse.cz nefunguje. Problém je v uživatelských právech, neboť dané soubory byly vytvořeny z PHP, které běží na serveru pod vlastním uživatelem
+    - => smazat daný obsah může zase PHP
+- nahrajte do složky *www* soubor [deleteCacheDir.php](./deleteCacheDir.php) a načtěte jej přes prohlížeč       
