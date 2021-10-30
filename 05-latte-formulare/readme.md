@@ -84,10 +84,10 @@
     
     if ($tagId){
       //pokud je zadané požadované ID tagu, najdeme ho v navázané tabulce
-      $query->where('tag_id IN (SELECT tag_id FROM todo_tag WHERE todo_id=?)',$tagId); //místo ? bychom tu mohli mít také %s či %i
+      $query->where('todo_id IN (SELECT todo_id FROM todo_tag WHERE tag_id=?)',$tagId); //místo ? bychom tu mohli mít také %s či %i
     }
     
-    if ($state!==null){
+    if ($completed!==null){
       //pokud je zadaný požadovaný stav, budeme podle něj filtrovat
       $query->where(['completed'=>$completed]);
     }
