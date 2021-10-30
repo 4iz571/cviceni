@@ -187,4 +187,16 @@ protected function createComponentCartItemForm(): Multiplier {
 :point_right:
 - pár z vás narazilo na potřebu smazat adresář *temp/cache*, ale smazání přes sftp připojení k serveru eso.vse.cz nefunguje. Problém je v uživatelských právech, neboť dané soubory byly vytvořeny z PHP, které běží na serveru pod vlastním uživatelem
     - => smazat daný obsah může zase PHP
-- nahrajte do složky *www* soubor [deleteCacheDir.php](./deleteCacheDir.php) a načtěte jej přes prohlížeč       
+- nahrajte do složky *www* soubor [deleteCacheDir.php](./deleteCacheDir.php) a načtěte jej přes prohlížeč     
+
+---
+
+## Praktické řešení úkolů spojených s Todolistem
+:point_right:
+Na začátku [úkolů spojených s Todolistem](#todolist) bylo požadováno, abychom do aplikace doplnili formulář pro editaci úkolů, filtrování úkolů podle zvoleného tagu a stránkování.
+V následujících prezentacích najdete podrobně popsaný postup řešení.  
+
+:orange_book:
+1. **[prezentace s postupem - formulář pro úpravu úkolů](./todolist2-reseni-1-formular.pptx)** ([prezentace](./todolist2-reseni-1-formular.pptx), [hotový kód](./todolist2-reseni-1-formular.zip))
+2. **[prezentace s postupem - úprava tagů přiřazených k úkolu, označení hotových úkolů](./todolist2-reseni-2-formular-tagy-stav.pptx)** ([prezentace](./todolist2-reseni-2-formular-tagy-stav.pptx), [hotový kód](./todolist2-reseni-2-formular-tagy-stav.zip))
+3. **[prezentace s postupem - filtrování podle tagu, stránkování](./todolist2-reseni-3-filtrovani-strankovani.pptx)**
