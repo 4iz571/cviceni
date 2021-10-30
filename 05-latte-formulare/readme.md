@@ -197,6 +197,6 @@ Na začátku [úkolů spojených s Todolistem](#todolist) bylo požadováno, aby
 V následujících prezentacích najdete podrobně popsaný postup řešení.  
 
 :orange_book:
-1. **[prezentace s postupem - formulář pro úpravu úkolů](./todolist2-reseni-1-formular.pptx)** ([prezentace](./todolist2-reseni-1-formular.pptx), [hotový kód](./todolist2-reseni-1-formular.zip))
-2. **[prezentace s postupem - úprava tagů přiřazených k úkolu, označení hotových úkolů](./todolist2-reseni-2-formular-tagy-stav.pptx)** ([prezentace](./todolist2-reseni-2-formular-tagy-stav.pptx), [hotový kód](./todolist2-reseni-2-formular-tagy-stav.zip))
-3. **[prezentace s postupem - filtrování podle tagu, stránkování](./todolist2-reseni-3-filtrovani-strankovani.pptx)**
+1. [prezentace s postupem - formulář pro úpravu úkolů](./todolist2-reseni-1-formular.pptx) ([prezentace](./todolist2-reseni-1-formular.pptx), [hotový kód](./todolist2-reseni-1-formular.zip))
+2. [prezentace s postupem - úprava tagů přiřazených k úkolu, označení hotových úkolů](./todolist2-reseni-2-formular-tagy-stav.pptx) ([prezentace](./todolist2-reseni-2-formular-tagy-stav.pptx), [hotový kód](./todolist2-reseni-2-formular-tagy-stav.zip))
+3. [prezentace s postupem - filtrování podle tagu, stránkování](./todolist2-reseni-3-filtrovani-strankovani.pptx)
