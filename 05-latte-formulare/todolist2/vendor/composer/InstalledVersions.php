@@ -19,7 +19,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '663d00dd1699f1cf3b340f43506c6bb9e82eae57',
+    'reference' => '943eef3dc4a552769c31c43f2c8a581b8e165911',
     'name' => '4iz571/todolist',
   ),
   'versions' => 
@@ -31,7 +31,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '663d00dd1699f1cf3b340f43506c6bb9e82eae57',
+      'reference' => '943eef3dc4a552769c31c43f2c8a581b8e165911',
     ),
     'dg/dibi' => 
     array (
@@ -51,12 +51,12 @@ private static $installed = array (
     ),
     'latte/latte' => 
     array (
-      'pretty_version' => 'v2.10.4',
-      'version' => '2.10.4.0',
+      'pretty_version' => 'v2.10.5',
+      'version' => '2.10.5.0',
       'aliases' => 
       array (
       ),
-      'reference' => '6e0540c60805b33148dc95db2602a087fb2ef9fb',
+      'reference' => '0138a26efe7a2a448769f6ba490bfaae8fe7ab50',
     ),
     'nette/application' => 
     array (
@@ -96,12 +96,12 @@ private static $installed = array (
     ),
     'nette/di' => 
     array (
-      'pretty_version' => 'v3.0.10',
-      'version' => '3.0.10.0',
+      'pretty_version' => 'v3.0.11',
+      'version' => '3.0.11.0',
       'aliases' => 
       array (
       ),
-      'reference' => '4f0cb0b3f032a9106aa3fb29e33da381564716c2',
+      'reference' => '942e406f63b88b57cb4e095ae0fd95c103d12c5b',
     ),
     'nette/finder' => 
     array (
@@ -141,21 +141,21 @@ private static $installed = array (
     ),
     'nette/neon' => 
     array (
-      'pretty_version' => 'v3.2.2',
-      'version' => '3.2.2.0',
+      'pretty_version' => 'v3.3.0',
+      'version' => '3.3.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'e4ca6f4669121ca6876b1d048c612480e39a28d5',
+      'reference' => '33d262a0c4fb6c6371385f6dc8532f4e32c20ebc',
     ),
     'nette/php-generator' => 
     array (
-      'pretty_version' => 'v3.6.2',
-      'version' => '3.6.2.0',
+      'pretty_version' => 'v3.6.4',
+      'version' => '3.6.4.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'bce6abcd4090ab5eec24b78f26c753c6525a425c',
+      'reference' => 'b8375ac20760c62b6816f8c2eaeabbbca305eed7',
     ),
     'nette/robot-loader' => 
     array (
@@ -177,21 +177,21 @@ private static $installed = array (
     ),
     'nette/schema' => 
     array (
-      'pretty_version' => 'v1.2.1',
-      'version' => '1.2.1.0',
+      'pretty_version' => 'v1.2.2',
+      'version' => '1.2.2.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'f5ed39fc96358f922cedfd1e516f0dadf5d2be0d',
+      'reference' => '9a39cef03a5b34c7de64f551538cbba05c2be5df',
     ),
     'nette/security' => 
     array (
-      'pretty_version' => 'v3.1.4',
-      'version' => '3.1.4.0',
+      'pretty_version' => 'v3.1.5',
+      'version' => '3.1.5.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'a78bbb9d2260fffd898701b1ebdafcc797acb663',
+      'reference' => 'c120893f561b09494486c66594720b2abcb099b2',
     ),
     'nette/utils' => 
     array (
@@ -204,12 +204,12 @@ private static $installed = array (
     ),
     'tharos/leanmapper' => 
     array (
-      'pretty_version' => 'v4.0.0',
-      'version' => '4.0.0.0',
+      'pretty_version' => 'v4.0.1',
+      'version' => '4.0.1.0',
       'aliases' => 
       array (
       ),
-      'reference' => '493b3346f93ae8ebcb3d61d04d29865f56a4e932',
+      'reference' => 'e8508cbff1cf189cda4c8786e41c59a2f21effd1',
     ),
     'tracy/tracy' => 
     array (
@@ -222,12 +222,12 @@ private static $installed = array (
     ),
     'vojir/leanmapper-mappers' => 
     array (
-      'pretty_version' => 'v1.0',
-      'version' => '1.0.0.0',
+      'pretty_version' => 'v1.1',
+      'version' => '1.1.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '8dff46a677c34b3ebc34808d36402929f3f65029',
+      'reference' => '41f97861ffb238748de80c21dbf1c566dd764c73',
     ),
   ),
 );

@@ -14,7 +14,7 @@ abstract class BaseRepository extends \LeanMapper\Repository {
       ->where($this->mapper->getPrimaryKey($this->getTable()) . '= %i', $id)
       ->fetch();
 
-    if ($row === false) {
+    if (!$row) {
       throw new \Exception('Entity was not found.');
     }
     return $this->createEntity($row);
@@ -42,7 +42,7 @@ abstract class BaseRepository extends \LeanMapper\Repository {
       $query = $query->where($whereArr);
     }
     $row = $query->fetch();
-    if ($row === false) {
+    if (!$row) {
       throw new \Exception('Entity was not found.');
     }
     return $this->createEntity($row);

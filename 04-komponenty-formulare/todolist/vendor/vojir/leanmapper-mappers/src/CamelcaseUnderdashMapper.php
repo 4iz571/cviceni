@@ -44,7 +44,7 @@ class CamelcaseUnderdashMapper implements IMapper{
    * @return string
    */
   public function getRelationshipColumn(string $sourceTable, string $targetTable, ?string $relationshipName = null):string {
-    return ($relationshipName !== null ? $relationshipName.'_id' : $this->getPrimaryKey($targetTable));
+    return ($relationshipName !== null ? self::camelToUnderdash($relationshipName).'_id' : $this->getPrimaryKey($targetTable));
   }
 
   /**

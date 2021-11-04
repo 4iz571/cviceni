@@ -48,7 +48,7 @@ class CamelcaseUnderdashPluralMapper implements IMapper{
    * @return string
    */
   public function getRelationshipColumn(string $sourceTable, string $targetTable, ?string $relationshipName = null):string {
-    return ($relationshipName !== null ? $relationshipName.'_id' : $this->getPrimaryKey($targetTable));
+    return ($relationshipName !== null ? self::camelToUnderdash($relationshipName).'_id' : $this->getPrimaryKey($targetTable));
   }
 
   /**
@@ -73,7 +73,7 @@ class CamelcaseUnderdashPluralMapper implements IMapper{
    */
   public function getTable(string $entityClass):string {
     $tableName=self::camelToUnderdash(self::trimNamespace($entityClass));
-    switch (substr($entityClass,-1)){
+    switch (substr($tableName,-1)){
       case 'y': return substr($tableName, 0, -1).'ies';
       case 'a': return $tableName;
       default:  return $tableName.'s';
