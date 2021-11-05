@@ -123,12 +123,33 @@ V zásadě máme 3 základní varianty rozdělení uživatelských práv:
 ## Posílání mailů
 :point_right:
 - posílání mailů budeme potřebovat např. k obnově zapomenutého hesla, ale bude se hodit např. také pro posílání potvrzení objednávky z e-shopu, rozesílání novinek atp.
-- většinou dnes posíláme maily v HTML, ale neměli bychom zapomínat na to, že se musí přijatelně zobrazit ve všech e-mailových klientech (nemůžeme počítat s plnou podporou stylů atp.) 
+- většinou dnes posíláme maily v HTML, ale neměli bychom zapomínat na to, že se musí přijatelně zobrazit ve všech e-mailových klientech (nemůžeme počítat s plnou podporou stylů atp.)
+- pozor, když budete posílat maily ze serveru eso.vse.cz, pamatujte, že je jde posílat jen na adresy končící na @vse.cz 
 
 :blue_book:
 - abychom se trochu seznámili s webem Nette, zkuste se podívat na něj na  [informace k odesílání mailů](https://doc.nette.org/cs/3.1/mailing)
 
 :point_right:
+Malá ochutnávka možností:
 ```php
+//sestavení mailu
+$mail = new Nette\Mail\Message();
+$mail->setFrom('xname@vse.cz','Jméno odesílatele');
+$mail->addTo('xname@vse.cz','Jméno adresáta');
+$mail->subject = 'Ukázkový mail';
+$mail->htmlBody = 'Obsah <strong>ukázkového mailu</strong>';
+$mail->addAttachment('dokument.pdf',file_get_contents(__DIR__.'/dokument.pdf'));
 
+//možnost poslání pomocí PHP funkce mail
+$mailer = new Nette\Mail\SendmailMailer;
+$mailer->send($mail);
+
+//možnost poslání přes normální SMTP server
+$smtpMailer = new Nette\Mail\SmtpMailer([
+	'host' => 'smtp.gmail.com',
+	'username' => 'user@gmail.com',
+	'password' => '*****',
+	'secure' => 'ssl',
+]);
+$smtpMailer->send($mail);
 ```
