@@ -68,7 +68,33 @@ if ($passwords->verify($zadaneHeslo)){
 4. v souboru **config/local.neon** přístupy k databázi
 
 :mega:
+
 5. aplikaci si vyzkoušejte a poté se podívejte na zdrojový kód
 6. zkusme upravit aplikaci tak, aby pro přístup do aplikace bylo vyžadováno přihlášení
  
-## Co může uživatel v databázi dělat?
+## Co může uživatel v databázi dělat? A jak to zkontrolujeme?
+:point_right:
+V zásadě máme 3 základní varianty rozdělení uživatelských práv:
+1. pouze kontrolujeme, jestli je uživatel přihlášen a např. u příspěvků kontrolujeme ID uživatele
+2. oprávnění na základě **rolí** (ať už má uživatel jednu, nebo jich má přiřazeno více)
+    - při přihlášení uživatele mu přiřadíme jednu či několik rolí
+    - kontrolujeme, jestli uživatel má danou roli - např.
+        ```php
+        $this->user->isInRole('admin');
+        ```
+3. oprávnění postavené na **kombinaci rolí a zdrojů**
+    - v rámci aplikace implementujeme autorizátor, který ověřuje oprávnění ke konkrétním činnostem nad zvoleným zdrojem - např.: 
+        ```php
+        $user->isAllowed('Note','edit');  
+        ```
+
+### Definice rolí a zdrojů
+:point_right:
+- pro větší flexibilitu doporučuji si uložit seznam rolí, zdrojů a oprávnění do databáze
+- v zásadě potřebujeme:
+    - tabulku **role**
+        - nutně bude obsahovat jen role_id, ale volitelně tam mohou být např. jejich smysluplné názvy pro zobrazení v administraci
+    - tabulku **resource**
+        - bude obsahovat seznam zdrojů (tj. resource_id)
+    - tabulku **permission**
+        - bude obsahovat oprávění rolí ke konkrétním činnostem se zdroji
