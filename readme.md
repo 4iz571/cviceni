@@ -21,4 +21,5 @@ Podklady ke cvičením kurzu *4IZ571 - Vývoj pokročilých aplikací v PHP* na 
     - Formuláře    
 5. **[Latte, procvičení komponent a formulářů](./05-latte-formulare)**
     - Latte makra a filtry
-    - Procvičení práce s formuláři, práce na TodoListu             
+    - Procvičení práce s formuláři, práce na TodoListu
+6. **[Uživatelé, posílání e-mailů](./06-uzivatele-maily)**                 

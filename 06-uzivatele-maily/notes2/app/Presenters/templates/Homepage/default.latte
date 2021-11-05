@@ -1,0 +1,33 @@
+{varType App\Model\Entities\Note[] $notes}
+
+{block content}
+
+{if $user->isLoggedIn()}
+
+  <p>Přihlášený uživatel <strong>{$user->identity->name}</strong> - <a href="{link User:logout}">odhlásit se</a></p>
+
+  {if !empty($notes)}
+    <section class="row">
+      {foreach $notes as $note}
+        <div class="col-md-6 col-lg-4 my-2 bg-light">
+          <h3 class="h4">{$note->title}</h3>
+          <p>{$note->text|breaklines}</p>
+          <p class="text-right">{$note->author->name}</p>
+          <div>
+            <a href="{link edit id=>$note->noteId}" class="btn btn-outline-primary">upravit</a>
+            <a href="{link delete id=>$note->noteId}" class="btn btn-outline-danger">smazat</a>
+          </div>
+        </div>
+      {/foreach}
+    </section>
+  {else}
+    <p class="text-muted">Nejsou k dispozici žádné příspěvky.</p>
+  {/if}
+
+  <a href="{link add}" class="btn btn-primary">nový příspěvek</a>
+  <a href="{link Category:list}" class="btn btn-outline-primary">správa kategorií</a>
+
+{else}
+  <a href="{link User:login}" class="btn btn-primary">přihlásit se</a>
+  <a href="{link User:register}" class="btn btn-primary">registrovat se</a>
+{/if}
