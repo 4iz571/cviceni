@@ -24,7 +24,7 @@ $passwords = new \Nette\Security\Passwords(PASSWORD_BCRYPT, ['cost' => 12]);
 $hash = $passwords->hash($zadaneHeslo);
 
 //ověření hesla při přihlášení uživatele
-if ($passwords->verify($zadaneHeslo)){
+if ($passwords->verify($zadaneHeslo, $hash)){
   //TODO přihlášení uživatele
 }
 ```
@@ -98,6 +98,10 @@ V zásadě máme 3 základní varianty rozdělení uživatelských práv:
         - bude obsahovat seznam zdrojů (tj. resource_id)
     - tabulku **permission**
         - bude obsahovat oprávění rolí ke konkrétním činnostem se zdroji
+
+:point_right:
+- vhodným typem "zdroje" jsou presentery, vykonávané činnosti jsou pak jednotlivé akce
+- dalším vhodným typem "zdroje" jsou jednotlivé entity, u kterých potřebujeme individuálně kontrolovat oprávnění - např. může jít o poznámku na nástěnce, kterou by mohl editovat jen její autor
         
 ### Ukázková aplikace notes3
 :mega:
@@ -107,8 +111,24 @@ V zásadě máme 3 základní varianty rozdělení uživatelských práv:
 3. otevřete si ukázkové projekty ve vývojovém prostředí
 4. v souboru **config/local.neon** přístupy k databázi
 
+:mega:
+
+5. podívejte se na implementaci autorizátoru (třída *App\Model\Authorizator\Authorizator*)
+    - autorizátor je automaticky načten díky DI do objektu *user*, používá se pro ověřování oprávnění pomocí ```$user->isAllowed($resource, $action)```
+    - v rámci této aplikace jsou zdroji jednotlivé presentery
+6. zkuste doplnit do aplikace přiřazení role uživateli a její načtení v autentizátoru    
+
 ---
 
 ## Posílání mailů
+:point_right:
+- posílání mailů budeme potřebovat např. k obnově zapomenutého hesla, ale bude se hodit např. také pro posílání potvrzení objednávky z e-shopu, rozesílání novinek atp.
+- většinou dnes posíláme maily v HTML, ale neměli bychom zapomínat na to, že se musí přijatelně zobrazit ve všech e-mailových klientech (nemůžeme počítat s plnou podporou stylů atp.) 
+
 :blue_book:
-- [Informace k odesílání mailů na webu Nette](https://doc.nette.org/cs/3.1/mailing)
+- abychom se trochu seznámili s webem Nette, zkuste se podívat na něj na  [informace k odesílání mailů](https://doc.nette.org/cs/3.1/mailing)
+
+:point_right:
+```php
+
+```
