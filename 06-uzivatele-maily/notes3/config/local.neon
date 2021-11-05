@@ -1,0 +1,12 @@
+parameters:
+    database:
+        driver: mysqli
+        host: localhost
+        username: xname
+        password: heslokdatabazi
+        database: xname
+        encoding: utf8
+
+php:
+	date.timezone: Europe/Prague
+	error_reporting: E_ALL &~E_USER_WARNING
