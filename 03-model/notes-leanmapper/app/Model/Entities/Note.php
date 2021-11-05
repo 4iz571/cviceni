@@ -2,6 +2,7 @@
 
 namespace App\Model\Entities;
 
+use Dibi\DateTime;
 use LeanMapper\Entity;
 
 /**
@@ -11,7 +12,7 @@ use LeanMapper\Entity;
  * @property Category $category m:hasOne
  * @property string $title
  * @property string $text
- * @property \DateTime|null $updated
+ * @property DateTime|null $updated
  */
 class Note extends Entity{
 
