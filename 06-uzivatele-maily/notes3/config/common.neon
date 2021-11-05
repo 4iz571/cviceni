@@ -21,6 +21,7 @@ services:
 	- LeanMapper\DefaultEntityFactory
 
 	- App\Model\Authenticator\Authenticator
+	- App\Model\Authorization\Authorizator
 
 	- App\Components\CategoryEditForm\CategoryEditFormFactory
 	- App\Components\NoteEditForm\NoteEditFormFactory
@@ -34,3 +35,6 @@ services:
 	- App\Model\Repositories\CategoryRepository
 	- App\Model\Repositories\NoteRepository
 	- App\Model\Repositories\UserRepository
+	- App\Model\Repositories\PermissionRepository
+	- App\Model\Repositories\ResourceRepository
+	- App\Model\Repositories\RoleRepository

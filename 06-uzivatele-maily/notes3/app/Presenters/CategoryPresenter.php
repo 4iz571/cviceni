@@ -11,7 +11,7 @@ use App\Model\Facades\CategoriesFacade;
  * Class CategoryPresenter
  * @package App\Presenters
  */
-class CategoryPresenter extends \Nette\Application\UI\Presenter {
+class CategoryPresenter extends BasePresenter {
   /** @var CategoriesFacade $categoriesFacade */
   private /*CategoriesFacade*/ $categoriesFacade;
   /** @var CategoryEditFormFactory $categoryEditFormFactory */

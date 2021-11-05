@@ -13,7 +13,7 @@ use Nette;
  * Class UserPresenter - presenter pro akce týkající se uživatelů
  * @package App\Presenters
  */
-class UserPresenter extends Nette\Application\UI\Presenter{
+class UserPresenter extends BasePresenter{
   /** @var UsersFacade $usersFacade */
   private $usersFacade;
   /** @var UserLoginFormFactory $userLoginFormFactory */
@@ -30,6 +30,26 @@ class UserPresenter extends Nette\Application\UI\Presenter{
       $this->user->logout();
     }
     $this->redirect('Homepage:default');
+  }
+
+  /**
+   * Akce pro přihlášení - pokud už je uživatel přihlášen, tak ho jen přesměrujeme na homepage
+   * @throws Nette\Application\AbortException
+   */
+  public function actionLogin(){
+    if ($this->user->isLoggedIn()){
+      $this->redirect('Homepage:default');
+    }
+  }
+
+  /**
+   * Akce pro registraci - pokud už je uživatel přihlášen, tak ho jen přesměrujeme na homepage
+   * @throws Nette\Application\AbortException
+   */
+  public function actionRegister(){
+    if ($this->user->isLoggedIn()){
+      $this->redirect('Homepage:default');
+    }
   }
 
   /**

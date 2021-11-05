@@ -7,7 +7,7 @@ use App\Components\NoteEditForm\NoteEditFormFactory;
 use App\Model\Facades\NotesFacade;
 use Nette;
 
-class HomepagePresenter extends Nette\Application\UI\Presenter{
+class HomepagePresenter extends BasePresenter{
   /** @var NotesFacade $notesFacade */
   private $notesFacade;
   /** @var NoteEditFormFactory $noteEditFormFactory */

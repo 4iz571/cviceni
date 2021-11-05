@@ -63,7 +63,7 @@ if ($passwords->verify($zadaneHeslo)){
 ### Ukázková aplikace notes2
 :mega:
 1. stáhněte si **[SQL soubor notes2-db.sql](./notes2-db.sql)** s exportem databáze a naimportujte jeho obsah do MariaDB (případné stejně pojmenované tabulky z předchozího příkladu smažte)
-2. stáhněte si složku **[todolist](./todolist)** s ukázkovým projektem, nahrajte jej na server (nezapomeňte na úpravu práv k adresářům log a temp)
+2. stáhněte si složku **[notes2](./notes2)** s ukázkovým projektem, nahrajte jej na server (nezapomeňte na úpravu práv k adresářům log a temp)
 3. otevřete si ukázkové projekty ve vývojovém prostředí
 4. v souboru **config/local.neon** přístupy k databázi
 
@@ -98,3 +98,17 @@ V zásadě máme 3 základní varianty rozdělení uživatelských práv:
         - bude obsahovat seznam zdrojů (tj. resource_id)
     - tabulku **permission**
         - bude obsahovat oprávění rolí ke konkrétním činnostem se zdroji
+        
+### Ukázková aplikace notes3
+:mega:
+1. stáhněte si **[SQL soubor notes3-diff-db.sql](./notes3-diff-db.sql)** s exportem databáze a naimportujte jeho obsah do MariaDB (jde o další část databáze k verzi [notes2](./notes2-db.sql))
+2. prozkoumejte strukturu nově přidaných tabulek
+2. stáhněte si složku **[notes3](./notes3)** s ukázkovým projektem, nahrajte jej na server (nezapomeňte na úpravu práv k adresářům log a temp)
+3. otevřete si ukázkové projekty ve vývojovém prostředí
+4. v souboru **config/local.neon** přístupy k databázi
+
+---
+
+## Posílání mailů
+:blue_book:
+- [Informace k odesílání mailů na webu Nette](https://doc.nette.org/cs/3.1/mailing)
