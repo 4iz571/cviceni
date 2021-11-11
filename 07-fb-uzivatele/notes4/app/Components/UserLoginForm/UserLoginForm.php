@@ -2,8 +2,6 @@
 
 namespace App\Components\UserLoginForm;
 
-use App\Model\Entities\Category;
-use App\Model\Entities\User;
 use App\Model\Facades\UsersFacade;
 use Nette;
 use Nette\Application\UI\Form;
