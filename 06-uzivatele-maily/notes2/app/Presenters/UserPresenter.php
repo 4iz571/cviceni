@@ -62,6 +62,7 @@ class UserPresenter extends Nette\Application\UI\Presenter{
     $form=$this->userRegistrationFormFactory->create();
     $form->onFinished[]=function()use($form){
       $values=$form->getValues('array');
+
       try{
         //po registraci uživatele rovnou i přihlásíme
         $this->user->login($values['email'],$values['password']);
@@ -69,6 +70,8 @@ class UserPresenter extends Nette\Application\UI\Presenter{
       }catch (\Exception $e){
         $this->flashMessage('Při registraci se vyskytla chyba','error');
       }
+
+
       $this->redirect('Homepage:default');
     };
     $form->onCancel[]=function()use($form){

@@ -2,7 +2,6 @@
 
 namespace App\Components\UserLoginForm;
 
-use App\Model\Facades\UsersFacade;
 use Nette;
 use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
@@ -28,7 +27,6 @@ class UserLoginForm extends Form{
    * UserRegistrationForm constructor.
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
-   * @param UsersFacade $usersFacade
    */
   public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);

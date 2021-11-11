@@ -84,6 +84,13 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
     return $form;
   }
 
+  protected function startup(){
+    parent::startup();
+    if (!$this->user->isLoggedIn()){
+      $this->redirect('User:login');
+    }
+  }
+
   #region injections
   public function injectCategoriesFacade(CategoriesFacade $categoriesFacade){
     $this->categoriesFacade=$categoriesFacade;
