@@ -27,12 +27,15 @@ services:
 	- App\Components\NoteEditForm\NoteEditFormFactory
 	- App\Components\UserLoginForm\UserLoginFormFactory
 	- App\Components\UserRegistrationForm\UserRegistrationFormFactory
+	- App\Components\ForgottenPasswordForm\ForgottenPasswordFormFactory
+	- App\Components\NewPasswordForm\NewPasswordFormFactory
 
 	- App\Model\Facades\CategoriesFacade
 	- App\Model\Facades\NotesFacade
 	- App\Model\Facades\UsersFacade
 
 	- App\Model\Repositories\CategoryRepository
+	- App\Model\Repositories\ForgottenPasswordRepository
 	- App\Model\Repositories\NoteRepository
 	- App\Model\Repositories\UserRepository
 	- App\Model\Repositories\PermissionRepository

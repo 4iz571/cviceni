@@ -2,14 +2,19 @@
 
 namespace App\Model\Facades;
 
+use App\Model\Entities\ForgottenPassword;
 use App\Model\Entities\Permission;
 use App\Model\Entities\Resource;
 use App\Model\Entities\Role;
 use App\Model\Entities\User;
+use App\Model\Repositories\ForgottenPasswordRepository;
 use App\Model\Repositories\PermissionRepository;
 use App\Model\Repositories\ResourceRepository;
 use App\Model\Repositories\RoleRepository;
 use App\Model\Repositories\UserRepository;
+use LeanMapper\Exception\InvalidStateException;
+use Nette\Utils\Helpers;
+use Nette\Utils\Random;
 
 /**
  * Class UsersFacade
@@ -24,12 +29,17 @@ class UsersFacade{
   private $roleRepository;
   /** @var ResourceRepository $resourceRepository */
   private $resourceRepository;
+  /** @var ForgottenPasswordRepository $forgottenPasswordRepository */
+  private $forgottenPasswordRepository;
 
-  public function __construct(UserRepository $userRepository, PermissionRepository $permissionRepository, RoleRepository $roleRepository, ResourceRepository $resourceRepository){
+  public function __construct(UserRepository $userRepository, PermissionRepository $permissionRepository,
+                              RoleRepository $roleRepository, ResourceRepository $resourceRepository,
+                              ForgottenPasswordRepository $forgottenPasswordRepository){
     $this->userRepository=$userRepository;
     $this->permissionRepository=$permissionRepository;
     $this->roleRepository=$roleRepository;
     $this->resourceRepository=$resourceRepository;
+    $this->forgottenPasswordRepository=$forgottenPasswordRepository;
   }
 
   /**
@@ -60,6 +70,53 @@ class UsersFacade{
   public function saveUser(User &$user) {
     return (bool)$this->userRepository->persist($user);
   }
+
+  #region metody pro zapomenuté heslo
+  /**
+   * Metoda pro vygenerování a uložení nového záznamu pro obnovu hesla
+   * @param User $user
+   * @return ForgottenPassword
+   * @throws \LeanMapper\Exception\InvalidArgumentException
+   */
+  public function saveNewForgottenPasswordCode(User $user):ForgottenPassword {
+    $forgottenPassword=new ForgottenPassword();
+    $forgottenPassword->user=$user;
+    $forgottenPassword->code=Random::generate(10);
+    $this->forgottenPasswordRepository->persist($forgottenPassword);
+    return $forgottenPassword;
+  }
+
+  /**
+   * Metoda pro ověření, zda je platný zadaný kód pro obnovu uživatelského účtu
+   * @param User|int $user
+   * @param string $code
+   * @return bool
+   */
+  public function isValidForgottenPasswordCode($user, string $code):bool {
+    if ($user instanceof User){
+      $user=$user->userId;
+    }
+    $this->forgottenPasswordRepository->deleteOldForgottenPasswords();
+    try{
+      $this->forgottenPasswordRepository->findBy(['user_id'=>$user, 'code'=>$code]);
+      return true;
+    }catch (\Exception $e){
+      return false;
+    }
+  }
+
+  /**
+   * Metoda pro jednoduché smazání kódů pro obnovu hesla pro konkrétního uživatele
+   * @param User $user
+   */
+  public function deleteForgottenPasswordsByUser(User $user){
+    try{
+      $this->forgottenPasswordRepository->delete(['user_id' => $user->userId]);
+    }catch (InvalidStateException $e){
+      //ignore error
+    }
+  }
+  #endregion metody pro zapomenuté heslo
 
   #region metody pro authorizator
   /**

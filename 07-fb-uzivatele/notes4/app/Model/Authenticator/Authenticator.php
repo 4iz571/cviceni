@@ -37,6 +37,9 @@ class Authenticator implements \Nette\Security\Authenticator{
     if ($this->passwords->verify($password, $user->password)){
       //hash hesla byl ověřen
       $roles=['authenticated'];
+      if (!empty($user->role)){
+        $roles[]=$user->role->roleId;
+      }
       return new SimpleIdentity($user->userId,$roles,['name'=>$user->name,'email'=>$user->email]);
     }else{
       throw new AuthenticationException('Chybná kombinace e-mailu a hesla.');
