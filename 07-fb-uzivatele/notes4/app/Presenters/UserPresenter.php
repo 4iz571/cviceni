@@ -29,7 +29,9 @@ class UserPresenter extends BasePresenter{
   private $forgottenPasswordFormFactory;
   /** @var NewPasswordFormFactory $newPasswordFormFactory */
   private $newPasswordFormFactory;
-
+/** @var FacebookApi $facebookApi */
+  private $facebookApi;
+  
   /**
    * Akce pro odhlášení uživatele
    * @throws Nette\Application\AbortException
@@ -61,6 +63,17 @@ class UserPresenter extends BasePresenter{
     }
   }
 
+  /**
+   * Akce pro přihlášení pomocí Facebooku
+   * @param bool $callback
+   */
+  public function actionFacebookLogin(bool $callback=false){
+
+    //TODO tady bude přihlášení pomocí App\Model\Api\Facebook\FacebookApi
+    //proměnnou $callback použijeme pro rozlišení, zda jde o první zaslání požadavku, nebo o návrat z FB
+
+  }
+  
   /**
    * Akce pro zadání nového hesla v rámci jeho obnovy
    * @param int $user
@@ -194,6 +207,10 @@ class UserPresenter extends BasePresenter{
 
   public function injectNewPasswordFormFactory(NewPasswordFormFactory $newPasswordFormFactory){
     $this->newPasswordFormFactory=$newPasswordFormFactory;
+  }
+
+  public function injectFacebookApi( FacebookApi $facebookApi){
+    $this->facebookApi=$facebookApi;
   }
   #endregion injections
 }
