@@ -8,12 +8,17 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
 {
     public static $files = array (
         'd507e002f7fce7f0c6dbf1f22edcb902' => __DIR__ . '/..' . '/tracy/tracy/src/Tracy/functions.php',
+        'c65d09b6820da036953a371c8c73a9b1' => __DIR__ . '/..' . '/facebook/graph-sdk/src/Facebook/polyfills.php',
     );
 
     public static $prefixLengthsPsr4 = array (
         'V' => 
         array (
             'Vojir\\LeanMapper\\Mappers\\' => 25,
+        ),
+        'F' => 
+        array (
+            'Facebook\\' => 9,
         ),
         'A' => 
         array (
@@ -25,6 +30,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         'Vojir\\LeanMapper\\Mappers\\' => 
         array (
             0 => __DIR__ . '/..' . '/vojir/leanmapper-mappers/src',
+        ),
+        'Facebook\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/facebook/graph-sdk/src/Facebook',
         ),
         'App\\' => 
         array (

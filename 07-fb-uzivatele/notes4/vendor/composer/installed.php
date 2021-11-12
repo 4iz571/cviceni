@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '943eef3dc4a552769c31c43f2c8a581b8e165911',
+    'reference' => 'da9397466000c2c827cb905bb08694a2b799c898',
     'name' => '4iz571/notes-leanmapper',
   ),
   'versions' => 
@@ -18,7 +18,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '943eef3dc4a552769c31c43f2c8a581b8e165911',
+      'reference' => 'da9397466000c2c827cb905bb08694a2b799c898',
     ),
     'dg/dibi' => 
     array (
@@ -35,6 +35,15 @@
       array (
       ),
       'reference' => '73e16eb1a322599e8cdf350adcfdbc15eaf16577',
+    ),
+    'facebook/graph-sdk' => 
+    array (
+      'pretty_version' => '5.7.0',
+      'version' => '5.7.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '2d8250638b33d73e7a87add65f47fabf91f8ad9b',
     ),
     'latte/latte' => 
     array (
