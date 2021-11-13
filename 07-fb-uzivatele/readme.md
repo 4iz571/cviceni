@@ -105,5 +105,6 @@ Oproti stavu z 6. cvičení ([notes3](../06-uzivatele-maily/notes3)) už je apli
 4. v souboru **config/local.neon** přístupy k databázi     
 
 :mega: :orange_book:
+
 5. projděte si [prezentaci s postupem implementace přihlašování pomocí Facebooku](./notes5-fb-postup.pptx)
 6. pokuste se přihlašování dokončit sami, případně podle konce prezentace zmíněné v předchozím bodu
