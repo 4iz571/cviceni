@@ -12,6 +12,7 @@
 
 :mega:
 
+
 Společně se postupně podíváme na:
 - obnovu zapomenutého hesla (a vyzkoušíte si poslání mailu, které jste zkoumali doma)
 - přihlášení pomocí facebooku
