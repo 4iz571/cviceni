@@ -7,8 +7,8 @@ parameters:
         database: xname
         encoding: utf8
     facebook:
-        appId: TODO
-        secret: TODO
+        appId: 'TODO'
+        secret: 'TODO'
 
 php:
 	date.timezone: Europe/Prague
