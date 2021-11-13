@@ -7,6 +7,6 @@ CREATE TABLE `forgotten_password` ( `forgotten_password_id` INT NOT NULL AUTO_IN
 ALTER TABLE `forgotten_password` ADD FOREIGN KEY (`user_id`) REFERENCES `user`(`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 
-INSERT INTO `permission` (`permission_id`, `role_id`, `resource_id`, `action`, `type`) VALUES (NULL, 'guest', 'User', 'forgottenPassword', 'allow'), (NULL, 'guest', 'User', 'renewPassword', 'allow')
+INSERT INTO `permission` (`permission_id`, `role_id`, `resource_id`, `action`, `type`) VALUES (NULL, 'guest', 'User', 'forgottenPassword', 'allow'), (NULL, 'guest', 'User', 'renewPassword', 'allow');
 
 INSERT INTO `permission` (`permission_id`, `role_id`, `resource_id`, `action`, `type`) VALUES (NULL, 'guest', 'User', 'facebookLogin', 'allow'); 
