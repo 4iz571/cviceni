@@ -10,6 +10,7 @@ use App\Components\UserLoginForm\UserLoginForm;
 use App\Components\UserLoginForm\UserLoginFormFactory;
 use App\Components\UserRegistrationForm\UserRegistrationForm;
 use App\Components\UserRegistrationForm\UserRegistrationFormFactory;
+use App\Model\Api\Facebook\FacebookApi;
 use App\Model\Facades\UsersFacade;
 use Nette;
 use Nette\Application\BadRequestException;
@@ -208,9 +209,9 @@ class UserPresenter extends BasePresenter{
   public function injectNewPasswordFormFactory(NewPasswordFormFactory $newPasswordFormFactory){
     $this->newPasswordFormFactory=$newPasswordFormFactory;
   }
-
+/*TODO zaregistrujte službu FacebookApi v configu a poté povolte tuto metodu
   public function injectFacebookApi( FacebookApi $facebookApi){
     $this->facebookApi=$facebookApi;
-  }
+  }*/
   #endregion injections
 }
