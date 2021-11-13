@@ -130,6 +130,7 @@ V zásadě máme 3 základní varianty rozdělení uživatelských práv:
 - abychom se trochu seznámili s webem Nette, zkuste se podívat na něj na  [informace k odesílání mailů](https://doc.nette.org/cs/3.1/mailing)
 
 :point_right:
+
 Malá ochutnávka možností:
 ```php
 //sestavení mailu
