@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Počítač: localhost
--- Vytvořeno: Pát 12. lis 2021, 02:54
+-- Vytvořeno: Sob 13. lis 2021, 19:23
 -- Verze serveru: 10.3.22-MariaDB-log
 -- Verze PHP: 7.3.16
 
@@ -19,9 +19,9 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `category` (
-                            `category_id` smallint(5) UNSIGNED NOT NULL,
-                            `title` varchar(100) COLLATE utf8mb4_czech_ci NOT NULL,
-                            `description` varchar(300) COLLATE utf8mb4_czech_ci NOT NULL
+  `category_id` smallint(5) UNSIGNED NOT NULL,
+  `title` varchar(100) COLLATE utf8mb4_czech_ci NOT NULL,
+  `description` varchar(300) COLLATE utf8mb4_czech_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_czech_ci COMMENT='Kategorie poznámek';
 
 --
@@ -39,10 +39,10 @@ INSERT INTO `category` (`category_id`, `title`, `description`) VALUES
 --
 
 CREATE TABLE `forgotten_password` (
-                                      `forgotten_password_id` int(11) NOT NULL,
-                                      `user_id` int(11) NOT NULL,
-                                      `code` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL,
-                                      `created` timestamp NOT NULL DEFAULT current_timestamp()
+  `forgotten_password_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `code` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL,
+  `created` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_czech_ci;
 
 -- --------------------------------------------------------
@@ -52,12 +52,12 @@ CREATE TABLE `forgotten_password` (
 --
 
 CREATE TABLE `note` (
-                        `note_id` int(10) UNSIGNED NOT NULL,
-                        `category_id` smallint(5) UNSIGNED NOT NULL,
-                        `author_id` int(11) NOT NULL,
-                        `title` varchar(100) COLLATE utf8mb4_czech_ci NOT NULL,
-                        `text` text COLLATE utf8mb4_czech_ci NOT NULL,
-                        `updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `note_id` int(10) UNSIGNED NOT NULL,
+  `category_id` smallint(5) UNSIGNED NOT NULL,
+  `author_id` int(11) NOT NULL,
+  `title` varchar(100) COLLATE utf8mb4_czech_ci NOT NULL,
+  `text` text COLLATE utf8mb4_czech_ci NOT NULL,
+  `updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_czech_ci;
 
 -- --------------------------------------------------------
@@ -67,11 +67,11 @@ CREATE TABLE `note` (
 --
 
 CREATE TABLE `permission` (
-                              `permission_id` int(11) NOT NULL,
-                              `role_id` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL,
-                              `resource_id` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL,
-                              `action` varchar(100) COLLATE utf8mb4_czech_ci NOT NULL,
-                              `type` set('allow','deny') COLLATE utf8mb4_czech_ci NOT NULL DEFAULT 'allow'
+  `permission_id` int(11) NOT NULL,
+  `role_id` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL,
+  `resource_id` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL,
+  `action` varchar(100) COLLATE utf8mb4_czech_ci NOT NULL,
+  `type` set('allow','deny') COLLATE utf8mb4_czech_ci NOT NULL DEFAULT 'allow'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_czech_ci;
 
 --
@@ -102,7 +102,7 @@ INSERT INTO `permission` (`permission_id`, `role_id`, `resource_id`, `action`, `
 --
 
 CREATE TABLE `resource` (
-    `resource_id` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL
+  `resource_id` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_czech_ci COMMENT='Tabulka obsahující seznam zdrojů';
 
 --
@@ -124,7 +124,7 @@ INSERT INTO `resource` (`resource_id`) VALUES
 --
 
 CREATE TABLE `role` (
-    `role_id` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL
+  `role_id` varchar(50) COLLATE utf8mb4_czech_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_czech_ci;
 
 --
@@ -143,11 +143,12 @@ INSERT INTO `role` (`role_id`) VALUES
 --
 
 CREATE TABLE `user` (
-                        `user_id` int(11) NOT NULL,
-                        `name` varchar(40) COLLATE utf8mb4_czech_ci NOT NULL,
-                        `email` varchar(255) COLLATE utf8mb4_czech_ci NOT NULL,
-                        `role_id` varchar(50) COLLATE utf8mb4_czech_ci DEFAULT NULL,
-                        `password` varchar(255) COLLATE utf8mb4_czech_ci NOT NULL
+  `user_id` int(11) NOT NULL,
+  `name` varchar(40) COLLATE utf8mb4_czech_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_czech_ci NOT NULL,
+  `facebook_id` varchar(100) COLLATE utf8mb4_czech_ci DEFAULT NULL,
+  `role_id` varchar(50) COLLATE utf8mb4_czech_ci DEFAULT NULL,
+  `password` varchar(255) COLLATE utf8mb4_czech_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_czech_ci COMMENT='Tabulka s daty uživatelů';
 
 --
@@ -158,50 +159,51 @@ CREATE TABLE `user` (
 -- Klíče pro tabulku `category`
 --
 ALTER TABLE `category`
-    ADD PRIMARY KEY (`category_id`);
+  ADD PRIMARY KEY (`category_id`);
 
 --
 -- Klíče pro tabulku `forgotten_password`
 --
 ALTER TABLE `forgotten_password`
-    ADD PRIMARY KEY (`forgotten_password_id`),
-    ADD KEY `user_id` (`user_id`);
+  ADD PRIMARY KEY (`forgotten_password_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Klíče pro tabulku `note`
 --
 ALTER TABLE `note`
-    ADD PRIMARY KEY (`note_id`),
-    ADD KEY `category_id` (`category_id`),
-    ADD KEY `author_id` (`author_id`);
+  ADD PRIMARY KEY (`note_id`),
+  ADD KEY `category_id` (`category_id`),
+  ADD KEY `author_id` (`author_id`);
 
 --
 -- Klíče pro tabulku `permission`
 --
 ALTER TABLE `permission`
-    ADD PRIMARY KEY (`permission_id`),
-    ADD UNIQUE KEY `role_id` (`role_id`,`resource_id`,`action`,`type`),
-    ADD KEY `permission_ibfk_1` (`resource_id`);
+  ADD PRIMARY KEY (`permission_id`),
+  ADD UNIQUE KEY `role_id` (`role_id`,`resource_id`,`action`,`type`),
+  ADD KEY `permission_ibfk_1` (`resource_id`);
 
 --
 -- Klíče pro tabulku `resource`
 --
 ALTER TABLE `resource`
-    ADD PRIMARY KEY (`resource_id`);
+  ADD PRIMARY KEY (`resource_id`);
 
 --
 -- Klíče pro tabulku `role`
 --
 ALTER TABLE `role`
-    ADD PRIMARY KEY (`role_id`);
+  ADD PRIMARY KEY (`role_id`);
 
 --
 -- Klíče pro tabulku `user`
 --
 ALTER TABLE `user`
-    ADD PRIMARY KEY (`user_id`),
-    ADD UNIQUE KEY `email` (`email`),
-    ADD KEY `role_id` (`role_id`);
+  ADD PRIMARY KEY (`user_id`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD UNIQUE KEY `facebook_id` (`facebook_id`),
+  ADD KEY `role_id` (`role_id`);
 
 --
 -- AUTO_INCREMENT pro tabulky
@@ -211,31 +213,31 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT pro tabulku `category`
 --
 ALTER TABLE `category`
-    MODIFY `category_id` smallint(5) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `category_id` smallint(5) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT pro tabulku `forgotten_password`
 --
 ALTER TABLE `forgotten_password`
-    MODIFY `forgotten_password_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `forgotten_password_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT pro tabulku `note`
 --
 ALTER TABLE `note`
-    MODIFY `note_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `note_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT pro tabulku `permission`
 --
 ALTER TABLE `permission`
-    MODIFY `permission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `permission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT pro tabulku `user`
 --
 ALTER TABLE `user`
-    MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Omezení pro exportované tabulky
@@ -245,25 +247,25 @@ ALTER TABLE `user`
 -- Omezení pro tabulku `forgotten_password`
 --
 ALTER TABLE `forgotten_password`
-    ADD CONSTRAINT `forgotten_password_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `forgotten_password_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Omezení pro tabulku `note`
 --
 ALTER TABLE `note`
-    ADD CONSTRAINT `note_ibfk_1` FOREIGN KEY (`author_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `notes_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `category` (`category_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `note_ibfk_1` FOREIGN KEY (`author_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `notes_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `category` (`category_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Omezení pro tabulku `permission`
 --
 ALTER TABLE `permission`
-    ADD CONSTRAINT `permission_ibfk_1` FOREIGN KEY (`resource_id`) REFERENCES `resource` (`resource_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    ADD CONSTRAINT `permission_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `role` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `permission_ibfk_1` FOREIGN KEY (`resource_id`) REFERENCES `resource` (`resource_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `permission_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `role` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Omezení pro tabulku `user`
 --
 ALTER TABLE `user`
-    ADD CONSTRAINT `user_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`role_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `user_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`role_id`) ON DELETE SET NULL ON UPDATE CASCADE;
 COMMIT;
