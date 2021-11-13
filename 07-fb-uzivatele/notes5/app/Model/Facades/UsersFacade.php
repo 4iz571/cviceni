@@ -2,6 +2,7 @@
 
 namespace App\Model\Facades;
 
+use App\Model\Api\Facebook\FacebookUser;
 use App\Model\Entities\ForgottenPassword;
 use App\Model\Entities\Permission;
 use App\Model\Entities\Resource;
@@ -13,6 +14,7 @@ use App\Model\Repositories\ResourceRepository;
 use App\Model\Repositories\RoleRepository;
 use App\Model\Repositories\UserRepository;
 use LeanMapper\Exception\InvalidStateException;
+use Nette\Security\SimpleIdentity;
 use Nette\Utils\Helpers;
 use Nette\Utils\Random;
 
@@ -69,6 +71,35 @@ class UsersFacade{
    */
   public function saveUser(User &$user) {
     return (bool)$this->userRepository->persist($user);
+  }
+
+  /**
+   * Metoda pro nalezení či zaregistrování uživatele podle facebookId, která vrací SimpleIdentity použitelnou pro přihlášení uživatele
+   * @param FacebookUser $facebookUser
+   * @return SimpleIdentity
+   */
+  public function getFacebookUserIdentity(FacebookUser $facebookUser):SimpleIdentity {
+    /*TODO:
+     * 1. zkusíme najít uživatele podle facebookId
+     * 2. pokud nebyl uživatel nalezen, zkusíme jej najít podle emailu (a uložíme k němu facebookId)
+     * 3. pokud ani tak nebyl uživatel nalezen, vytvoříme nového
+     * 4. vygenerujeme SimpleIdentity pomocí $this->getUserIdentity
+     */
+  }
+
+  /**
+   * Metoda vracející "přihlašovací identitu" pro daného uživatele
+   * @param User $user
+   * @return SimpleIdentity
+   */
+  public function getUserIdentity(User $user):SimpleIdentity {
+    //příprava rolí
+    $roles=['authenticated'];
+    if (!empty($user->role)){
+      $roles[]=$user->role->roleId;
+    }
+    //vytvoření a vrácení SimpleIdentity
+    return new SimpleIdentity($user->userId,$roles,['name'=>$user->name,'email'=>$user->email]);
   }
 
   #region metody pro zapomenuté heslo

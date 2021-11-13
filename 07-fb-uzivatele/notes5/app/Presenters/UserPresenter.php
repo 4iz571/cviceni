@@ -72,14 +72,20 @@ class UserPresenter extends BasePresenter{
     if ($callback){
       #region návrat z Facebooku
       try{
-        $facebookUser = $this->facebookApi->getFacebookUser();
+        $facebookUser = $this->facebookApi->getFacebookUser(); //v proměnné $facebookUser máme facebookId, email a jméno uživatele => jdeme jej přihlásit
 
-        //TODO v proměnné $facebookUser máme facebookId, email a jméno uživatele => jdeme jej přihlásit
+        //necháme si vytvořit identitu uživatele
+        $userUdentity = $this->usersFacade->getFacebookUserIdentity($facebookUser);
+
+        //přihlásíme uživatele
+        $this->user->login($userUdentity);
 
       }catch (\Exception $e){
         $this->flashMessage('Přihlášení pomocí Facebooku se nezdařilo.','error');
         $this->redirect('Homepage:default');
       }
+
+      $this->redirect('Homepage:default');
       #endregion návrat z Facebooku
     }else{
       #region přesměrování na přihlášení pomocí Facebooku

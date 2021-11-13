@@ -11,6 +11,7 @@ use LeanMapper\Entity;
  * @property string $name
  * @property Role|null $role m:hasOne
  * @property string $email
+ * @property string $facebookId
  * @property string $password
  */
 class User extends Entity{
