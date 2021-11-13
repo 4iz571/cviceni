@@ -23,6 +23,8 @@ services:
 	- App\Model\Authenticator\Authenticator
 	- App\Model\Authorization\Authorizator
 
+	- App\Model\Api\Facebook\FacebookApi(%facebook.appId%, %facebook.secret%)
+
 	- App\Components\CategoryEditForm\CategoryEditFormFactory
 	- App\Components\NoteEditForm\NoteEditFormFactory
 	- App\Components\UserLoginForm\UserLoginFormFactory

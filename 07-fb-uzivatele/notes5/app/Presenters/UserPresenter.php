@@ -69,10 +69,25 @@ class UserPresenter extends BasePresenter{
    * @param bool $callback
    */
   public function actionFacebookLogin(bool $callback=false){
+    if ($callback){
+      #region návrat z Facebooku
+      try{
+        $facebookUser = $this->facebookApi->getFacebookUser();
 
-    //TODO tady bude přihlášení pomocí App\Model\Api\Facebook\FacebookApi
-    //proměnnou $callback použijeme pro rozlišení, zda jde o první zaslání požadavku, nebo o návrat z FB
+        //TODO v proměnné $facebookUser máme facebookId, email a jméno uživatele => jdeme jej přihlásit
 
+      }catch (\Exception $e){
+        $this->flashMessage('Přihlášení pomocí Facebooku se nezdařilo.','error');
+        $this->redirect('Homepage:default');
+      }
+      #endregion návrat z Facebooku
+    }else{
+      #region přesměrování na přihlášení pomocí Facebooku
+      $backlink = $this->link('//User:facebookLogin',['callback'=>true]);
+      $facebookLoginLink = $this->facebookApi->getLoginUrl($backlink);
+      $this->redirectUrl($facebookLoginLink);
+      #endregion přesměrování na přihlášení pomocí Facebooku
+    }
   }
   
   /**
@@ -211,9 +226,9 @@ class UserPresenter extends BasePresenter{
   public function injectNewPasswordFormFactory(NewPasswordFormFactory $newPasswordFormFactory){
     $this->newPasswordFormFactory=$newPasswordFormFactory;
   }
-/*TODO zaregistrujte službu FacebookApi v configu a poté povolte tuto metodu
+
   public function injectFacebookApi( FacebookApi $facebookApi){
     $this->facebookApi=$facebookApi;
-  }*/
+  }
   #endregion injections
 }
