@@ -15,6 +15,12 @@ use LeanMapper\Entity;
  * @property string $text
  * @property-read DateTime|null $updated
  */
-class Note extends Entity{
+class Note extends Entity implements \Nette\Security\Resource{
 
+  /**
+   * @inheritDoc
+   */
+  function getResourceId():string{
+    return 'Note';
+  }
 }

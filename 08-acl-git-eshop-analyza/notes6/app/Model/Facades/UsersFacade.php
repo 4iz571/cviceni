@@ -3,6 +3,7 @@
 namespace App\Model\Facades;
 
 use App\Model\Api\Facebook\FacebookUser;
+use App\Model\Authorizator\AuthenticatedRole;
 use App\Model\Entities\ForgottenPassword;
 use App\Model\Entities\Permission;
 use App\Model\Entities\Resource;
@@ -108,8 +109,11 @@ class UsersFacade{
    * @return SimpleIdentity
    */
   public function getUserIdentity(User $user):SimpleIdentity {
-    //příprava rolí
-    $roles=['authenticated'];
+    //příprava pole pro seznam rolí
+    $roles=[];
+    //přidáme speciální roli pro přihlášené uživatele
+    $roles[]=new AuthenticatedRole($user->userId);
+    //přidáme další roli přiřazenou uživateli
     if (!empty($user->role)){
       $roles[]=$user->role->roleId;
     }
@@ -153,11 +157,14 @@ class UsersFacade{
 
   /**
    * Metoda pro jednoduché smazání kódů pro obnovu hesla pro konkrétního uživatele
-   * @param User $user
+   * @param User|int $user
    */
-  public function deleteForgottenPasswordsByUser(User $user){
+  public function deleteForgottenPasswordsByUser($user){
     try{
-      $this->forgottenPasswordRepository->delete(['user_id' => $user->userId]);
+      if ($user instanceof User){
+        $user=$user->userId;
+      }
+      $this->forgottenPasswordRepository->delete(['user_id' => $user]);
     }catch (InvalidStateException $e){
       //ignore error
     }

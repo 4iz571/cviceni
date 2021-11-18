@@ -39,6 +39,8 @@ class NoteEditForm extends Form{
   private $usersFacade;
   /** @var User $user */
   private $user;
+  /** @var Nette\Security\User $currentUser */
+  private $currentUser;
 
   /**
    * TagEditForm constructor.
@@ -56,6 +58,7 @@ class NoteEditForm extends Form{
     if ($currentUser->isLoggedIn()){
       try{
         $this->user=$this->usersFacade->getUser($currentUser->id);
+        $this->currentUser = $currentUser;
       }catch (\Exception $e){/*chybu přeskočíme - hned za načtením je zařazena kontrola přihlášeného uživatele*/}
     }
     if (!$this->user){
@@ -94,6 +97,12 @@ class NoteEditForm extends Form{
         if (!empty($values['noteId'])){
           try{
             $note=$this->notesFacade->getNote($values['categoryId']);
+
+            //kontrola oprávnění k vybrané poznámce
+            if (!$this->currentUser->isAllowed($note, 'edit')){
+              $this->onFailed('Tuto poznámku nemůžete upravovat.');
+            }
+
           }catch (\Exception $e){
             $this->onFailed('Požadovaná poznámka nebyla nalezena.');
             return;

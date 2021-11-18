@@ -14,8 +14,8 @@
           <p>{$note->text|breaklines}</p>
           <p class="text-right">{$note->author->name}</p>
           <div>
-            <a href="{link edit id=>$note->noteId}" class="btn btn-outline-primary">upravit</a>
-            <a href="{link delete id=>$note->noteId}" class="btn btn-outline-danger">smazat</a>
+            <a n:if="$user->isAllowed($note,'edit')" href="{link edit id=>$note->noteId}" class="btn btn-outline-primary">upravit</a>
+            <a n:if="$user->isAllowed($note,'delete')" href="{link delete id=>$note->noteId}" class="btn btn-outline-danger">smazat</a>
           </div>
         </div>
       {/foreach}
@@ -24,8 +24,8 @@
     <p class="text-muted">Nejsou k dispozici žádné příspěvky.</p>
   {/if}
 
-  <a href="{link add}" class="btn btn-primary">nový příspěvek</a>
-  <a href="{link Category:list}" class="btn btn-outline-primary">správa kategorií</a>
+  <a n:if="$user->isAllowed('Note','add')" href="{link add}" class="btn btn-primary">nový příspěvek</a>
+  <a n:if="$user->isAllowed('Category','list')" href="{link Category:list}" class="btn btn-outline-primary">správa kategorií</a>
 
 {else}
   <a href="{link User:login}" class="btn btn-primary">přihlásit se</a>

@@ -32,6 +32,12 @@ class HomepagePresenter extends BasePresenter{
     }catch (\Exception $e){
       throw new Nette\Application\BadRequestException('Požadovaná poznámka nebyla nalezena');
     }
+
+    //kontrola oprávnění k vybrané poznámce
+    if (!$this->user->isAllowed($note,'edit')){
+      throw new Nette\Application\ForbiddenRequestException('Tuto poznámku nemůžete upravovat');
+    }
+
     /** @var NoteEditForm $form */
     $form=$this->getComponent('noteEditForm');
     $form->setDefaults($note);
@@ -48,6 +54,12 @@ class HomepagePresenter extends BasePresenter{
     }catch (\Exception $e){
       throw new Nette\Application\BadRequestException('Požadovaná poznámka nebyla nalezena');
     }
+
+    //kontrola oprávnění k vybrané poznámce
+    if (!$this->user->isAllowed($note,'delete')){
+      throw new Nette\Application\ForbiddenRequestException('Tuto poznámku nemůžete smazat');
+    }
+
     $this->notesFacade->deleteNote($note);
     $this->redirect('default');
   }

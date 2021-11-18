@@ -2,6 +2,8 @@
 
 namespace App\Model\Authorization;
 
+use App\Model\Authorizator\AuthenticatedRole;
+use App\Model\Entities\Note;
 use App\Model\Entities\Permission;
 use App\Model\Facades\UsersFacade;
 use Nette\Security\Role;
@@ -23,6 +25,22 @@ class Authorizator extends \Nette\Security\Permission {
   public function isAllowed($role=self::ALL, $resource=self::ALL, $privilege=self::ALL):bool {
 
     //TODO tady mohou být kontroly pro jednotlivé entity
+
+    if ($resource instanceof Note){
+      #region ukázka omezení dle stavu entity - nejde upravovat ani mazat poznámku starší než 5 dnů
+      if ($resource->updated->getTimestamp()<(time()-5*24*3600)){
+        return false; //zamítneme oprávnění bez ohledu na roli
+      }
+      #endregion
+
+      #region role "authenticated" může upravovat a mazat jen své vlastní příspěvky
+      if ($role instanceof AuthenticatedRole){
+        if ($privilege=='edit' || $privilege=='delete'){
+          return ($resource->author->userId==$role->userId);
+        }
+      }
+      #endregion
+    }
 
     return parent::isAllowed($role, $resource, $privilege);
   }
