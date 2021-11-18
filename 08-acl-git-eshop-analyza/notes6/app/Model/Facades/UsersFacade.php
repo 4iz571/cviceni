@@ -79,12 +79,27 @@ class UsersFacade{
    * @return SimpleIdentity
    */
   public function getFacebookUserIdentity(FacebookUser $facebookUser):SimpleIdentity {
-    /*TODO:
-     * 1. zkusíme najít uživatele podle facebookId
-     * 2. pokud nebyl uživatel nalezen, zkusíme jej najít podle emailu (a uložíme k němu facebookId)
-     * 3. pokud ani tak nebyl uživatel nalezen, vytvoříme nového
-     * 4. vygenerujeme SimpleIdentity pomocí $this->getUserIdentity
-     */
+    try{
+      $user = $this->userRepository->findBy(['facebook_id'=>$facebookUser->facebookUserId]);
+    }catch (\Exception $e){
+      //uživatele se nepovedlo najít podle facebookId
+      try{
+        $user = $this->getUserByEmail($facebookUser->email);
+        //uložíme k uživateli facebookId a uložíme ho
+        $user->facebookId=$facebookUser->facebookUserId;
+        $this->saveUser($user);
+      }catch (\Exception $e){
+        //uživatel neexistuje
+        $user = new User();
+        $user->name=$facebookUser->name;
+        $user->email=$facebookUser->email;
+        $user->role=null;
+        $user->facebookId=$facebookUser->facebookUserId;
+        $this->saveUser($user);
+      }
+    }
+
+    return $this->getUserIdentity($user);
   }
 
   /**
