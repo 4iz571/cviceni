@@ -88,8 +88,40 @@ Ukázkový příklad vychází z aplikace **notes5**, se kterou jsme pracovali n
         
         $authorizator->allow('authenticated', 'Note', 'edit', $assertion);
         ```
-### Uložení požadavku a jeho obnovení po přihlášení uživatele
 
+:point_right:
+- **kontrolu oprávnění pro konkrétního uživatele** budeme provádět:
+    - v akcích, na které se dané oprávnění vztahuje (např. v *actionEdit*)
+    - ve formulářích - např. po odeslání formuláře pro editaci poznámky
+        jde o signál komponenty, který není závislý na konkrétní akci presenteru!
+
+:blue_book:
+- změněné soubory viz [notes6-diff](./notes6-diff)
+
+
+### Uložení požadavku a jeho obnovení po přihlášení uživatele
+:point_right:
+- Co když si uživatel např. uloží do záložek v prohlížeči odkaz na přidání nové poznámky, ale není v aplikaci právě přihlášen?
+    - poslat uživatele po přihlášení na homepage a nutit ho zadat správnou adresu znovu (nebo se k ní proklikat v rámci aplikace) není příklad příjemného UX 
+    
+:point_right:     
+1. uložíme požadavek a pošleme uživatele na přihlašovací stránku
+    - v presenteru zavoláme metodu storeRequest() => požadavek se uloží, návratovou hodnotou je identifikační řetězec pro jeho obnovení
+        ```php
+        $this->redirect('User:login', ['backlink' => $this->storeRequest()]);
+        ```
+    - uložena je nejen akce, ale např. také případný signál (vyjma submitu formuláře)
+    - uložený požadavek má omezenou platnost (ve výchozím stavu 10 minut) 
+2. po přihlášení necháme původní požadavek obnovit
+    ```php
+    $this->restoreRequest($this->backlink); //pokud požadavek existuje, je obnoven (uživatel je na něj přesměrován) 
+    $this->redirect('Homepage:default'); //výchozí přesměrování (např. po přihlášení)
+    ```
+   
+:blue_book:
+- ukázku najdete v **notes6** - viz [BasePresenter](./notes6-diff/app/Presenters/BasePresenter.php) a [UserPresenter](./notes6-diff/app/Presenters/UserPresenter.php)    
+
+---
 
 ## GIT
 :point_right:
@@ -125,3 +157,22 @@ Ukázkový příklad vychází z aplikace **notes5**, se kterou jsme pracovali n
 
 :blue_book:
 - [Základy systému Git](https://git-scm.com/book/cs/v2/%C3%9Avod-Z%C3%A1klady-syst%C3%A9mu-Git)
+
+---
+
+## Semestrální práce E-shop
+:open_book:
+- hlavním výstupem tohoto projektu bude vytvoření jednoduššího e-shopu, který by ale mohl být v praxi opravdu využit
+- semestrální práci budete realizovat ve dvojicích
+- kód práce bude verzován ve zvoleném GIT repozitáři
+    - je nutné, aby byly zřejmé příspěvky obou zapojených autorů
+- aplikace poběží na serveru https://eso.vse.cz   
+
+### Metodika vývoje
+:point_right:
+- Jaké znáte metodiky pro vývoj software? Které z nich jsou vhodné pro obdobný projekt?
+- Jaká je úloha analýzy požadavků?
+- K čemu jsou dobré následující prvky z analýzy a návrhu?
+    - use case model
+    - procesní diagram
+    - wireframe
