@@ -8,6 +8,7 @@
 - navíc si ukážeme, jak lze do Authorizátoru začlenit i kontrolu stavu entity    
 
 :mega:
+
 Ukázkový příklad vychází z aplikace **notes5**, se kterou jsme pracovali na minulém cvičení
 - pokud aplikaci dokončenou nemáte:
     1. stáhněte si soubor s exportem databáze z verze *notes5* ([tady](../07-fb-uzivatele/notes5-db.sql) a naimportujte jeho obsah do MariaDB
@@ -151,9 +152,9 @@ Ukázkový příklad vychází z aplikace **notes5**, se kterou jsme pracovali n
 
 :point_right:
 - vhodné servery (pokud nechceme vlastní):
-    - [https://github.com]
-    - [https://bitbucket.org]
-    - [https://gitlab.com]
+    - https://github.com
+    - https://bitbucket.org
+    - https://gitlab.com
 
 :blue_book:
 - [Základy systému Git](https://git-scm.com/book/cs/v2/%C3%9Avod-Z%C3%A1klady-syst%C3%A9mu-Git)
