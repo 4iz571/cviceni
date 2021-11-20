@@ -8,8 +8,8 @@ Jak už víte, vaším úkolem je vytvořit jednoduchý e-shop napsaný v Nette.
 - na typu zboží samozřejmě bude záležet to, kolik vlastností bude zboží mít, jestli podle nich půjde filtrovat atp.
 
 ## Funkce vyvíjeného e-shopu
-### Konkrétní povinné funkcionality
 :point_right:
+### Konkrétní povinné funkcionality
 - **administrační rozhraní**
   - správa uživatelů
   - správa zboží - u zboží bude kromě textových informací také alespoň 1 fotka
@@ -21,9 +21,8 @@ Jak už víte, vaším úkolem je vytvořit jednoduchý e-shop napsaný v Nette.
   - přidání zboží do košíku
   - odeslání objednávky
   
-### Povinné zesložitění
 :point_right:
-
+### Povinné zesložitění
 Vyberte si jednu z těchto funkcionalit:
 - zboží bude ve více kategoriích, či bude použit ještě jiný způsob filtrování (např. podle barvy, materiálu, velikosti atp.)
 - bude kontrolován počet kusů skladem - nepůjde objednat zboží, které skladem není
