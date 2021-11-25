@@ -6,6 +6,8 @@ use Nette;
 use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
 use Nette\SmartObject;
+use Nextras\FormsRendering\Renderers\Bs4FormRenderer;
+use Nextras\FormsRendering\Renderers\FormLayout;
 
 /**
  * Class UserLoginForm
@@ -30,6 +32,7 @@ class UserLoginForm extends Form{
    */
   public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
+    $this->setRenderer(new Bs4FormRenderer(FormLayout::VERTICAL));
     $this->createSubcomponents();
   }
 
@@ -40,13 +43,11 @@ class UserLoginForm extends Form{
       ->setRequired('Zadejte své heslo');
 
     $this->addSubmit('ok','přihlásit se')
-      ->setHtmlAttribute('class','btn btn-primary')
       ->onClick[]=function(SubmitButton $button){
         $this->onFinished();
       };
     $this->addSubmit('storno','zrušit')
       ->setValidationScope([])
-      ->setHtmlAttribute('class','btn btn-light')
       ->onClick[]=function(SubmitButton $button){
         $this->onCancel();
       };

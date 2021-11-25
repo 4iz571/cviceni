@@ -50,11 +50,23 @@ class CategoriesFacade{
   /**
    * Metoda pro uložení kategorie
    * @param Category &$category
-   * @return bool
+   * @return bool - true, pokud byly v DB provedeny nějaké změny
    */
   public function saveCategory(Category &$category):bool {
     return (bool)$this->categoryRepository->persist($category);
   }
 
+  /**
+   * Metoda pro smazání kategorie
+   * @param Category $category
+   * @return bool
+   */
+  public function deleteCategory(Category $category):bool {
+    try{
+      return (bool)$this->categoryRepository->delete($category);
+    }catch (\Exception $e){
+      return false;
+    }
+  }
 
 }

@@ -27,10 +27,10 @@
 
 		<nav class="collapse navbar-collapse" id="adminNavbar">
 			<ul class="navbar-nav mr-auto">
-				<li n:class="$presenter->isLinkCurrent('Dashboard:default')?active, nav-item">
+				<li n:class="$presenter->isLinkCurrent('Dashboard:*')?active, nav-item">
 					<a class="nav-link" href="{plink Dashboard:default}">Dashboard</a>
 				</li>
-				<li n:class="$presenter->isLinkCurrent('Category:default')?active, nav-item" n:if="$user->isAllowed('Admin:Category','default')">
+				<li n:class="$presenter->isLinkCurrent('Category:*')?active, nav-item" n:if="$user->isAllowed('Admin:Category','default')">
 					<a class="nav-link" href="{plink Category:default}">Kategorie</a>
 				</li>
 			</ul>
@@ -58,7 +58,7 @@
 		</div>
 
 		<main role="main">
-		{include main}
+		{include content}
 		</main>
 	</div>
 

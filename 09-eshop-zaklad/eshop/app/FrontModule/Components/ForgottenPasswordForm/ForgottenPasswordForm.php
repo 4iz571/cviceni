@@ -7,6 +7,8 @@ use Nette;
 use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
 use Nette\SmartObject;
+use Nextras\FormsRendering\Renderers\Bs4FormRenderer;
+use Nextras\FormsRendering\Renderers\FormLayout;
 
 /**
  * Class ForgottenPasswordForm
@@ -42,6 +44,7 @@ class ForgottenPasswordForm extends Form{
    */
   public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade, Nette\Application\LinkGenerator $linkGenerator){
     parent::__construct($parent, $name);
+    $this->setRenderer(new Bs4FormRenderer(FormLayout::VERTICAL));
     $this->usersFacade=$usersFacade;
     $this->createSubcomponents();
     $this->linkGenerator=$linkGenerator;
@@ -62,7 +65,6 @@ class ForgottenPasswordForm extends Form{
       ->setRequired('Zadejte platný email');
 
     $this->addSubmit('ok','poslat e-mail pro obnovu hesla')
-      ->setHtmlAttribute('class','btn btn-primary')
       ->onClick[]=function(SubmitButton $button){
         //získáme z formuláře zadaný e-mail
         $userEmail = $this->values->email;
@@ -96,7 +98,6 @@ class ForgottenPasswordForm extends Form{
       };
     $this->addSubmit('storno','zrušit')
       ->setValidationScope([])
-      ->setHtmlAttribute('class','btn btn-light')
       ->onClick[]=function(SubmitButton $button){
         $this->onCancel();
       };

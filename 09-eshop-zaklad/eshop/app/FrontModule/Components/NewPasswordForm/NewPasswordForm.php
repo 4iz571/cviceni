@@ -8,6 +8,8 @@ use Nette;
 use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
 use Nette\SmartObject;
+use Nextras\FormsRendering\Renderers\Bs4FormRenderer;
+use Nextras\FormsRendering\Renderers\FormLayout;
 
 /**
  * Class NewPasswordForm
@@ -42,6 +44,7 @@ class NewPasswordForm extends Form{
    */
   public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade, Nette\Security\Passwords $passwords){
     parent::__construct($parent, $name);
+    $this->setRenderer(new Bs4FormRenderer(FormLayout::VERTICAL));
     $this->usersFacade=$usersFacade;
     $this->passwords=$passwords;
     $this->createSubcomponents();
@@ -58,7 +61,6 @@ class NewPasswordForm extends Form{
       ->addRule(Form::EQUAL,'Hesla se neshodují',$password);
 
     $this->addSubmit('ok','uložit nové heslo')
-      ->setHtmlAttribute('class','btn btn-primary')
       ->onClick[]=function(SubmitButton $button){
         //uložení nového hesla
         $values=$this->getValues('array');
@@ -77,7 +79,6 @@ class NewPasswordForm extends Form{
       };
     $this->addSubmit('storno','zrušit')
       ->setValidationScope([])
-      ->setHtmlAttribute('class','btn btn-light')
       ->onClick[]=function(SubmitButton $button){
         $this->onCancel();
       };

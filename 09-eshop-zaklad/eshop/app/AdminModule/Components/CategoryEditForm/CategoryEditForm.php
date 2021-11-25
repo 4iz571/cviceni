@@ -8,6 +8,8 @@ use Nette;
 use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
 use Nette\SmartObject;
+use Nextras\FormsRendering\Renderers\Bs4FormRenderer;
+use Nextras\FormsRendering\Renderers\FormLayout;
 
 /**
  * Class CategoryEditForm
@@ -39,6 +41,7 @@ class CategoryEditForm extends Form{
    */
   public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, CategoriesFacade $categoriesFacade){
     parent::__construct($parent, $name);
+    $this->setRenderer(new Bs4FormRenderer(FormLayout::VERTICAL));
     $this->categoriesFacade=$categoriesFacade;
     $this->createSubcomponents();
   }
@@ -50,7 +53,6 @@ class CategoryEditForm extends Form{
     $this->addTextArea('description','Popis kategorie')
       ->setRequired(false);
     $this->addSubmit('ok','uložit')
-      ->setHtmlAttribute('class','btn btn-light')
       ->onClick[]=function(SubmitButton $button){
         $values=$this->getValues('array');
         if (!empty($values['categoryId'])){
@@ -69,7 +71,6 @@ class CategoryEditForm extends Form{
         $this->onFinished('Kategorie byla uložena.');
       };
     $this->addSubmit('storno','zrušit')
-      ->setHtmlAttribute('class','btn btn-light')
       ->setValidationScope([$categoryId])
       ->onClick[]=function(SubmitButton $button){
         $this->onCancel();

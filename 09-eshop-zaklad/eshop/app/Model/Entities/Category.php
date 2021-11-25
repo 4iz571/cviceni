@@ -11,6 +11,12 @@ use LeanMapper\Entity;
  * @property string $title
  * @property string $description
  */
-class Category extends Entity{
+class Category extends Entity implements \Nette\Security\Resource{
 
+  /**
+   * @inheritDoc
+   */
+  function getResourceId():string{
+    return 'Category';
+  }
 }
