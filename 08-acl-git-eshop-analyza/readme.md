@@ -1,4 +1,4 @@
-# 7. Dokončení ACL, GIT, analýza e-shopu 
+# 8. Dokončení ACL, GIT, analýza e-shopu 
 
 ## Dokončení ACL
 :point_right:
