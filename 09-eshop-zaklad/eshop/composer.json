@@ -20,7 +20,8 @@
 		"tracy/tracy": "^2.8",
 		"tharos/leanmapper": "^4.0",
 		"vojir/leanmapper-mappers": "^1.0",
-		"facebook/graph-sdk": "^5.7"
+		"facebook/graph-sdk": "^5.7",
+		"nextras/forms-rendering": "^1.1"
 	},
 	"autoload": {
 		"psr-4": {

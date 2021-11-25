@@ -16,6 +16,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         array (
             'Vojir\\LeanMapper\\Mappers\\' => 25,
         ),
+        'N' => 
+        array (
+            'Nextras\\FormsRendering\\' => 23,
+        ),
         'F' => 
         array (
             'Facebook\\' => 9,
@@ -30,6 +34,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         'Vojir\\LeanMapper\\Mappers\\' => 
         array (
             0 => __DIR__ . '/..' . '/vojir/leanmapper-mappers/src',
+        ),
+        'Nextras\\FormsRendering\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/nextras/forms-rendering/src',
         ),
         'Facebook\\' => 
         array (

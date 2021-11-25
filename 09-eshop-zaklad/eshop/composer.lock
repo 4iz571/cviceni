@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c7b5c9c0c81dbe2007a4dd45eb6eb509",
+    "content-hash": "1d2cea05af8d99f1f53fbd7b6a88fffe",
     "packages": [
         {
             "name": "dibi/dibi",
@@ -1377,6 +1377,70 @@
                 "source": "https://github.com/nette/utils/tree/v3.2.6"
             },
             "time": "2021-11-24T15:47:23+00:00"
+        },
+        {
+            "name": "nextras/forms-rendering",
+            "version": "v1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nextras/forms-rendering.git",
+                "reference": "8776b68caa30796814994442a6a329bd61b0182c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nextras/forms-rendering/zipball/8776b68caa30796814994442a6a329bd61b0182c",
+                "reference": "8776b68caa30796814994442a6a329bd61b0182c",
+                "shasum": ""
+            },
+            "require": {
+                "latte/latte": "~2.5",
+                "nette/forms": "~3.0",
+                "nette/utils": "~3.0",
+                "php": ">=7.1"
+            },
+            "require-dev": {
+                "nette/application": "~3.0",
+                "nette/bootstrap": "~3.0",
+                "nette/di": "~3.0",
+                "nette/robot-loader": "~3.0",
+                "phpstan/phpstan-nette": "0.11",
+                "phpstan/phpstan-shim": "0.11.5",
+                "tracy/tracy": "~2.5"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.0-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Nextras\\FormsRendering\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nextras Community",
+                    "homepage": "https://github.com/nextras/forms-rendering/graphs/contributors"
+                }
+            ],
+            "description": "Rendering helpers for Nette Framework Forms.",
+            "keywords": [
+                "Forms",
+                "Rendering",
+                "form",
+                "nette",
+                "nextras"
+            ],
+            "support": {
+                "issues": "https://github.com/nextras/forms-rendering/issues",
+                "source": "https://github.com/nextras/forms-rendering/tree/v1.1.0"
+            },
+            "time": "2021-06-04T04:20:26+00:00"
         },
         {
             "name": "tharos/leanmapper",

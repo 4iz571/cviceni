@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '5f1f00d772bffb05567cca382788fe85d9b97968',
+    'reference' => '3e49dde2c13e791675785bf44462eebff84158c0',
     'name' => '4iz571/notes-leanmapper',
   ),
   'versions' => 
@@ -18,7 +18,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '5f1f00d772bffb05567cca382788fe85d9b97968',
+      'reference' => '3e49dde2c13e791675785bf44462eebff84158c0',
     ),
     'dg/dibi' => 
     array (
@@ -197,6 +197,15 @@
       array (
       ),
       'reference' => '2f261e55bd6a12057442045bf2c249806abc1d02',
+    ),
+    'nextras/forms-rendering' => 
+    array (
+      'pretty_version' => 'v1.1.0',
+      'version' => '1.1.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '8776b68caa30796814994442a6a329bd61b0182c',
     ),
     'tharos/leanmapper' => 
     array (
