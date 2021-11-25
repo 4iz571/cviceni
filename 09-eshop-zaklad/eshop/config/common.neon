@@ -1,7 +1,7 @@
 parameters:
 
 application:
-	errorPresenter: Error
+	errorPresenter: Front:Error
 	mapping:
 		*: App\*Module\Presenters\*Presenter
 
@@ -29,7 +29,10 @@ services:
 
 	- App\FrontModule\Components\UserLoginForm\UserLoginFormFactory
 	- App\FrontModule\Components\UserRegistrationForm\UserRegistrationFormFactory
-	- App\FrontModule\Components\ForgottenPasswordForm\ForgottenPasswordFormFactory(%mailFrom.email%, %mailFrom.name%)
+	forgottenPasswordFormFactory:
+	    implement: App\FrontModule\Components\ForgottenPasswordForm\ForgottenPasswordFormFactory
+	    setup:
+	        - setMailFrom(%mailFrom.email%,%mailFrom.name%)
 	- App\FrontModule\Components\NewPasswordForm\NewPasswordFormFactory
 
 	- App\Model\Facades\CategoriesFacade

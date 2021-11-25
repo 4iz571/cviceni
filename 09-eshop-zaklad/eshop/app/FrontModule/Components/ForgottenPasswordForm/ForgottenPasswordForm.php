@@ -35,20 +35,26 @@ class ForgottenPasswordForm extends Form{
 
   /**
    * ForgottenPasswordForm constructor.
-   * @param string $mailFromEmail
-   * @param string $mailFromName
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    * @param UsersFacade $usersFacade
    * @param Nette\Application\LinkGenerator $linkGenerator
    */
-  public function __construct(string $mailFromEmail, string $mailFromName, Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade, Nette\Application\LinkGenerator $linkGenerator){
+  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade, Nette\Application\LinkGenerator $linkGenerator){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->createSubcomponents();
     $this->linkGenerator=$linkGenerator;
-    $this->mailFromEmail=$mailFromEmail;
-    $this->mailFromName=$mailFromName;
+  }
+
+  /**
+   * Metoda volaná z configu, která se používá pro nastavení údajů o odesílateli e-mailů
+   * @param string $email
+   * @param string $name
+   */
+  public function setMailFrom(string $email, string $name):void {
+    $this->mailFromEmail=$email;
+    $this->mailFromName=$name;
   }
 
   private function createSubcomponents(){

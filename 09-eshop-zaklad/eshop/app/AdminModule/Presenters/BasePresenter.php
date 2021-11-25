@@ -1,13 +1,13 @@
 <?php
 
-namespace App\FrontModule\Presenters;
+namespace App\AdminModule\Presenters;
 
 use Nette\Application\AbortException;
 use Nette\Application\ForbiddenRequestException;
 
 /**
  * Class BasePresenter
- * @package App\FrontModule\Presenters
+ * @package App\AdminModule\Presenters
  */
 abstract class BasePresenter extends \Nette\Application\UI\Presenter {
 
@@ -26,7 +26,7 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter {
       }else{
         $this->flashMessage('Pro zobrazení požadovaného obsahu se musíte přihlásit!','warning');
         //uložíme původní požadavek - předáme ho do persistentní proměnné v UserPresenteru
-        $this->redirect('User:login', ['backlink' => $this->storeRequest()]);
+        $this->redirect(':Front:User:login', ['backlink' => $this->storeRequest()]);
       }
     }
   }
