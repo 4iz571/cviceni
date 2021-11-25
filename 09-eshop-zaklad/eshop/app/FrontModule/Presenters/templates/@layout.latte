@@ -1,0 +1,40 @@
+{**
+ * @param string   $basePath web base path
+ * @param array    $flashes  flash messages
+ *}
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+	<meta charset="utf-8">
+	<title>{ifset title}{include title|striptags} - {/ifset}Ukázkový poznámkovník</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	{block head}{/block}
+</head>
+<body>
+
+	<header class="navbar navbar-dark bg-dark text-white mb-4">
+		<div class="container">
+			<h1 class="h2 mt-1"><a href="{plink Homepage:default}" class="text-white">E-shop</a></h1>
+		</div>
+	</header>
+	<div class="container">
+
+		<div n:foreach="$flashes as $flash" class="alert alert-{$flash->type} alert-dismissible mt-2" role="alert">
+			{$flash->message}
+			<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+
+		<section>
+		{include content}
+		</section>
+	</div>
+
+	{block scripts}
+		<script src="https://nette.github.io/resources/js/3/netteForms.min.js"></script>
+	{/block}
+</body>
+</html>
+
