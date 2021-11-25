@@ -6,7 +6,7 @@
 <html lang="cs">
 <head>
 	<meta charset="utf-8" />
-	<title>{ifset title}{include title|striptags} - {/ifset}Administrace - E-shop</title>
+	<title>{ifset title}{include title|striptags} - {/ifset}E-shop Admin</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css" integrity="sha384-zCbKRCUGaJDkqS1kPbPd7TveP5iyJE0EjAuZQTgFLD2ylzuqKfdKlfG/eSrtxUkn" crossorigin="anonymous" />
 
@@ -17,25 +17,49 @@
 
 	{block head}{/block}
 </head>
-<body>
+<body style="padding-top:4.5rem;">
 
-	<header class="navbar navbar-dark bg-dark text-white mb-4">
-		<div class="container">
-			<h1 class="h2 mt-1"><a href="{plink Homepage:default}" class="text-white">E-shop</a></h1>
-		</div>
+	<header class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+		<a class="navbar-brand" href="{plink Dashboard:default}">E-shop Admin</a>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#adminNavbar" aria-controls="adminNavbar" aria-expanded="false" aria-label="Navigace">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+
+		<nav class="collapse navbar-collapse" id="adminNavbar">
+			<ul class="navbar-nav mr-auto">
+				<li n:class="$presenter->isLinkCurrent('Dashboard:default')?active, nav-item">
+					<a class="nav-link" href="{plink Dashboard:default}">Dashboard</a>
+				</li>
+				<li n:class="$presenter->isLinkCurrent('Category:default')?active, nav-item" n:if="$user->isAllowed('Admin:Category','default')">
+					<a class="nav-link" href="{plink Category:default}">Kategorie</a>
+				</li>
+			</ul>
+
+			<ul class="navbar-nav ml-auto">
+				<li class="nav-item dropdown">
+					<a class="nav-link dropdown-toggle" href="#" id="adminNavbarUser" role="button" data-toggle="dropdown" aria-expanded="false">
+						{$user->identity->name}
+					</a>
+					<div class="dropdown-menu" aria-labelledby="adminNavbarUser">
+						<a class="dropdown-item" href="{plink :Front:User:logout}">Odhlásit se</a>
+					</div>
+				</li>
+			</ul>
+		</nav>
 	</header>
+
 	<div class="container">
 
 		<div n:foreach="$flashes as $flash" class="alert alert-{$flash->type=='error'?'danger':$flash->type} alert-dismissible mt-2" role="alert">
 			{$flash->message}
-			<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+			<button type="button" class="close" data-dismiss="alert" aria-label="Zavřít">
 				<span aria-hidden="true">&times;</span>
 			</button>
 		</div>
 
-		<section>
-		{include content}
-		</section>
+		<main role="main">
+		{include main}
+		</main>
 	</div>
 
 	{block scripts}
