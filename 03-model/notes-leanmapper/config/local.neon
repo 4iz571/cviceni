@@ -5,4 +5,4 @@ parameters:
         username: xname
         password: heslokdatabazi
         database: xname
-        encoding: utf8
+        charset: utf8mb4
