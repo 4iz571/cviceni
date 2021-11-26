@@ -74,6 +74,7 @@ Pro začátek tvorby semestrální práce máte v podkladech pro toto cvičení 
    - rozdělení aplikace na moduly
    - v administraci je hotový základ správy kategorií
 - administraci najdete na adrese, do které doplníte */admin*, tj. například: https://eso.vse.cz/~xname/eshop/admin
+- pro možnost jednoduchého smazání cache je v základu projektu skript *deleteCacheDir.php*, najdete ho např. na adrese https://eso.vse.cz/~xname/eshop/deleteCacheDir.php  
 
 :mega:
 - nahrajte základ aplikace do vlastního GIT repozitáře, který budete používat pro práci na semestrálce
