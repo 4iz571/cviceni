@@ -1,0 +1,11 @@
+{snippet}
+  <div {if !empty($class)}class="{$class}"{/if}>
+    {if $user->isLoggedIn()}
+      <strong>{$user->identity->name}</strong>
+      -
+      <a href="{link logout!}">odhlásit se</a>
+    {else}
+      <a href="{link login!}">přihlásit se</a>
+    {/if}
+  </div>
+{/snippet}

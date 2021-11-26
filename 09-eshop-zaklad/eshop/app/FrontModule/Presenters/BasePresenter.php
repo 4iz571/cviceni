@@ -2,6 +2,8 @@
 
 namespace App\FrontModule\Presenters;
 
+use App\FrontModule\Components\UserLoginControl\UserLoginControl;
+use App\FrontModule\Components\UserLoginControl\UserLoginControlFactory;
 use Nette\Application\AbortException;
 use Nette\Application\ForbiddenRequestException;
 
@@ -10,6 +12,8 @@ use Nette\Application\ForbiddenRequestException;
  * @package App\FrontModule\Presenters
  */
 abstract class BasePresenter extends \Nette\Application\UI\Presenter {
+  /** @var UserLoginControlFactory $userLoginControlFactory */
+  private $userLoginControlFactory;
 
   /**
    * @throws ForbiddenRequestException
@@ -31,4 +35,17 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter {
     }
   }
 
+  /**
+   * Komponenta pro zobrazení údajů o aktuálním uživateli (přihlášeném či nepřihlášeném)
+   * @return UserLoginControl
+   */
+  public function createComponentUserLogin():UserLoginControl {
+    return $this->userLoginControlFactory->create();
+  }
+
+  #region injections
+  public function injectUserLoginControlFactory(UserLoginControlFactory $userLoginControlFactory):void {
+    $this->userLoginControlFactory=$userLoginControlFactory;
+  }
+  #endregion injections
 }
