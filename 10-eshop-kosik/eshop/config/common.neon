@@ -26,6 +26,7 @@ services:
 	- App\Model\Api\Facebook\FacebookApi(%facebook.appId%, %facebook.secret%)
 
 	- App\AdminModule\Components\CategoryEditForm\CategoryEditFormFactory
+	- App\AdminModule\Components\ProductEditForm\ProductEditFormFactory
 
 	- App\FrontModule\Components\UserLoginForm\UserLoginFormFactory
 	- App\FrontModule\Components\UserRegistrationForm\UserRegistrationFormFactory
@@ -37,11 +38,13 @@ services:
 	- App\FrontModule\Components\UserLoginControl\UserLoginControlFactory
 
 	- App\Model\Facades\CategoriesFacade
+	- App\Model\Facades\ProductsFacade
 	- App\Model\Facades\UsersFacade
 
 	- App\Model\Repositories\CategoryRepository
 	- App\Model\Repositories\ForgottenPasswordRepository
 	- App\Model\Repositories\PermissionRepository
+	- App\Model\Repositories\ProductRepository
 	- App\Model\Repositories\ResourceRepository
 	- App\Model\Repositories\RoleRepository
 	- App\Model\Repositories\UserRepository

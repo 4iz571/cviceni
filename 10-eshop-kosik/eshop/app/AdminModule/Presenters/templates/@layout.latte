@@ -30,6 +30,9 @@
 				<li n:class="$presenter->isLinkCurrent('Dashboard:*')?active, nav-item">
 					<a class="nav-link" href="{plink Dashboard:default}">Dashboard</a>
 				</li>
+				<li n:class="$presenter->isLinkCurrent('Product:*')?active, nav-item" n:if="$user->isAllowed('Admin:Product','default')">
+					<a class="nav-link" href="{plink Product:default}">Produkty</a>
+				</li>
 				<li n:class="$presenter->isLinkCurrent('Category:*')?active, nav-item" n:if="$user->isAllowed('Admin:Category','default')">
 					<a class="nav-link" href="{plink Category:default}">Kategorie</a>
 				</li>
