@@ -29,7 +29,7 @@ class CategoryEditForm extends Form{
   public $onFailed = [];
   /** @var callable[] $onCancel */
   public $onCancel = [];
-  /** @var CategoriesFacade $tagsFacade */
+  /** @var CategoriesFacade $categoriesFacade */
   private $categoriesFacade;
 
   /**
