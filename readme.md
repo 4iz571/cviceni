@@ -38,6 +38,7 @@ Podklady ke cvičením kurzu *4IZ571 - Vývoj pokročilých aplikací v PHP* na 
     - analýza požadavků, datový model
     - struktura aplikace
     - základ aplikace
+    - stylujeme pomocí Bootstrapu
 10. **[E-shop - editace produktů, košík](./10-eshop-kosik)**
     - editace produktů v administraci e-shopu - unikátní URL produktu, uložení fotek
     - košík (uložený v databázi)
