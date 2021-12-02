@@ -1,0 +1,3 @@
+RewriteEngine On
+RewriteRule ^$ www/ [L,QSA]
+RewriteRule (.*) www/$1 [L,QSA]

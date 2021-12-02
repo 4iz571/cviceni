@@ -1,0 +1,47 @@
+parameters:
+
+application:
+	errorPresenter: Front:Error
+	mapping:
+		*: App\*Module\Presenters\*Presenter
+
+session:
+	expiration: 14 days
+
+di:
+	export:
+		parameters: no
+		tags: no
+
+services:
+	- App\Router\RouterFactory::createRouter
+
+	- LeanMapper\Connection(%database%)
+	- Vojir\LeanMapper\Mappers\CamelcaseUnderdashMapper('App\Model\Entities')
+	- LeanMapper\DefaultEntityFactory
+
+	- App\Model\Authenticator\Authenticator
+	- App\Model\Authorization\Authorizator
+
+	- App\Model\Api\Facebook\FacebookApi(%facebook.appId%, %facebook.secret%)
+
+	- App\AdminModule\Components\CategoryEditForm\CategoryEditFormFactory
+
+	- App\FrontModule\Components\UserLoginForm\UserLoginFormFactory
+	- App\FrontModule\Components\UserRegistrationForm\UserRegistrationFormFactory
+	forgottenPasswordFormFactory:
+	    implement: App\FrontModule\Components\ForgottenPasswordForm\ForgottenPasswordFormFactory
+	    setup:
+	        - setMailFrom(%mailFrom.email%,%mailFrom.name%)
+	- App\FrontModule\Components\NewPasswordForm\NewPasswordFormFactory
+	- App\FrontModule\Components\UserLoginControl\UserLoginControlFactory
+
+	- App\Model\Facades\CategoriesFacade
+	- App\Model\Facades\UsersFacade
+
+	- App\Model\Repositories\CategoryRepository
+	- App\Model\Repositories\ForgottenPasswordRepository
+	- App\Model\Repositories\PermissionRepository
+	- App\Model\Repositories\ResourceRepository
+	- App\Model\Repositories\RoleRepository
+	- App\Model\Repositories\UserRepository
