@@ -76,3 +76,33 @@ Implementace popsaná v komentované prezentaci s postupem je již zahrnuta do u
 
 5. projděte si [prezentaci s postupem implementace editace produktů](eshop-editace-produktu.pptx)
 6. inspirujte se daným kódem a implementujte správu produktů do eshopu, který vytváříte jako semestrální práci
+
+
+## 
+
+## Hezké adresy pro zobrazení produktů
+:point_right:
+- jak již víme z předchozího cvičení, tvar URL můžeme jednoduše upravit v rámci routeru
+    - nezapomeňte na to, že specifičtější varianty cest se zadávají před těmi obecnými
+- vytvoříme vlastní routu pro adresování produktů, ve které použijeme místo ID produktu hodnotu jeho property URL
+
+```php
+$frontRouter = new RouteList('Front');
+$frontRouter->addRoute('produkty', 'Product:list');
+$frontRouter->addRoute('produkty/<url>', 'Product:show');
+``` 
+
+```php
+public function renderShow(string $url):void {
+  try{
+    $product = $this->productsFacade->getProductByUrl($url);
+  }catch (\Exception $e){
+    throw new BadRequestException('Produkt nebyl nalezen.');
+  }
+
+  $this->template->product = $product;
+}
+```
+
+:blue_book:
+- [Routování - návod na webu Nette](https://doc.nette.org/cs/3.1/routing)

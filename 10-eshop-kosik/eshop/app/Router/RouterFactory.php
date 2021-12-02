@@ -15,6 +15,8 @@ final class RouterFactory{
     $adminRouter->addRoute('admin/<presenter=Dashboard>/<action=default>[/<id>]');
 
 	  $frontRouter = new RouteList('Front');
+    $frontRouter->addRoute('produkty', 'Product:list');
+    $frontRouter->addRoute('produkty/<url>', 'Product:show');
 		$frontRouter->addRoute('<presenter=Homepage>/<action=default>[/<id>]');
 
 	  $router = new RouteList();

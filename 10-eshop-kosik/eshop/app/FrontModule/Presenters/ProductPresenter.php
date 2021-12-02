@@ -1,0 +1,44 @@
+<?php
+
+namespace App\FrontModule\Presenters;
+
+use App\Model\Facades\ProductsFacade;
+use Nette\Application\BadRequestException;
+
+/**
+ * Class ProductPresenter
+ * @package App\FrontModule\Presenters
+ */
+class ProductPresenter extends BasePresenter{
+  /** @var ProductsFacade $productsFacade */
+  private $productsFacade;
+
+  /**
+   * Akce pro zobrazení jednoho produktu
+   * @param string $url
+   * @throws BadRequestException
+   */
+  public function renderShow(string $url):void {
+    try{
+      $product = $this->productsFacade->getProductByUrl($url);
+    }catch (\Exception $e){
+      throw new BadRequestException('Produkt nebyl nalezen.');
+    }
+
+    $this->template->product = $product;
+  }
+
+  /**
+   * Akce pro vykreslení přehledu produktů
+   */
+  public function renderList():void {
+    //TODO tady by mělo přibýt filtrování podle kategorie, stránkování atp.
+    $this->template->products = $this->productsFacade->findProducts(['order'=>'title']);
+  }
+
+  #region injections
+  public function injectProductsFacade(ProductsFacade $productsFacade):void {
+    $this->productsFacade=$productsFacade;
+  }
+  #endregion injections
+}
