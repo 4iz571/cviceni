@@ -8,10 +8,13 @@ use Nette\Application\BadRequestException;
 /**
  * Class ProductPresenter
  * @package App\FrontModule\Presenters
+ * @property string $category
  */
 class ProductPresenter extends BasePresenter{
   /** @var ProductsFacade $productsFacade */
   private $productsFacade;
+  /** @persistent */
+  public $category;
 
   /**
    * Akce pro zobrazení jednoho produktu

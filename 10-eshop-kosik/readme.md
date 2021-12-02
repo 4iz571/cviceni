@@ -104,5 +104,39 @@ public function renderShow(string $url):void {
 }
 ```
 
+:point_right:
+- zkusme do cesty zamíchat také kategorie:
+
+```php
+$frontRouter->addRoute('produkty[/kategorie-<category>]', 'Product:list');  //pokud je do adresy zakomponována také proměnná category, je doplněna do adresy
+$frontRouter->addRoute('produkty[/kategorie-<category>]/<url>', 'Product:show');  //pokud je do adresy zakomponována také proměnná category, je doplněna prostřední část adresy
+```
+
+:point_right:
+- kategorii si případně můžeme v routeru načíst z databáze:
+
+```php
+public static function createRouter(ProductsFacade $productsFacade):RouteList {
+  $frontRouter = new RouteList('Front');
+  $frontRouter->addRoute('produkty[/kategorie-<category>]', 'Product:list');
+  $frontRouter->addRoute('produkty[/kategorie-<category>]/<url>', [
+    'presenter'=>'Product',
+    'action'=>'show',
+    null =>[
+      Nette\Routing\Route::FILTER_OUT => function(array $params)use($productsFacade){
+        if (!$params['category']){
+          $product = $productsFacade->getProductByUrl($params['url']);
+          if (!empty($product->category)){
+            $params['category']=$product->category->categoryId;
+          }
+        }
+        return $params;
+      }
+    ]
+  ]);
+  return $frontRouter;
+}  
+```
+
 :blue_book:
 - [Routování - návod na webu Nette](https://doc.nette.org/cs/3.1/routing)
