@@ -103,7 +103,7 @@ $sessionSection->set('promenna', 'hodnota');
 echo $sessionSection->get('promenna');
 
 // zrušení proměnné
-$sessionSection->remove('promenna')
+$sessionSection->remove('promenna');
 ```
 
 :blue_book:
