@@ -2,6 +2,7 @@
 
 namespace App\FrontModule\Presenters;
 
+use App\FrontModule\Components\ProductCartForm\ProductCartFormFactory;
 use App\Model\Facades\ProductsFacade;
 use Nette\Application\BadRequestException;
 
@@ -13,6 +14,9 @@ use Nette\Application\BadRequestException;
 class ProductPresenter extends BasePresenter{
   /** @var ProductsFacade $productsFacade */
   private $productsFacade;
+  /** @var ProductCartFormFactory $productCartFormFactory */
+  private $productCartFormFactory;
+
   /** @persistent */
   public $category;
 
@@ -42,6 +46,10 @@ class ProductPresenter extends BasePresenter{
   #region injections
   public function injectProductsFacade(ProductsFacade $productsFacade):void {
     $this->productsFacade=$productsFacade;
+  }
+
+  public function injectProductCartFormFactory(ProductCartFormFactory $productCartFormFactory):void {
+    $this->productCartFormFactory=$productCartFormFactory;
   }
   #endregion injections
 }
