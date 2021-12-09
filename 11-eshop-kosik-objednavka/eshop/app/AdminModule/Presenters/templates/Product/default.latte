@@ -1,0 +1,31 @@
+{varType App\Model\Entities\Product[] $products}
+{block content}
+
+    <h1 n:block="title">Správa produktů</h1>
+    {if !empty($products)}
+        <table class="table table-hover mt-4">
+            <thead>
+                <tr>
+                    <th scope="col">Název produktu</th>
+                    <th scope="col" class="col-xl-1 col-md-2">Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                {foreach $products as $product}
+                    <tr>
+                        <td>{$product->title}</td>
+                        <td class="text-nowrap">
+                            <a href="{link edit id=>$product->productId}" class="btn btn-sm btn-outline-primary">upravit</a>
+                        </td>
+                    </tr>
+                {/foreach}
+            </tbody>
+        </table>
+
+    {else}
+        <p class="text-muted">Nebyly nalezeny žádné produkty</p>
+    {/if}
+
+    <div class="my-4">
+        <a href="{link add}" class="btn btn-primary">nový produkt</a>
+    </div>

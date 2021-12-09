@@ -1,0 +1,37 @@
+{
+	"name": "4iz571/notes-leanmapper",
+	"description": "Ukázková aplikace pro výuku 4iz571",
+	"type": "project",
+	"license": ["proprietary"],
+	"require": {
+		"php": ">= 7.2",
+		"nette/application": "^3.1",
+		"nette/bootstrap": "^3.1",
+		"nette/caching": "^3.1",
+		"nette/di": "^3.0",
+		"nette/finder": "^2.5",
+		"nette/forms": "^3.1",
+		"nette/http": "^3.1",
+		"nette/mail": "^3.1",
+		"nette/robot-loader": "^3.3",
+		"nette/security": "^3.1",
+		"nette/utils": "^3.2",
+		"latte/latte": "^2.9",
+		"tracy/tracy": "^2.8",
+		"tharos/leanmapper": "^4.0",
+		"vojir/leanmapper-mappers": "^1.0",
+		"facebook/graph-sdk": "^5.7",
+		"nextras/forms-rendering": "^1.1"
+	},
+	"autoload": {
+		"psr-4": {
+			"App\\": "app"
+		}
+	},
+	"minimum-stability": "stable",
+  "config": {
+    "platform": {
+      "php": "7.2"
+    }
+  }
+}
