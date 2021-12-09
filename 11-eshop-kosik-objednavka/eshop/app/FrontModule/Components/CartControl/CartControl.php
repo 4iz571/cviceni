@@ -3,6 +3,7 @@
 namespace App\FrontModule\Components\CartControl;
 
 use App\Model\Entities\Cart;
+use App\Model\Entities\Product;
 use App\Model\Facades\CartFacade;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Template;
@@ -31,6 +32,13 @@ class CartControl extends Control{
     $template->render();
   }
 
+  /**
+   * Metoda pro přidání produktu do košíku
+   * @param Product $product
+   */
+  public function addToCart(Product $product){
+    //TODO implementovat
+  }
 
   /**
    * UserLoginControl constructor.
