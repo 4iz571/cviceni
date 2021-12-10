@@ -13,8 +13,6 @@ use Nextras\FormsRendering\Renderers\FormLayout;
 /**
  * Class ProductCartForm
  * @package App\FrontModule\Components\ProductCartForm
- *
- * @method onFinished()
  */
 class ProductCartForm extends Form{
 
@@ -47,11 +45,7 @@ class ProductCartForm extends Form{
     $this->addInteger('count','Počet kusů')
       ->addRule(Form::RANGE,'Chybný počet kusů.',[1,100]);
 
-    $this->addSubmit('ok','přidat do košíku')
-      ->onClick[]=function(SubmitButton $button){
-        //přidání zboží do košíku
-        //TODO
-      };
+    $this->addSubmit('ok','přidat do košíku');
   }
 
 }
