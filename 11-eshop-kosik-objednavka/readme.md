@@ -27,3 +27,30 @@ protected function createComponentProductCartForm(): Multiplier {
 :blue_book:
 - [návod k použití multiplieru](https://doc.nette.org/cs/3.1/cookbook/multiplier)
 
+### Přidáme položku do košíku - načtěme navázané entity znovu z DB
+
+```php
+/**
+ * Class Cart
+ * @package App\Model\Entities
+ * @property int $cartId
+ * @property CartItem[] $items m:belongsToMany
+ */
+class Cart extends Entity{
+
+  public function updateCartItems(){
+    $this->row->cleanReferencedRowsCache('cart_item'); //smažeme cache, aby se položky v košíku znovu načetly z DB bez nutnosti načtení celého košíku
+  }
+
+}
+``` 
+
+### Chceme seřadit položky v košíku
+
+```latte
+{varType App\Model\Entities\Cart $cart}
+{var $cartItems = ($cart->items|sort:(function($a, $b){return strcmp($a->product->title, $b->product->title);}))}
+{foreach $cartItems as $cartItem}
+    {$cartItem->product->title}
+{/foreach}
+```

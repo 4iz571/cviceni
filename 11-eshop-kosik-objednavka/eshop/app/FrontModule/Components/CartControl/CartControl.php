@@ -8,6 +8,7 @@ use App\Model\Facades\CartFacade;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Template;
 use Nette\Http\Session;
+use Nette\Http\SessionSection;
 use Nette\Security;
 
 /**
@@ -19,6 +20,8 @@ class CartControl extends Control{
   private $user;
   /** @var CartFacade $cartFacade */
   private $cartFacade;
+  /** @var SessionSection */
+  private $cartSession;
   /** @var Cart $cart */
   private $cart;
 
@@ -49,18 +52,25 @@ class CartControl extends Control{
   public function __construct(Security\User $user, Session $session, CartFacade $cartFacade){
     $this->user=$user;
     $this->cartFacade=$cartFacade;
-    $this->cart=$this->prepareCart($session);
+    $this->cartSession=$session->getSection('cart');
+    $this->cart=$this->prepareCart();
+  }
+
+  /**
+   * Metoda pro smazání ID košíku ze session
+   * TODO tuto metodu by bylo vhodné zavolat např. při odhlášení uživatele
+   */
+  public function unsetSessionCart():void {
+    $this->cartSession->remove('cartId');
   }
 
   /**
    * Metoda pro přípravu košíku uloženého v DB
-   * @param Session $session
    */
-  private function prepareCart(Session $session):Cart {
-    $cartSession=$session->getSection('cart');
+  private function prepareCart():Cart {
     #region zkusíme najít košík podle ID ze session
     try {
-      if ($cartId = $cartSession->get('cartId')){
+      if ($cartId = $this->cartSession->get('cartId')){
         $cart = $this->cartFacade->getCartById((int)$cartId);
         //zkontrolujeme, jestli tu není košík od předchozího uživatele, nebo se nepřihlásil uživatel s prázdným košíkem (případně ho zahodíme)
         if (($cart->userId || empty($cart->items)) && $this->user->isLoggedIn() && ($cart->userId!=$this->user->id)){
@@ -75,6 +85,7 @@ class CartControl extends Control{
     if ($this->user->isLoggedIn()){
       if ($cart){
         //přiřadíme do košíku načteného podle session vazbu na aktuálního uživatele
+        $this->cartFacade->deleteCartByUser($this->user->id);
         $cart->userId=$this->user->id;
         $this->cartFacade->saveCart($cart);
       }else{
@@ -96,7 +107,7 @@ class CartControl extends Control{
     #endregion vyřešíme vazbu košíku na uživatele, případně vytvoříme košík nový
 
     //aktualizujeme ID košíku v session
-    $cartSession->set('cartId',$cart->cartId);
+    $this->cartSession->set('cartId',$cart->cartId);
 
     return $cart;
   }

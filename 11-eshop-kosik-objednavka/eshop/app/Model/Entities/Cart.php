@@ -12,12 +12,12 @@ use LeanMapper\Entity;
  * @property int|null $userId = null
  * @property CartItem[] $items m:belongsToMany
  * @property DateTime|null $lastModified
- *
- * @method addToItems(CartItem $cartItem)
- * @method removeFromItems(CartItem $cartItem)
- * @method removeAllItems()
  */
 class Cart extends Entity{
+
+  public function updateCartItems(){
+    $this->row->cleanReferencedRowsCache('cart_item'); //smažeme cache, aby se položky v košíku znovu načetly z DB bez nutnosti načtení celého košíku
+  }
 
   public function getTotalCount():int {
     $result = 0;
