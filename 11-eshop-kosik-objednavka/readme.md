@@ -54,3 +54,25 @@ class Cart extends Entity{
     {$cartItem->product->title}
 {/foreach}
 ```
+
+### Potřebujeme odmazávat staré košíky
+
+```php
+class CartRepository extends BaseRepository{
+
+  public function deleteOldCarts(){
+    $this->connection->nativeQuery('DELETE FROM `cart` WHERE (user_id IS NULL AND last_modified < (NOW() - INTERVAL 30 DAY)) OR (last_modified < (NOW() - INTERVAL 3 DAY))');
+  }
+
+}
+```
+
+### Ukázková aplikace
+
+:mega:
+
+Pro dokončení košíku vyjdeme z aplikace z minulého cvičení, do které bylo doplněno pár kousků kódu. Doporučuji si ji stáhnout z GITu:
+1. stáhněte si soubor s [rozdílovým exportem databáze](./eshop-diff-db-kosik2.sql) a naimportujte jeho obsah do MariaDB (případně je k dispozici také soubor s [kompletním exportem databáze](./eshop-db.sql))
+2. stáhněte si složku **[eshop](./eshop)** se zdrojovým kódem projektu, nahrajte její obsah na server (a nezapomeňte na úpravu práv k adresářům *log* a *temp*)
+3. v souboru **config/local.neon** přístupy k databázi, později také přístupy k FB loginu
+4. upravte práva k adresáři *www/img/products* (nastavte práva 777)
