@@ -70,7 +70,7 @@ Implementace popsaná v komentované prezentaci s postupem je již zahrnuta do u
     - rozdílový export je vytvářen vůči databázi z minulého cvičení ([zde](../eshop-db.sql))
 2. stáhněte si složku **[eshop](./eshop)** se zdrojovým kódem projektu, nahrajte její obsah na server (a nezapomeňte na úpravu práv k adresářům *log* a *temp*)
 3. v souboru **config/local.neon** přístupy k databázi, později také přístupy k FB loginu
-4. upravte práva k adresáči *www/img/products* (nastavte práva 777)
+4. upravte práva k adresáři *www/img/products* (nastavte práva 777)
 
 :mega: :orange_book:
 
