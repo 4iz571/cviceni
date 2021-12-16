@@ -171,7 +171,7 @@ class UserPresenter extends BasePresenter{
       try{
         //po registraci uživatele rovnou i přihlásíme
         $this->user->login($values['email'],$values['password']);
-        $this->flashMessage('Vítejte v aplikaci nástěnky :)');
+        $this->flashMessage('Vítejte v našem eshopu :)');
       }catch (\Exception $e){
         $this->flashMessage('Při registraci se vyskytla chyba','error');
       }
