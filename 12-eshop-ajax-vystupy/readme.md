@@ -5,7 +5,43 @@
 - ne vždy chceme generovat výstup ve formátu HTML - např. pro komunikaci s javascriptem se hodí JSON či XML, sitemapa bude v XML atd.
 - výstup v jiném formátu můžeme generovat buď prostřednictvím  latte šablony, ve které uvedeme jiný content type, nebo můžeme odpověď vygenerovat v presenteru
 
-### Odeslání JSON/XML odpovědi rovnou z presenteru
+### Odeslání JSON odpovědi rovnou z presenteru
+:point_right:
+- pro možnost skládání dat odpovědi máme v presenteru k dispozici property *payload*, do které můžeme postupně přidat data, která chceme odeslat
+- tuto činnost bychom měli mít v "handle*" či "action*" metodě 
+- samotné odeslání poté probíhá v případě detekce AJAXu automaticky, nebo jej můžeme odeslat ručně
+  ```php
+    public function actionJsonData():void {
+      $this->payload->a = 1;
+      $this->payload->b = 2;
+      $this->sendPayload();
+  ```
+
+:point_right:    
+- pokud chceme poslat kompletní vlastní JSON, můžeme data předat k odeslání také jako pole či objekt serializovatelný jako JSON:
+  ```php
+  public function actionJsonData():void {
+    $this->sendJson([
+      'a'=>1,
+      'b'=>2
+    ]);
+  }
+  ```
+
+### Odeslání XML odpovědi rovnou z presenteru
+:point_right:
+- v rámci presenteru můžeme akci vlastně kdykoliv ukončit odesláním odpovědi, případně můžeme odpověď v rámci presenteru upravovat
+- ukázka sestavení odpovědi pomocí SimpleXML:
+  ```php
+  public function actionXmlData():void {
+    $xml = new \SimpleXMLElement('<test></test>');
+    $xml->addChild('a', 1);
+    $xml->addChild('b', 2);
+  
+    $this->getHttpResponse()->setContentType('application/xml');
+    $this->sendResponse(new TextResponse($xml->asXML()));
+  }
+  ```
 
 ### XML pomocí latte - sitemap.xml 
 :point_right:
@@ -41,6 +77,9 @@
 
 :mega:
 - dopracujte v ukázkové aplikaci výpis sitemapy (alespoň pro produkty)  
+
+
+
 
 ## AJAX prostřednictvím knihovny Naja
 :point_right:
