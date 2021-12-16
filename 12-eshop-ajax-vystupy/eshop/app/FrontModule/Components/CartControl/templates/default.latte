@@ -1,0 +1,13 @@
+{varType App\Model\Entities\Cart $cart}
+{snippet}
+  <div>
+
+    {if empty($cart) || $cart->getTotalCount()==0}
+      košík je prázdný
+    {else}
+      {var $cartTotalCount = $cart->getTotalCount();}
+      v košíku je {$cartTotalCount} {if $cartTotalCount==1}položka{elseif $cartTotalCount<5}položky{else}položek{/if} za {$cart->getTotalPrice()|number:0,',',' '} Kč
+    {/if}
+
+  </div>
+{/snippet}
