@@ -7,6 +7,7 @@
     {foreach $products as $product}
         <div class="col-md-6 col-lg-4 my-2 card">
             <a href="{plink Product:show url=>$product->url}" class="h4">{$product->title}</a>
+            {control "productCartForm-$product->productId"}
         </div>
     {/foreach}
 </section>
