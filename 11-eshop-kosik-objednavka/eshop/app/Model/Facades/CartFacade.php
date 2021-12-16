@@ -42,9 +42,18 @@ class CartFacade{
    * Metoda pro smazání košíku konkrétního uživatele
    * @param User|int $user
    */
-  public function deleteCartByUser($user){
+  public function deleteCartByUser($user):void {
     try{
       $this->cartRepository->delete($this->getCartByUser($user));
+    }catch (\Exception $e){}
+  }
+
+  /**
+   * Metoda pro smazání starých košíků
+   */
+  public function deleteOldCarts():void {
+    try{
+      $this->cartRepository->deleteOldCarts();
     }catch (\Exception $e){}
   }
 

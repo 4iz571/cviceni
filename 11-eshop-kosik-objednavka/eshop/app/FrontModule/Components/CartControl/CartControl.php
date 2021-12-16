@@ -65,6 +65,14 @@ class CartControl extends Control{
   }
 
   /**
+   * Metoda pro smazání již neplatných košíků z databáze
+   * TODO tuto metodu je vhodné volat buď cronem, nebo při nějaké pravidelně se opakující události (ale ne při každém načtení stránky); v tomto ukázkovém kódu ji voláme při přípravě nového košíku, ale určitě by šlo najít i vhodnější místo
+   */
+  public function deleteOldCarts():void {
+    $this->cartFacade->deleteOldCarts();
+  }
+
+  /**
    * Metoda pro přípravu košíku uloženého v DB
    */
   private function prepareCart():Cart {
@@ -73,7 +81,7 @@ class CartControl extends Control{
       if ($cartId = $this->cartSession->get('cartId')){
         $cart = $this->cartFacade->getCartById((int)$cartId);
         //zkontrolujeme, jestli tu není košík od předchozího uživatele, nebo se nepřihlásil uživatel s prázdným košíkem (případně ho zahodíme)
-        if (($cart->userId || empty($cart->items)) && $this->user->isLoggedIn() && ($cart->userId!=$this->user->id)){
+        if (($cart->userId || empty($cart->items)) && ($cart->userId!=$this->user->id || !$this->user->isLoggedIn())){
           $cart=null;
         }
       }
@@ -99,12 +107,14 @@ class CartControl extends Control{
           $cart=new Cart();
           $cart->userId=$this->user->id;
           $this->cartFacade->saveCart($cart);
+          $this->deleteOldCarts();
         }
       }
     }elseif(!$cart){
       //košík jsme zatím nijak nezvládli najít, vytvoříme nový prázdný
       $cart=new Cart();
       $this->cartFacade->saveCart($cart);
+      $this->deleteOldCarts();
     }
     #endregion vyřešíme vazbu košíku na uživatele, případně vytvoříme košík nový
 
