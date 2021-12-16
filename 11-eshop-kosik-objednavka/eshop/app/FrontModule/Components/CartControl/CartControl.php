@@ -85,7 +85,9 @@ class CartControl extends Control{
     if ($this->user->isLoggedIn()){
       if ($cart){
         //přiřadíme do košíku načteného podle session vazbu na aktuálního uživatele
-        $this->cartFacade->deleteCartByUser($this->user->id);
+        if ($cart->userId != $this->user->id){
+          $this->cartFacade->deleteCartByUser($this->user->id);
+        }
         $cart->userId=$this->user->id;
         $this->cartFacade->saveCart($cart);
       }else{
