@@ -58,11 +58,30 @@ class CartFacade{
   }
 
   /**
+   * Metoda vracející konkrétní CartItem
+   * @param int $cartItemId
+   * @return CartItem
+   * @throws \Exception
+   */
+  public function getCartItem(int $cartItemId):CartItem {
+    return $this->cartItemRepository->find($cartItemId);
+  }
+
+  /**
    * Metoda pro uložení položky v košíku
    * @param CartItem $cartItem
    */
   public function saveCartItem(CartItem $cartItem){
     $this->cartItemRepository->persist($cartItem);
+  }
+
+  /**
+   * Metoda pro smazání položky košíku
+   * @param CartItem $cartItem
+   * @throws \LeanMapper\Exception\InvalidStateException
+   */
+  public function deleteCartItem(CartItem $cartItem){
+    $this->cartItemRepository->delete($cartItem);
   }
 
   /**
