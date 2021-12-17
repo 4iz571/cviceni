@@ -222,21 +222,66 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter{
 - [Knihovna Naja](https://naja.js.org/)
 
 ### Snippety a jejich invalidace
+:point_right:
+- v rámci šablon můžeme označit bloky, které má jít překreslit samostatně
+    - nemusí jít o komponenty, na snippety můžeme rozdělit i normální šablony
+- základní označení snippetu:
+  ```latte
+  {snippet jmenoSnippetu}
+      html obsah
+  {/snippet}  
+  
+  <div n:snippet="jmenoSnippetu2">html obsah</div>
+  ```    
+- pokud chceme snippety vykreslit dynamicky (např. položky z foreach cyklu), obalíme je ještě jedním společným snippetem:
+  ```latte 
+  <ul n:snippet="seznam">
+    {foreach $items as $item}
+      <li n:snippet="polozka-{$item->itemId}">...</li>
+    {/foreach}
+  </ul>
+  ``` 
+  - následně pak bude nutné invalidovat i nadřazený snippet
 
+- u vlastních komponent bývá dobrým zvykem mít celý jejich obsah vždy zabalený jako snippet, v rámci komponenty poté zavoláme na vhodném místě metodu *redrawControl()*  
 
+:point_right:   
+- v rámci presenteru poté můžeme vynutit překreslení:
+  ```php
+  public function handleAdd():void {
+    if ($this->isAjax()){
+      $this->redrawControl('seznam');
+    }else{
+      $this->redirect('this');
+    }
+  }
+  ```
 
+### Knihovna Naja
+:point_right:
+- označíme si ve stránce bloky, které budeme chtít samostatně překreslovat (např. košík, flash zprávy...) - reálně můžeme nechat překreslit klidně i celý hlavní obsah stránky
+- knihovna se ve výchozím nastavení snaží odchytit a zpracovat všechny požadavky z odkazů a formulářů, které u sebe mají třídu *ajax*
+- celou knihovnu můžeme zahrnout mezi další knihovny využívané projektem, nebo ji necháme stáhnout z CDN:
+  ```html
+  <script src="https://unpkg.com/naja@2/dist/Naja.min.js"></script>
+  ```
+- pro použití musíme knihovnu inicializovat:
+  ```
+    $(document).ready(function(){
+        naja.initialize();
+    });  
+  ```
+  
+:point_right:
+- ukázku přidáním a odebráním zboží do košíku najdete v ukázkovém eshopu  
+  
+---
 
-
-
-
-
-
-### Ukázková aplikace
+## Ukázková aplikace
 
 :mega:
 
-Pro dokončení košíku vyjdeme z aplikace z minulého cvičení, do které bylo doplněno pár kousků kódu. Doporučuji si ji stáhnout z GITu:
-1. stáhněte si soubor s [rozdílovým exportem databáze](./eshop-diff-db-kosik2.sql) a naimportujte jeho obsah do MariaDB (případně je k dispozici také soubor s [kompletním exportem databáze](./eshop-db.sql))
-2. stáhněte si složku **[eshop](./eshop)** se zdrojovým kódem projektu, nahrajte její obsah na server (a nezapomeňte na úpravu práv k adresářům *log* a *temp*)
+1. stáhněte si složku **[eshop](./eshop)** se zdrojovým kódem projektu, nahrajte její obsah na server (a nezapomeňte na úpravu práv k adresářům *log* a *temp*)
+2. v případě potřeby můžete využít také [export databáze](./eshop-db.sql)
 3. v souboru **config/local.neon** přístupy k databázi, později také přístupy k FB loginu
 4. upravte práva k adresáři *www/img/products* (nastavte práva 777)
