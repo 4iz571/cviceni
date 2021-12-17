@@ -42,7 +42,16 @@ Podklady ke cvičením kurzu *4IZ571 - Vývoj pokročilých aplikací v PHP* na 
 10. **[E-shop - editace produktů, košík](./10-eshop-kosik)**
     - editace produktů v administraci e-shopu - unikátní URL produktu, uložení fotek
     - košík (uložený v databázi)
-    - SEO URL pro produkt              
+    - SEO URL pro produkt     
+11. **[E-shop - dokončení košíku, objednávka](./11-eshop-kosik-objednavka)**
+    - jeden formulář vícekrát na jedné stránce (multiplier)
+    - přidání položky do košíku
+    - více šablon pro vykreslení jedné komponenty
+12. **[E-shop - jiné typy výstupu (XML, JSON, PDF), AJAX, lokalizace](./12-eshop-ajax-vystupy)**             
+    - generování odpovědí v XML a JSON
+    - generování PDF
+    - lokalizace aplikace
+    - AJAX za využití knihovny Naja
 
 ## Zadání semestrální práce
 Pro úspěšné zakončení předmětu je potřeba vytvořit v rámci malého týmu eshop dle [tohoto zadání](eshop-zadani.md).                     
