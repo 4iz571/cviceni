@@ -39,7 +39,7 @@ protected function createComponentProductCartForm(): Multiplier {
 class Cart extends Entity{
 
   public function updateCartItems(){
-    $this->row->cleanReferencedRowsCache('cart_item'); //smažeme cache, aby se položky v košíku znovu načetly z DB bez nutnosti načtení celého košíku
+    $this->row->cleanReferencingRowsCache('cart_item'); //smažeme cache, aby se položky v košíku znovu načetly z DB bez nutnosti načtení celého košíku
   }
 
 }
