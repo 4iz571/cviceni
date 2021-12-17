@@ -135,6 +135,80 @@ public function actionPdf(){
   }
   ```
 
+---
+
+## Lokalizace aplikace do více jazyků
+:point_right:
+- poměrně často chceme mít jednu aplikaci dostupnou např. zároveň v češtině a v angličtině
+- i pokud to není v zadání rovnou, ale může se tento požadavek vyskytnout v budoucnu, chovejme se tak, jako bychom měli překládat aplikaci hned
+    - později bychom si tím přidělali výrazně více práce, neboť bychom museli procházet celý zdrojový kód   
+
+### Translator
+:point_right:
+- pro funkčnost lokalizace musíme mít v aplikaci zahrnutou třídu implementující rozhraní *Nette\Localization\Translator*, kterou přiřadíme do šablon, formulářů atp.
+- v Nette žádná výchozí implementace není, ale je k dispozici několik hotových balíčků, nebo si můžeme napsat vlastní
+    - viz např. [balíčky na webu Componette](https://componette.org/search/localization)
+    - ukázku vlastního překladače s ukládáním řetězců do databáze [najdete tady](https://github.com/vojir/Nette-DatabaseTranslator)
+- pokud si chcete lokalizaci jen připravit, ale bude se dodělávat až v budoucnu, zkuste zahrnout translator vracející řetězce bez reálného překladu:
+    ```composer require vojir/nette-blank-translator```
+
+### Přiřazení translatoru do šablon a formulářů:
+:point_right:
+```php
+use \Nette\Localization\Translator;
+
+abstract class BasePresenter extends \Nette\Application\UI\Presenter{ 
+  /** @persistent */
+  public string $lang; //doporučuji využít persistentní proměnnou pro uložení aktuálně vybraného jazyka
+
+  private Translator $translator;
+  
+  public function __construct(Translator $translator){
+    $this->translator=$translator;
+  }
+
+  /**
+   * Metoda volaná před vykreslováním šablony
+   */
+  public function beforeRender(){
+    $this->template->setTranslator($this->translator);
+  }
+}
+```
+
+### Překlady v šablonách
+:point_right:
+- nejjednodušší variantou je vypisovat všechny lokalizované hodnoty pomocí překladového makra:
+    ```latte
+    {_'překládaný řetězec'}
+    {_}překládaný řetězec{/_}
+    {_$promenna}
+    ```
+- alternativně funguje také filter *translate*, který můžeme využít např. pokud chceme hodnotu nejprve přeložit a poté upravit dalším filtrem (např. zkrátit):
+    ```latte
+    {$promenna|translate}
+    {$promenna|translate|truncate:20}
+    ```
+
+### Překlady na dalších místech aplikace
+- formuláře se umějí překládat samy - stačí jim přiřadit translator:
+    ```php
+    $form = new \Nette\Application\UI\Form();
+    $form->setTranslator($translator);
+    ```
+    
+- pokud bychom potřebovali překlady např. pro výstup generovaný z akce presenteru, pro maily atp.
+    - využijeme na instanci translatoru přímé zavolání metody *translate*
+        ```php
+        echo $this->translator->translate('Lorem ipsum...');
+        ```
+    - pro překlad ve vlastní komponentě si necháme předat Translator jako parametr konstruktoru    
+
+:blue_book:
+- [Překládání na webu Nette](https://doc.nette.org/cs/3.1/translations)
+
+---  
+
 ## AJAX prostřednictvím knihovny Naja
 :point_right:
 - v Nette najdeme podporu pro řešení ajaxového chování aplikace prostřednictvím překreslování pouze vybraných částí šablon
