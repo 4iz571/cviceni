@@ -78,8 +78,62 @@
 :mega:
 - dopracujte v ukázkové aplikaci výpis sitemapy (alespoň pro produkty)  
 
+### Odeslání datového souboru jako odpovědi
+:point_right:
+- jednou z variant je "klasický" postup s odesláním správných HTTP hlaviček a odesláním obsahu souboru pomocí metody ```readfile```
+- v rámci presenteru máme ale také jednodušší možnost soubor odeslat pomocí speciálního typu odpovědi *FileResponse*
+    - máme možnost zadat také jméno souboru (na serveru ho můžeme mít uložený např. v TEMPu pod nějakým dočasným jménem, ale chceme jej nabídnout s normální čitelnou variantou jména)
+    - lze definovat content type, či případně vynutit stažení souboru (obrázku či PDF) pomocí forceDownload
 
+```php
+public function actionXmlData():void {
+  //TODO 
+  $this->sendResponse(new FileResponse($tempFile, 'objednavka.pdf', 'application/pdf', false));
+}
+```    
 
+### Generujeme PDF
+:point_right:
+- pro generování PDF doporučuji knihovnu [mPDF](https://mpdf.github.io/)
+    - = srozumitelná knihovna, která umožňuje generovat PDF z HTML záznamu (byť s jistým omezením např. v oblasti stylů) 
+- knihovnu nejprve nainstalujeme do projektu
+    ```
+    composer require mpdf/mpdf
+    ```    
+- následně můžeme využívat instanci třídy Mpdf, které buď předáme vlastnoručně sestavený HTML kód, nebo si jej necháme vygenerovat šablonou
+- pro správnou funkčnost jen musíme změnit adresář temp na složku, do které je možné zapisovat
+    - důrazně doporučuji, není vhodné mít cache schovanou v adresáři *vendor*
+
+:point_right:    
+```php
+public function actionPdf(){
+  //připravíme instanci MPdf a nastavíme dokumentu název a tempDir
+  $pdf = new \Mpdf\Mpdf(['mode' => 'utf-8', 'format'=>'A4', 'tempDir'=>__DIR__.'/../../../temp/mpdf']);
+  $pdf->title = 'Objednávka';
+
+  //generujeme obsah podle konkrétní latte šablony
+  $this->template->setFile(__DIR__.'/templates/Demo/pdf.latte');
+  $pdf->WriteHTML($this->template->renderToString());
+
+  //odešleme výstup
+  $pdf->Output('objednavka.pdf', \Mpdf\Output\Destination::INLINE);
+  $this->terminate();
+}
+```   
+
+:point_right:
+- pokud bychom chtěli dokument odeslat mailem:
+  ```php
+  public function actionSendPdf(){
+    //TODO příprava PDF
+
+    //připravíme mail, do kterého necháme přidat PDF přílohu
+    $mail = new \Nette\Mail\Message();
+    $mail->addAttachment('objednavka.pdf', \Mpdf\Output\Destination::STRING_RETURN);
+  
+    //TODO odeslání mailu
+  }
+  ```
 
 ## AJAX prostřednictvím knihovny Naja
 :point_right:
