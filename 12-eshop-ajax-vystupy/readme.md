@@ -272,8 +272,15 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter{
     });  
   ```
   
+- pozor na to, že Naja ukládá jednotlivé části stránky do cache - pokud má být snippet vždy načten ze serveru, cache vypneme:
+  ```html
+  <div n:snippet="cart" data-naja-snippet-cache="off">
+      <!-- ... -->
+  </div>
+  ```  
+  
 :point_right:
-- ukázku přidáním a odebráním zboží do košíku najdete v ukázkovém eshopu  
+- ukázku přidáním a odebráním zboží do košíku najdete v ukázkovém eshopu - respektive v samostatné složce se změnami
   
 ---
 
@@ -285,3 +292,6 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter{
 2. v případě potřeby můžete využít také [export databáze](./eshop-db.sql)
 3. v souboru **config/local.neon** přístupy k databázi, později také přístupy k FB loginu
 4. upravte práva k adresáři *www/img/products* (nastavte práva 777)
+
+:mega:
+5. v samostatné složce najdete změny v souborech pro implementaci AJAXu - viz [eshop-naja-diff](./eshop-naja-diff)
