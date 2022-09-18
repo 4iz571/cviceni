@@ -1,16 +1,16 @@
 # 1. Úvod, potřebné základní znalosti
 
-## Výukový server eso.vse.cz
+## Výukový server esotemp.vse.cz
 :point_right:
 - [informace k připojení](./server-eso.md)
-- aktuálně je na serveru PHP ve verzi 7.3, v dohledné době plánován přechod na 7.4
+- aktuálně je na serveru PHP ve verzi 8.1
 - k dispozici má každý student jeden adresář pro umístění webu a 1 databázi (MariaDB) 
-- [homepage serveru eso.vse.cz](https://eso.vse.cz/)
+- [homepage serveru esotemp.vse.cz](https://esotemp.vse.cz/)
 
 :mega:
 Vyzkoušejte si připojení k serveru:
 - nahrajte na server statický soubor a zobrazte jej přes prohlížeč
-- vyzkoušejte připojení k databázi přes [phpMyAdmin](https://eso.vse.cz/phpmysqladmin/)
+- vyzkoušejte připojení k databázi přes [phpMyAdmin](https://esotemp.vse.cz/myadmin/)
 
 ## Úvodní rozcvička
 :point_right:

@@ -8,12 +8,12 @@
     * nejedná se ani o běžné FTP, ani o FTPS, protokoly odvozené od SSH (Secure Shell)
     * pro připojení mimo školní síť je nutné se nejprve připojit na [VPN](https://internet.vse.cz/vpn/nastaveni-vpn/)
     * na serveru eso je povolené i přímé připojení prostřednictvím protokolu *SSH* (např. pomocí [Putty](http://putty.org), případně pomocí ssh dostupného v operačním systému)
- * vaše soubory jsou dostupné na adrese **http://eso.vse.cz/~xname/**
+ * vaše soubory jsou dostupné na adrese **http://esotemp.vse.cz/~xname/**
 
 ### Přístupové údaje
  * protokol: **SFTP**
  * port: **22**
- * server: **eso.vse.cz**
+ * server: **esotemp.vse.cz**
  * login: **xname**
  * heslo: **jako do školní sítě**
 
