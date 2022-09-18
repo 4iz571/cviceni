@@ -46,7 +46,7 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
     ```
 4. stáhneme composer
     ```shell script
-    wget https://getcomposer.org/download/2.1.8/composer.phar
+    wget https://getcomposer.org/download/2.4.2/composer.phar
     ```
 5. pomocí composeru vygenerujeme ukázkovou aplikaci, se kterou budeme dále pracovat
     ```shell script

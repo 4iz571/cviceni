@@ -118,7 +118,14 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
         d: 'value d',
     );
     ```
-
+- definice properties v konstruktoru třídy
+    ```php
+    class DemoProp {
+      public function __construct(){
+        public int $a = 1;
+      }
+    }
+    ```
 - atributy
     ```php
     #[ExampleAttribute]
@@ -126,6 +133,41 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
         //
     }
     ```
+
+**Nově ve verzi 8.1:**
+- výčtový typ Enum
+    ```php
+    enum Status{
+      case Draft;
+      case Published;
+    }
+    
+    function setStatus(Status $status): void{
+      //TODO
+    }
+    ```
+- kontrola vícenásobné implementace rozhraní u parametru funkce/metody
+    ```php
+    function count_and_iterate(Iterator&Countable $value):int {
+      foreach ($value as $val) {
+        echo $val;
+      }
+      return count($value);
+    }
+    ```
+- návratový typ never
+    ```php
+    function redirect(string $uri):never {
+      header('Location: ' . $uri);
+      exit();
+    }
+
+    function redirectToLoginPage(): never {
+      redirect('/login');
+      echo 'Hello'; // <- dead code detected by static analysis
+    }
+    ```
+- pro serializaci objektů je potřeba využívat magické metody *__serialize* a *__unserialize*  
 
 ## Vývojové prostředí
 :point_right:
