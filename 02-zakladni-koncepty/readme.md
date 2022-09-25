@@ -37,7 +37,7 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
 
 :mega:
 
-1. připojte se k serveru eso.vse.cz pomocí ssh
+1. připojte se k serveru esotemp.vse.cz pomocí ssh
 2. ve svém domovském adresáři se přepněte do ```public_html``` (reálná cesta na serveru je ```/home/httpd/users/xname```)
 3. vytvoříme si složku pro první projekt
     ```shell script
@@ -58,7 +58,7 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
     chmod 777 temp
     chmod 777 log
     ```
-7. zkuste aplikaci načíst přes prohlížeč - adresa by měla být [https://eso.vse.cz/~xname/cviceni02/nette-demo/www](https://eso.vse.cz/~xname/cviceni02/nette-demo/www)
+7. zkuste aplikaci načíst přes prohlížeč - adresa by měla být [https://esotemp.vse.cz/~xname/cviceni02/nette-demo/www](https://esotemp.vse.cz/~xname/cviceni02/nette-demo/www)
 
 ## Základní principy funkčnosti aplikace
 :point_right:
@@ -162,7 +162,7 @@ Složitější aplikace lze dále dělit do modulů - např.:
     ```
 
 :blue_book:          
-- [Manuál ke konfiguraci na webu Nette](https://doc.nette.org/cs/3.1/configuring)        
+- [Manuál ke konfiguraci na webu Nette](https://doc.nette.org/cs/configuring)        
 
 ## Presentery
 :point_right:
