@@ -8,8 +8,7 @@ use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
 
 class CategoryPresenter extends \Nette\Application\UI\Presenter {
-  /** @var CategoriesFacade $categoriesFacade */
-  private /*CategoriesFacade*/ $categoriesFacade;
+  private CategoriesFacade $categoriesFacade;
 
   public function actionDefault(){
     $this->redirect('list');

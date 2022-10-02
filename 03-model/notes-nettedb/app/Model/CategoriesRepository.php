@@ -11,8 +11,7 @@ use Nette\Database\Connection;
  */
 class CategoriesRepository{
 
-  /** @var Connection $database */
-  private /*Connection*/ $database;
+  private Connection $database;
 
   /**
    * CategoriesRepository constructor.

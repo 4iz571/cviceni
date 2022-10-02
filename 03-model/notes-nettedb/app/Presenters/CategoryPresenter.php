@@ -8,20 +8,19 @@ use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
 
 class CategoryPresenter extends \Nette\Application\UI\Presenter {
-  /** @var CategoriesRepository $categoriesRepository */
-  private /*CategoriesRepository*/ $categoriesRepository;
+  private CategoriesRepository $categoriesRepository;
 
   /**
    * @throws \Nette\Application\AbortException
    */
-  public function actionDefault(){
+  public function actionDefault():void {
     $this->redirect('list');
   }
 
   /**
    * Akce pro zobrazení seznamu dostupných kategorií
    */
-  public function renderList(){
+  public function renderList():void {
     $this->template->categories=$this->categoriesRepository->findCategories(['order'=>'title']);
   }
 

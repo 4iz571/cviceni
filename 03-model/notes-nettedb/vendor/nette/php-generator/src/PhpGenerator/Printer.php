@@ -20,29 +20,16 @@ class Printer
 {
 	use Nette\SmartObject;
 
-	/** @var int */
-	public $wrapLength = 120;
-
-	/** @var string */
-	protected $indentation = "\t";
-
-	/** @var int */
-	protected $linesBetweenProperties = 0;
-
-	/** @var int */
-	protected $linesBetweenMethods = 2;
-
-	/** @var string */
-	protected $returnTypeColon = ': ';
-
-	/** @var ?PhpNamespace */
-	protected $namespace;
-
-	/** @var ?Dumper */
-	protected $dumper;
-
-	/** @var bool */
-	private $resolveTypes = true;
+	public int $wrapLength = 120;
+	public string $indentation = "\t";
+	public int $linesBetweenProperties = 0;
+	public int $linesBetweenMethods = 2;
+	public int $linesBetweenUseTypes = 0;
+	public string $returnTypeColon = ': ';
+	public bool $bracesOnNextLine = true;
+	protected ?PhpNamespace $namespace = null;
+	protected ?Dumper $dumper;
+	private bool $resolveTypes = true;
 
 
 	public function __construct()
@@ -51,7 +38,7 @@ class Printer
 	}
 
 
-	public function printFunction(GlobalFunction $function, PhpNamespace $namespace = null): string
+	public function printFunction(GlobalFunction $function, ?PhpNamespace $namespace = null): string
 	{
 		$this->namespace = $this->resolveTypes ? $namespace : null;
 		$line = 'function '
@@ -59,39 +46,43 @@ class Printer
 			. $function->getName();
 		$returnType = $this->printReturnType($function);
 		$body = Helpers::simplifyTaggedNames($function->getBody(), $this->namespace);
+		$body = ltrim(rtrim(Strings::normalize($body)) . "\n");
 
 		return Helpers::formatDocComment($function->getComment() . "\n")
 			. self::printAttributes($function->getAttributes())
 			. $line
 			. $this->printParameters($function, strlen($line) + strlen($returnType) + 2) // 2 = parentheses
 			. $returnType
-			. "\n{\n" . $this->indent(ltrim(rtrim($body) . "\n")) . "}\n";
+			. ($this->bracesOnNextLine ? "\n" : ' ')
+			. "{\n" . $this->indent($body) . "}\n";
 	}
 
 
-	public function printClosure(Closure $closure, PhpNamespace $namespace = null): string
+	public function printClosure(Closure $closure, ?PhpNamespace $namespace = null): string
 	{
 		$this->namespace = $this->resolveTypes ? $namespace : null;
 		$uses = [];
 		foreach ($closure->getUses() as $param) {
 			$uses[] = ($param->isReference() ? '&' : '') . '$' . $param->getName();
 		}
+
 		$useStr = strlen($tmp = implode(', ', $uses)) > $this->wrapLength && count($uses) > 1
-			? "\n" . $this->indentation . implode(",\n" . $this->indentation, $uses) . "\n"
+			? "\n" . $this->indentation . implode(",\n" . $this->indentation, $uses) . ",\n"
 			: $tmp;
 		$body = Helpers::simplifyTaggedNames($closure->getBody(), $this->namespace);
+		$body = ltrim(rtrim(Strings::normalize($body)) . "\n");
 
-		return self::printAttributes($closure->getAttributes(), true)
+		return self::printAttributes($closure->getAttributes(), inline: true)
 			. 'function '
 			. ($closure->getReturnReference() ? '&' : '')
 			. $this->printParameters($closure)
 			. ($uses ? " use ($useStr)" : '')
 			. $this->printReturnType($closure)
-			. " {\n" . $this->indent(ltrim(rtrim($body) . "\n")) . '}';
+			. " {\n" . $this->indent($body) . '}';
 	}
 
 
-	public function printArrowFunction(Closure $closure, PhpNamespace $namespace = null): string
+	public function printArrowFunction(Closure $closure, ?PhpNamespace $namespace = null): string
 	{
 		$this->namespace = $this->resolveTypes ? $namespace : null;
 		foreach ($closure->getUses() as $use) {
@@ -99,6 +90,7 @@ class Printer
 				throw new Nette\InvalidArgumentException('Arrow function cannot bind variables by-reference.');
 			}
 		}
+
 		$body = Helpers::simplifyTaggedNames($closure->getBody(), $this->namespace);
 
 		return self::printAttributes($closure->getAttributes())
@@ -106,15 +98,15 @@ class Printer
 			. ($closure->getReturnReference() ? '&' : '')
 			. $this->printParameters($closure)
 			. $this->printReturnType($closure)
-			. ' => ' . trim($body) . ';';
+			. ' => ' . trim(Strings::normalize($body)) . ';';
 	}
 
 
-	public function printMethod(Method $method, PhpNamespace $namespace = null): string
+	public function printMethod(Method $method, ?PhpNamespace $namespace = null, bool $isInterface = false): string
 	{
 		$this->namespace = $this->resolveTypes ? $namespace : null;
 		$method->validate();
-		$line = ($method->isAbstract() ? 'abstract ' : '')
+		$line = ($method->isAbstract() && !$isInterface ? 'abstract ' : '')
 			. ($method->isFinal() ? 'final ' : '')
 			. ($method->getVisibility() ? $method->getVisibility() . ' ' : '')
 			. ($method->isStatic() ? 'static ' : '')
@@ -123,110 +115,140 @@ class Printer
 			. $method->getName();
 		$returnType = $this->printReturnType($method);
 		$params = $this->printParameters($method, strlen($line) + strlen($returnType) + strlen($this->indentation) + 2);
-		$body = Helpers::simplifyTaggedNames((string) $method->getBody(), $this->namespace);
+		$body = Helpers::simplifyTaggedNames($method->getBody(), $this->namespace);
+		$body = ltrim(rtrim(Strings::normalize($body)) . "\n");
+		$braceOnNextLine = $this->bracesOnNextLine && !str_contains($params, "\n");
 
 		return Helpers::formatDocComment($method->getComment() . "\n")
 			. self::printAttributes($method->getAttributes())
 			. $line
 			. $params
 			. $returnType
-			. ($method->isAbstract() || $method->getBody() === null
+			. ($method->isAbstract() || $isInterface
 				? ";\n"
-				: (strpos($params, "\n") === false ? "\n" : ' ')
-					. "{\n"
-					. $this->indent(ltrim(rtrim($body) . "\n"))
-					. "}\n");
+				: ($braceOnNextLine ? "\n" : ' ') . "{\n" . $this->indent($body) . "}\n");
 	}
 
 
-	public function printClass(ClassType $class, PhpNamespace $namespace = null): string
-	{
+	public function printClass(
+		ClassType|InterfaceType|TraitType|EnumType $class,
+		?PhpNamespace $namespace = null,
+	): string {
 		$this->namespace = $this->resolveTypes ? $namespace : null;
 		$class->validate();
 		$resolver = $this->namespace
 			? [$namespace, 'simplifyType']
-			: function ($s) { return $s; };
+			: fn($s) => $s;
 
 		$traits = [];
-		foreach ($class->getTraitResolutions() as $trait) {
-			$resolutions = $trait->getResolutions();
-			$traits[] = Helpers::formatDocComment((string) $trait->getComment())
-				. 'use ' . $resolver($trait->getName())
-				. ($resolutions
-					? " {\n" . $this->indentation . implode(";\n" . $this->indentation, $resolutions) . ";\n}\n"
-					: ";\n");
+		if ($class instanceof ClassType || $class instanceof TraitType || $class instanceof EnumType) {
+			foreach ($class->getTraits() as $trait) {
+				$resolutions = $trait->getResolutions();
+				$traits[] = Helpers::formatDocComment((string) $trait->getComment())
+					. 'use ' . $resolver($trait->getName())
+					. ($resolutions
+						? " {\n" . $this->indentation . implode(";\n" . $this->indentation, $resolutions) . ";\n}\n"
+						: ";\n");
+			}
 		}
 
 		$cases = [];
-		foreach ($class->getCases() as $case) {
-			$cases[] = Helpers::formatDocComment((string) $case->getComment())
-				. self::printAttributes($case->getAttributes())
-				. 'case ' . $case->getName()
-				. ($case->getValue() === null ? '' : ' = ' . $this->dump($case->getValue()))
-				. ";\n";
+		$enumType = null;
+		if ($class instanceof EnumType) {
+			$enumType = $class->getType();
+			foreach ($class->getCases() as $case) {
+				$enumType ??= is_scalar($case->getValue()) ? get_debug_type($case->getValue()) : null;
+				$cases[] = Helpers::formatDocComment((string) $case->getComment())
+					. self::printAttributes($case->getAttributes())
+					. 'case ' . $case->getName()
+					. ($case->getValue() === null ? '' : ' = ' . $this->dump($case->getValue()))
+					. ";\n";
+			}
 		}
-		$enumType = isset($case) && $case->getValue() !== null
-			? $this->returnTypeColon . Type::getType($case->getValue())
-			: '';
 
 		$consts = [];
-		foreach ($class->getConstants() as $const) {
-			$def = ($const->isFinal() ? 'final ' : '')
-				. ($const->getVisibility() ? $const->getVisibility() . ' ' : '')
-				. 'const ' . $const->getName() . ' = ';
+		if ($class instanceof ClassType || $class instanceof InterfaceType || $class instanceof EnumType) {
+			foreach ($class->getConstants() as $const) {
+				$def = ($const->isFinal() ? 'final ' : '')
+					. ($const->getVisibility() ? $const->getVisibility() . ' ' : '')
+					. 'const ' . $const->getName() . ' = ';
 
-			$consts[] = Helpers::formatDocComment((string) $const->getComment())
-				. self::printAttributes($const->getAttributes())
-				. $def
-				. $this->dump($const->getValue(), strlen($def)) . ";\n";
-		}
-
-		$properties = [];
-		foreach ($class->getProperties() as $property) {
-			$property->validate();
-			$type = $property->getType();
-			$def = (($property->getVisibility() ?: 'public')
-				. ($property->isStatic() ? ' static' : '')
-				. ($property->isReadOnly() && $type ? ' readonly' : '')
-				. ' '
-				. ltrim($this->printType($type, $property->isNullable()) . ' ')
-				. '$' . $property->getName());
-
-			$properties[] = Helpers::formatDocComment((string) $property->getComment())
-				. self::printAttributes($property->getAttributes())
-				. $def
-				. ($property->getValue() === null && !$property->isInitialized()
-					? ''
-					: ' = ' . $this->dump($property->getValue(), strlen($def) + 3)) // 3 = ' = '
-				. ";\n";
+				$consts[] = Helpers::formatDocComment((string) $const->getComment())
+					. self::printAttributes($const->getAttributes())
+					. $def
+					. $this->dump($const->getValue(), strlen($def)) . ";\n";
+			}
 		}
 
 		$methods = [];
-		foreach ($class->getMethods() as $method) {
-			$methods[] = $this->printMethod($method, $namespace);
+		if (
+			$class instanceof ClassType
+			|| $class instanceof InterfaceType
+			|| $class instanceof EnumType
+			|| $class instanceof TraitType
+		) {
+			foreach ($class->getMethods() as $method) {
+				$methods[] = $this->printMethod($method, $namespace, $class->isInterface());
+			}
+		}
+
+		$properties = [];
+		if ($class instanceof ClassType || $class instanceof TraitType) {
+			foreach ($class->getProperties() as $property) {
+				$property->validate();
+				$type = $property->getType();
+				$def = (($property->getVisibility() ?: 'public')
+					. ($property->isStatic() ? ' static' : '')
+					. ($property->isReadOnly() && $type ? ' readonly' : '')
+					. ' '
+					. ltrim($this->printType($type, $property->isNullable()) . ' ')
+					. '$' . $property->getName());
+
+				$properties[] = Helpers::formatDocComment((string) $property->getComment())
+					. self::printAttributes($property->getAttributes())
+					. $def
+					. ($property->getValue() === null && !$property->isInitialized()
+						? ''
+						: ' = ' . $this->dump($property->getValue(), strlen($def) + 3)) // 3 = ' = '
+					. ";\n";
+			}
 		}
 
 		$members = array_filter([
 			implode('', $traits),
-			$this->joinProperties($cases),
 			$this->joinProperties($consts),
+			$this->joinProperties($cases),
 			$this->joinProperties($properties),
 			($methods && $properties ? str_repeat("\n", $this->linesBetweenMethods - 1) : '')
 			. implode(str_repeat("\n", $this->linesBetweenMethods), $methods),
 		]);
 
-		return Strings::normalize(
-			Helpers::formatDocComment($class->getComment() . "\n")
+		if ($class instanceof ClassType) {
+			$line[] = $class->isAbstract() ? 'abstract' : null;
+			$line[] = $class->isFinal() ? 'final' : null;
+		}
+
+		$line[] = match (true) {
+			$class instanceof ClassType => $class->getName() ? $class->getType() . ' ' . $class->getName() : null,
+			$class instanceof InterfaceType => 'interface ' . $class->getName(),
+			$class instanceof TraitType => 'trait ' . $class->getName(),
+			$class instanceof EnumType => 'enum ' . $class->getName() . ($enumType ? $this->returnTypeColon . $enumType : ''),
+		};
+		$line[] = ($class instanceof ClassType || $class instanceof InterfaceType) && $class->getExtends()
+			? 'extends ' . implode(', ', array_map($resolver, (array) $class->getExtends()))
+			: null;
+		$line[] = ($class instanceof ClassType || $class instanceof EnumType) && $class->getImplements()
+			? 'implements ' . implode(', ', array_map($resolver, $class->getImplements()))
+			: null;
+		$line[] = $class->getName() ? null : '{';
+
+		return Helpers::formatDocComment($class->getComment() . "\n")
 			. self::printAttributes($class->getAttributes())
-			. ($class->isAbstract() ? 'abstract ' : '')
-			. ($class->isFinal() ? 'final ' : '')
-			. ($class->getName() ? $class->getType() . ' ' . $class->getName() . $enumType . ' ' : '')
-			. ($class->getExtends() ? 'extends ' . implode(', ', array_map($resolver, (array) $class->getExtends())) . ' ' : '')
-			. ($class->getImplements() ? 'implements ' . implode(', ', array_map($resolver, $class->getImplements())) . ' ' : '')
-			. ($class->getName() ? "\n" : '') . "{\n"
+			. implode(' ', array_filter($line))
+			. ($class->getName() ? "\n{\n" : "\n")
 			. ($members ? $this->indent(implode("\n", $members)) : '')
 			. '}'
-		) . ($class->getName() ? "\n" : '');
+			. ($class->getName() ? "\n" : '');
 	}
 
 
@@ -234,17 +256,23 @@ class Printer
 	{
 		$this->namespace = $this->resolveTypes ? $namespace : null;
 		$name = $namespace->getName();
-		$uses = $this->printUses($namespace);
+		$uses = [
+			$this->printUses($namespace),
+			$this->printUses($namespace, PhpNamespace::NameFunction),
+			$this->printUses($namespace, PhpNamespace::NameConstant),
+		];
+		$uses = implode(str_repeat("\n", $this->linesBetweenUseTypes), array_filter($uses));
 
 		$items = [];
 		foreach ($namespace->getClasses() as $class) {
 			$items[] = $this->printClass($class, $namespace);
 		}
+
 		foreach ($namespace->getFunctions() as $function) {
 			$items[] = $this->printFunction($function, $namespace);
 		}
 
-		$body = ($uses ? $uses . "\n\n" : '')
+		$body = ($uses ? $uses . "\n" : '')
 			. implode("\n", $items);
 
 		if ($namespace->hasBracketedSyntax()) {
@@ -266,35 +294,33 @@ class Printer
 			$namespaces[] = $this->printNamespace($namespace);
 		}
 
-		return Strings::normalize(
-			"<?php\n"
+		return "<?php\n"
 			. ($file->getComment() ? "\n" . Helpers::formatDocComment($file->getComment() . "\n") : '')
 			. "\n"
 			. ($file->hasStrictTypes() ? "declare(strict_types=1);\n\n" : '')
-			. implode("\n\n", $namespaces)
-		) . "\n";
+			. implode("\n\n", $namespaces);
 	}
 
 
-	protected function printUses(PhpNamespace $namespace): string
+	protected function printUses(PhpNamespace $namespace, string $of = PhpNamespace::NameNormal): string
 	{
-		$name = $namespace->getName();
+		$prefix = [
+			PhpNamespace::NameNormal => '',
+			PhpNamespace::NameFunction => 'function ',
+			PhpNamespace::NameConstant => 'const ',
+		][$of];
 		$uses = [];
-		foreach ($namespace->getUses() as $alias => $original) {
-			if ($original !== ($name ? $name . '\\' . $alias : $alias)) {
-				$uses[] = $alias === $original || substr($original, -(strlen($alias) + 1)) === '\\' . $alias
-					? "use $original;"
-					: "use $original as $alias;";
-			}
+		foreach ($namespace->getUses($of) as $alias => $original) {
+			$uses[] = Helpers::extractShortName($original) === $alias
+				? "use $prefix$original;\n"
+				: "use $prefix$original as $alias;\n";
 		}
-		return implode("\n", $uses);
+
+		return implode('', $uses);
 	}
 
 
-	/**
-	 * @param Closure|GlobalFunction|Method  $function
-	 */
-	protected function printParameters($function, int $column = 0): string
+	protected function printParameters(Closure|GlobalFunction|Method $function, int $column = 0): string
 	{
 		$params = [];
 		$list = $function->getParameters();
@@ -307,7 +333,7 @@ class Printer
 			$promoted = $param instanceof PromotedParameter ? $param : null;
 			$params[] =
 				($promoted ? Helpers::formatDocComment((string) $promoted->getComment()) : '')
-				. ($attrs = self::printAttributes($param->getAttributes(), true))
+				. ($attrs = self::printAttributes($param->getAttributes(), inline: true))
 				. ($promoted ?
 					($promoted->getVisibility() ?: 'public')
 					. ($promoted->isReadOnly() && $type ? ' readonly' : '')
@@ -324,7 +350,7 @@ class Printer
 		$line = implode(', ', $params);
 
 		return count($params) > 1 && ($special || strlen($line) + $column > $this->wrapLength)
-			? "(\n" . $this->indent(implode(",\n", $params)) . ($special ? ',' : '') . "\n)"
+			? "(\n" . $this->indent(implode(",\n", $params)) . ",\n)"
 			: "($line)";
 	}
 
@@ -334,22 +360,22 @@ class Printer
 		if ($type === null) {
 			return '';
 		}
+
 		if ($this->namespace) {
 			$type = $this->namespace->simplifyType($type);
 		}
+
 		if ($nullable && strcasecmp($type, 'mixed')) {
-			$type = strpos($type, '|') === false
-				? '?' . $type
-				: $type . '|null';
+			$type = str_contains($type, '|')
+				? $type . '|null'
+				: '?' . $type;
 		}
+
 		return $type;
 	}
 
 
-	/**
-	 * @param Closure|GlobalFunction|Method  $function
-	 */
-	private function printReturnType($function): string
+	private function printReturnType(Closure|GlobalFunction|Method $function): string
 	{
 		return ($tmp = $this->printType($function->getReturnType(), $function->isReturnNullable()))
 			? $this->returnTypeColon . $tmp
@@ -357,26 +383,28 @@ class Printer
 	}
 
 
+	/** @param  Attribute[]  $attrs */
 	private function printAttributes(array $attrs, bool $inline = false): string
 	{
 		if (!$attrs) {
 			return '';
 		}
+
 		$this->dumper->indentation = $this->indentation;
 		$items = [];
 		foreach ($attrs as $attr) {
 			$args = $this->dumper->format('...?:', $attr->getArguments());
 			$args = Helpers::simplifyTaggedNames($args, $this->namespace);
-			$items[] = $this->printType($attr->getName(), false) . ($args ? "($args)" : '');
+			$items[] = $this->printType($attr->getName(), nullable: false) . ($args ? "($args)" : '');
 		}
+
 		return $inline
 			? '#[' . implode(', ', $items) . '] '
 			: '#[' . implode("]\n#[", $items) . "]\n";
 	}
 
 
-	/** @return static */
-	public function setTypeResolving(bool $state = true): self
+	public function setTypeResolving(bool $state = true): static
 	{
 		$this->resolveTypes = $state;
 		return $this;
@@ -390,7 +418,7 @@ class Printer
 	}
 
 
-	protected function dump($var, int $column = 0): string
+	protected function dump(mixed $var, int $column = 0): string
 	{
 		$this->dumper->indentation = $this->indentation;
 		$this->dumper->wrapLength = $this->wrapLength;
@@ -400,6 +428,7 @@ class Printer
 	}
 
 
+	/** @param  string[]  $props */
 	private function joinProperties(array $props): string
 	{
 		return $this->linesBetweenProperties

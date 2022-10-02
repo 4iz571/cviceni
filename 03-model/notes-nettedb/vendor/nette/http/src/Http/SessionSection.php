@@ -44,18 +44,24 @@ class SessionSection implements \IteratorAggregate, \ArrayAccess
 	 */
 	public function getIterator(): \Iterator
 	{
-		$data = $this->getData(false);
-		return new \ArrayIterator($data ?? []);
+		$this->session->autoStart(false);
+		return new \ArrayIterator($this->getData() ?? []);
 	}
 
 
 	/**
 	 * Sets a variable in this session section.
+	 * @param  mixed  $value
 	 */
-	public function set(string $name, $value, string $expiration = null): void
+	public function set(string $name, $value, ?string $expiration = null): void
 	{
-		$this->getData(true)[$name] = $value;
-		$this->setExpiration($expiration, $name);
+		if ($value === null) {
+			$this->remove($name);
+		} else {
+			$this->session->autoStart(true);
+			$this->getData()[$name] = $value;
+			$this->setExpiration($expiration, $name);
+		}
 	}
 
 
@@ -65,24 +71,32 @@ class SessionSection implements \IteratorAggregate, \ArrayAccess
 	 */
 	public function get(string $name)
 	{
-		return $this->getData(false)[$name] ?? null;
+		if (func_num_args() > 1) {
+			throw new \ArgumentCountError(__METHOD__ . '() expects 1 arguments, given more.');
+		}
+
+		$this->session->autoStart(false);
+		return $this->getData()[$name] ?? null;
 	}
 
 
 	/**
 	 * Removes a variable or whole section.
-	 * @param  string|array|null  $name
+	 * @param  string|string[]|null  $name
 	 */
 	public function remove($name = null): void
 	{
-		if (func_num_args()) {
-			$data = &$this->getData(true);
+		$this->session->autoStart(false);
+		if (func_num_args() > 1) {
+			throw new \ArgumentCountError(__METHOD__ . '() expects at most 1 arguments, given more.');
+
+		} elseif (func_num_args()) {
+			$data = &$this->getData();
 			$meta = &$this->getMeta();
 			foreach ((array) $name as $name) {
 				unset($data[$name], $meta[$name]);
 			}
 		} else {
-			$this->session->autoStart(true);
 			unset($_SESSION['__NF']['DATA'][$this->name], $_SESSION['__NF']['META'][$this->name]);
 		}
 	}
@@ -93,7 +107,8 @@ class SessionSection implements \IteratorAggregate, \ArrayAccess
 	 */
 	public function __set(string $name, $value): void
 	{
-		$this->getData(true)[$name] = $value;
+		$this->session->autoStart(true);
+		$this->getData()[$name] = $value;
 	}
 
 
@@ -103,7 +118,8 @@ class SessionSection implements \IteratorAggregate, \ArrayAccess
 	 */
 	public function &__get(string $name)
 	{
-		$data = &$this->getData(true);
+		$this->session->autoStart(true);
+		$data = &$this->getData();
 		if ($this->warnOnUndefined && !array_key_exists($name, $data ?? [])) {
 			trigger_error("The variable '$name' does not exist in session section");
 		}
@@ -117,11 +133,8 @@ class SessionSection implements \IteratorAggregate, \ArrayAccess
 	 */
 	public function __isset(string $name): bool
 	{
-		if (!$this->session->exists()) {
-			return false;
-		}
-		$data = $this->getData(false);
-		return isset($data[$name]);
+		$this->session->autoStart(false);
+		return isset($this->getData()[$name]);
 	}
 
 
@@ -130,9 +143,7 @@ class SessionSection implements \IteratorAggregate, \ArrayAccess
 	 */
 	public function __unset(string $name): void
 	{
-		$data = &$this->getData(true);
-		$meta = &$this->getMeta();
-		unset($data[$name], $meta[$name]);
+		$this->remove($name);
 	}
 
 
@@ -170,18 +181,19 @@ class SessionSection implements \IteratorAggregate, \ArrayAccess
 	 */
 	public function offsetUnset($name): void
 	{
-		$this->__unset($name);
+		$this->remove($name);
 	}
 
 
 	/**
 	 * Sets the expiration of the section or specific variables.
 	 * @param  ?string  $time
-	 * @param  string|string[]  $variables  list of variables / single variable to expire
+	 * @param  string|string[]|null  $variables  list of variables / single variable to expire
 	 * @return static
 	 */
 	public function setExpiration($time, $variables = null)
 	{
+		$this->session->autoStart((bool) $time);
 		$meta = &$this->getMeta();
 		if ($time) {
 			$time = Nette\Utils\DateTime::from($time)->format('U');
@@ -197,33 +209,29 @@ class SessionSection implements \IteratorAggregate, \ArrayAccess
 		foreach (is_array($variables) ? $variables : [$variables] as $variable) {
 			$meta[$variable]['T'] = $time ?: null;
 		}
+
 		return $this;
 	}
 
 
 	/**
 	 * Removes the expiration from the section or specific variables.
-	 * @param  string|string[]  $variables  list of variables / single variable to expire
+	 * @param  string|string[]|null  $variables  list of variables / single variable to expire
 	 */
 	public function removeExpiration($variables = null): void
 	{
-		$meta = &$this->getMeta();
-		foreach (is_array($variables) ? $variables : [$variables] as $variable) {
-			unset($meta[$variable]['T']);
-		}
+		$this->setExpiration(null, $variables);
 	}
 
 
-	private function &getData(bool $forWrite)
+	private function &getData()
 	{
-		$this->session->autoStart($forWrite);
 		return $_SESSION['__NF']['DATA'][$this->name];
 	}
 
 
 	private function &getMeta()
 	{
-		$this->session->autoStart(true);
 		return $_SESSION['__NF']['META'][$this->name];
 	}
 }

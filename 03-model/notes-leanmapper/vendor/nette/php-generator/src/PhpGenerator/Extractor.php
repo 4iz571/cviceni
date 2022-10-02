@@ -34,6 +34,7 @@ final class Extractor
 		if (!class_exists(ParserFactory::class)) {
 			throw new Nette\NotSupportedException("PHP-Parser is required to load method bodies, install package 'nikic/php-parser' 4.7 or newer.");
 		}
+
 		$this->printer = new PhpParser\PrettyPrinter\Standard;
 		$this->parseCode($code);
 	}
@@ -44,6 +45,7 @@ final class Extractor
 		if (substr($code, 0, 5) !== '<?php') {
 			throw new Nette\InvalidStateException('The input string is not a PHP code.');
 		}
+
 		$this->code = str_replace("\r\n", "\n", $code);
 		$lexer = new PhpParser\Lexer\Emulative(['usedAttributes' => ['startFilePos', 'endFilePos', 'comments']]);
 		$parser = (new ParserFactory)->create(ParserFactory::ONLY_PHP7, $lexer);
@@ -71,6 +73,7 @@ final class Extractor
 				$res[$methodNode->name->toString()] = $this->getReformattedContents($methodNode->stmts, 2);
 			}
 		}
+
 		return $res;
 	}
 
@@ -103,15 +106,14 @@ final class Extractor
 			if ($node instanceof Node\Name\FullyQualified) {
 				if ($node->getAttribute('originalName') instanceof Node\Name) {
 					$of = $node->getAttribute('parent') instanceof Node\Expr\ConstFetch
-							? PhpNamespace::NAME_CONSTANT
-							: ($node->getAttribute('parent') instanceof Node\Expr\FuncCall ? PhpNamespace::NAME_FUNCTION : PhpNamespace::NAME_NORMAL);
+							? PhpNamespace::NameConstant
+							: ($node->getAttribute('parent') instanceof Node\Expr\FuncCall ? PhpNamespace::NameFunction : PhpNamespace::NameNormal);
 					$replacements[] = [
 						$node->getStartFilePos() - $start,
 						$node->getEndFilePos() - $start,
 						Helpers::tagName($node->toCodeString(), $of),
 					];
 				}
-
 			} elseif ($node instanceof Node\Scalar\String_ || $node instanceof Node\Scalar\EncapsedStringPart) {
 				// multi-line strings => singleline
 				$token = $this->getNodeContents($node);
@@ -123,7 +125,6 @@ final class Extractor
 						$quote . addcslashes($node->value, "\x00..\x1F") . $quote,
 					];
 				}
-
 			} elseif ($node instanceof Node\Scalar\Encapsed) {
 				// HEREDOC => "string"
 				if ($node->getAttribute('kind') === Node\Scalar\String_::KIND_HEREDOC) {
@@ -153,6 +154,7 @@ final class Extractor
 		foreach ($replacements as [$start, $end, $replacement]) {
 			$s = substr_replace($s, $replacement, $start, $end - $start + 1);
 		}
+
 		return $s;
 	}
 
@@ -162,6 +164,9 @@ final class Extractor
 		$phpFile = new PhpFile;
 		$namespace = '';
 		$visitor = new class extends PhpParser\NodeVisitorAbstract {
+			public $callback;
+
+
 			public function enterNode(Node $node)
 			{
 				return ($this->callback)($node);
@@ -179,6 +184,7 @@ final class Extractor
 				if (!$node->name) {
 					return PhpParser\NodeTraverser::DONT_TRAVERSE_CHILDREN;
 				}
+
 				$class = $this->addClassToFile($phpFile, $node);
 			} elseif ($node instanceof Node\Stmt\Interface_) {
 				$class = $this->addInterfaceToFile($phpFile, $node);
@@ -199,10 +205,15 @@ final class Extractor
 			} elseif ($node instanceof Node\Stmt\EnumCase) {
 				$this->addEnumCaseToClass($class, $node);
 			}
+
 			if ($node instanceof Node\FunctionLike) {
 				return PhpParser\NodeTraverser::DONT_TRAVERSE_CHILDREN;
 			}
 		};
+
+		if ($this->statements) {
+			$this->addCommentAndAttributes($phpFile, $this->statements[0]);
+		}
 
 		$traverser = new PhpParser\NodeTraverser;
 		$traverser->addVisitor($visitor);
@@ -214,9 +225,9 @@ final class Extractor
 	private function addUseToNamespace(Node\Stmt\Use_ $node, PhpNamespace $namespace): void
 	{
 		$of = [
-			$node::TYPE_NORMAL => PhpNamespace::NAME_NORMAL,
-			$node::TYPE_FUNCTION => PhpNamespace::NAME_FUNCTION,
-			$node::TYPE_CONSTANT => PhpNamespace::NAME_CONSTANT,
+			$node::TYPE_NORMAL => PhpNamespace::NameNormal,
+			$node::TYPE_FUNCTION => PhpNamespace::NameFunction,
+			$node::TYPE_CONSTANT => PhpNamespace::NameConstant,
 		][$node->type];
 		foreach ($node->uses as $use) {
 			$namespace->addUse($use->name->toString(), $use->alias ? $use->alias->toString() : null, $of);
@@ -230,9 +241,11 @@ final class Extractor
 		if ($node->extends) {
 			$class->setExtends($node->extends->toString());
 		}
+
 		foreach ($node->implements as $item) {
 			$class->addImplement($item->toString());
 		}
+
 		$class->setFinal($node->isFinal());
 		$class->setAbstract($node->isAbstract());
 		$this->addCommentAndAttributes($class, $node);
@@ -246,6 +259,7 @@ final class Extractor
 		foreach ($node->extends as $item) {
 			$class->addExtend($item->toString());
 		}
+
 		$this->addCommentAndAttributes($class, $node);
 		return $class;
 	}
@@ -265,6 +279,7 @@ final class Extractor
 		foreach ($node->implements as $item) {
 			$class->addImplement($item->toString());
 		}
+
 		$this->addCommentAndAttributes($class, $node);
 		return $class;
 	}
@@ -282,9 +297,11 @@ final class Extractor
 		foreach ($node->traits as $item) {
 			$trait = $class->addTrait($item->toString(), true);
 		}
+
 		foreach ($node->adaptations as $item) {
 			$trait->addResolution(trim($this->toPhp($item), ';'));
 		}
+
 		$this->addCommentAndAttributes($trait, $node);
 	}
 
@@ -294,15 +311,12 @@ final class Extractor
 		foreach ($node->props as $item) {
 			$prop = $class->addProperty($item->name->toString());
 			$prop->setStatic($node->isStatic());
-			if ($node->isPrivate()) {
-				$prop->setPrivate();
-			} elseif ($node->isProtected()) {
-				$prop->setProtected();
-			}
+			$prop->setVisibility($this->toVisibility($node->flags));
 			$prop->setType($node->type ? $this->toPhp($node->type) : null);
 			if ($item->default) {
 				$prop->setValue(new Literal($this->getReformattedContents([$item->default], 1)));
 			}
+
 			$prop->setReadOnly(method_exists($node, 'isReadonly') && $node->isReadonly());
 			$this->addCommentAndAttributes($prop, $node);
 		}
@@ -315,11 +329,7 @@ final class Extractor
 		$method->setAbstract($node->isAbstract());
 		$method->setFinal($node->isFinal());
 		$method->setStatic($node->isStatic());
-		if ($node->isPrivate()) {
-			$method->setPrivate();
-		} elseif ($node->isProtected()) {
-			$method->setProtected();
-		}
+		$method->setVisibility($this->toVisibility($node->flags));
 		$this->setupFunction($method, $node);
 	}
 
@@ -329,11 +339,7 @@ final class Extractor
 		foreach ($node->consts as $item) {
 			$value = $this->getReformattedContents([$item->value], 1);
 			$const = $class->addConstant($item->name->toString(), new Literal($value));
-			if ($node->isPrivate()) {
-				$const->setPrivate();
-			} elseif ($node->isProtected()) {
-				$const->setProtected();
-			}
+			$const->setVisibility($this->toVisibility($node->flags));
 			$const->setFinal(method_exists($node, 'isFinal') && $node->isFinal());
 			$this->addCommentAndAttributes($const, $node);
 		}
@@ -353,19 +359,21 @@ final class Extractor
 			$comment = $node->getDocComment()->getReformattedText();
 			$comment = Helpers::unformatDocComment($comment);
 			$element->setComment($comment);
+			$node->setDocComment(new PhpParser\Comment\Doc(''));
 		}
 
 		foreach ($node->attrGroups ?? [] as $group) {
 			foreach ($group->attrs as $attribute) {
 				$args = [];
 				foreach ($attribute->args as $arg) {
-					$value = new Literal($this->getReformattedContents([$arg], 0));
+					$value = new Literal($this->getReformattedContents([$arg->value], 0));
 					if ($arg->name) {
 						$args[$arg->name->toString()] = $value;
 					} else {
 						$args[] = $value;
 					}
 				}
+
 				$element->addAttribute($attribute->name->toString(), $args);
 			}
 		}
@@ -379,20 +387,39 @@ final class Extractor
 	{
 		$function->setReturnReference($node->returnsByRef());
 		$function->setReturnType($node->getReturnType() ? $this->toPhp($node->getReturnType()) : null);
-		foreach ($node->params as $item) {
-			$param = $function->addParameter($item->var->name);
+		foreach ($node->getParams() as $item) {
+			$visibility = $this->toVisibility($item->flags);
+			$isReadonly = (bool) ($item->flags & Node\Stmt\Class_::MODIFIER_READONLY);
+			$param = $visibility
+				? ($function->addPromotedParameter($item->var->name))->setVisibility($visibility)->setReadonly($isReadonly)
+				: $function->addParameter($item->var->name);
 			$param->setType($item->type ? $this->toPhp($item->type) : null);
 			$param->setReference($item->byRef);
 			$function->setVariadic($item->variadic);
 			if ($item->default) {
 				$param->setDefaultValue(new Literal($this->getReformattedContents([$item->default], 2)));
 			}
+
 			$this->addCommentAndAttributes($param, $item);
 		}
+
 		$this->addCommentAndAttributes($function, $node);
-		if ($node->stmts) {
-			$function->setBody($this->getReformattedContents($node->stmts, 2));
+		if ($node->getStmts()) {
+			$function->setBody($this->getReformattedContents($node->getStmts(), 2));
 		}
+	}
+
+
+	private function toVisibility(int $flags): ?string
+	{
+		if ($flags & Node\Stmt\Class_::MODIFIER_PUBLIC) {
+			return ClassType::VisibilityPublic;
+		} elseif ($flags & Node\Stmt\Class_::MODIFIER_PROTECTED) {
+			return ClassType::VisibilityProtected;
+		} elseif ($flags & Node\Stmt\Class_::MODIFIER_PRIVATE) {
+			return ClassType::VisibilityPrivate;
+		}
+		return null;
 	}
 
 

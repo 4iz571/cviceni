@@ -29,14 +29,14 @@ class ResultSet implements \Iterator, IRowContainer
 	/** @var callable(array, ResultSet): array */
 	private $normalizer;
 
-	/** @var Row|false */
-	private $result;
+	/** @var Row|false|null */
+	private $lastRow;
 
 	/** @var int */
-	private $resultKey = -1;
+	private $lastRowKey = -1;
 
 	/** @var Row[] */
-	private $results;
+	private $rows;
 
 	/** @var float */
 	private $time;
@@ -51,8 +51,12 @@ class ResultSet implements \Iterator, IRowContainer
 	private $types;
 
 
-	public function __construct(Connection $connection, string $queryString, array $params, callable $normalizer = null)
-	{
+	public function __construct(
+		Connection $connection,
+		string $queryString,
+		array $params,
+		?callable $normalizer = null
+	) {
 		$time = microtime(true);
 		$this->connection = $connection;
 		$this->queryString = $queryString;
@@ -70,6 +74,7 @@ class ResultSet implements \Iterator, IRowContainer
 					$type = gettype($value);
 					$this->pdoStatement->bindValue(is_int($key) ? $key + 1 : $key, $value, $types[$type] ?? PDO::PARAM_STR);
 				}
+
 				$this->pdoStatement->setFetchMode(PDO::FETCH_ASSOC);
 				@$this->pdoStatement->execute(); // @ PHP generates warning when ATTR_ERRMODE = ERRMODE_EXCEPTION bug #73878
 			}
@@ -79,10 +84,12 @@ class ResultSet implements \Iterator, IRowContainer
 			$e->params = $params;
 			throw $e;
 		}
+
 		$this->time = microtime(true) - $time;
 	}
 
 
+	/** @deprecated */
 	public function getConnection(): Connection
 	{
 		return $this->connection;
@@ -127,6 +134,7 @@ class ResultSet implements \Iterator, IRowContainer
 		if ($this->types === null) {
 			$this->types = $this->connection->getDriver()->getColumnTypes($this->pdoStatement);
 		}
+
 		return $this->types;
 	}
 
@@ -163,33 +171,35 @@ class ResultSet implements \Iterator, IRowContainer
 
 	public function rewind(): void
 	{
-		if ($this->result === false) {
+		if ($this->lastRow === false) {
 			throw new Nette\InvalidStateException(self::class . ' implements only one way iterator.');
 		}
 	}
 
 
+	#[\ReturnTypeWillChange]
 	public function current()
 	{
-		return $this->result;
+		return $this->lastRow;
 	}
 
 
+	#[\ReturnTypeWillChange]
 	public function key()
 	{
-		return $this->resultKey;
+		return $this->lastRowKey;
 	}
 
 
 	public function next(): void
 	{
-		$this->result = false;
+		$this->lastRow = false;
 	}
 
 
 	public function valid(): bool
 	{
-		if ($this->result) {
+		if ($this->lastRow) {
 			return true;
 		}
 
@@ -207,7 +217,7 @@ class ResultSet implements \Iterator, IRowContainer
 			$this->pdoStatement->closeCursor();
 			return null;
 
-		} elseif ($this->result === null && count($data) !== $this->pdoStatement->columnCount()) {
+		} elseif ($this->lastRow === null && count($data) !== $this->pdoStatement->columnCount()) {
 			$duplicates = Helpers::findDuplicates($this->pdoStatement);
 			trigger_error("Found duplicate columns in database result set: $duplicates.", E_USER_NOTICE);
 		}
@@ -219,8 +229,8 @@ class ResultSet implements \Iterator, IRowContainer
 			}
 		}
 
-		$this->resultKey++;
-		return $this->result = $row;
+		$this->lastRowKey++;
+		return $this->lastRow = $row;
 	}
 
 
@@ -233,6 +243,7 @@ class ResultSet implements \Iterator, IRowContainer
 		if (func_num_args()) {
 			trigger_error(__METHOD__ . '() argument is deprecated.', E_USER_DEPRECATED);
 		}
+
 		$row = $this->fetch();
 		return $row ? $row[$column] : null;
 	}
@@ -265,10 +276,11 @@ class ResultSet implements \Iterator, IRowContainer
 	 */
 	public function fetchAll(): array
 	{
-		if ($this->results === null) {
-			$this->results = iterator_to_array($this);
+		if ($this->rows === null) {
+			$this->rows = iterator_to_array($this);
 		}
-		return $this->results;
+
+		return $this->rows;
 	}
 
 
