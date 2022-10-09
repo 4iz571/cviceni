@@ -13,15 +13,13 @@ use Nette\Application\BadRequestException;
  * @package App\Presenters
  */
 class TagPresenter extends \Nette\Application\UI\Presenter {
-  /** @var TagsFacade $tagsFacade */
-  private /*TagsFacade*/ $tagsFacade;
-  /** @var TagEditFormFactory $tagEditForm */
-  private $tagEditFormFactory;
+  private TagsFacade $tagsFacade;
+  private TagEditFormFactory $tagEditFormFactory;
 
   /**
    * Akce pro zobrazení přehledu tagů
    */
-  public function renderDefault(){
+  public function renderDefault():void {
     $this->template->tags=$this->tagsFacade->findTags();
   }
 

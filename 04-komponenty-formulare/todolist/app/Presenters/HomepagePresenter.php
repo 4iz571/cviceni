@@ -11,7 +11,7 @@ use Nette;
  */
 final class HomepagePresenter extends Nette\Application\UI\Presenter{
 
-  public function actionDefault(){
+  public function actionDefault():never {
     $this->redirect('Todo:default');
   }
 

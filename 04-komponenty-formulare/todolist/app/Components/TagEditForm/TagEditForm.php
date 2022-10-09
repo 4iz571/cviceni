@@ -28,7 +28,7 @@ class TagEditForm extends Form{
   /** @var callable[] $onCancel */
   public $onCancel = [];
   /** @var TagsFacade $tagsFacade */
-  private $tagsFacade;
+  private TagsFacade $tagsFacade;
 
   /**
    * TagEditForm constructor.

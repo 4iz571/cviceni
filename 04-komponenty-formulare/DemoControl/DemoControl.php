@@ -11,7 +11,7 @@ use Nette\Application\UI\Control;
 class DemoControl extends Control{
 
   /** @var string $text */
-  public $text = 'DEMO';
+  public string $text = 'DEMO';
 
   public function render():void {
     $this->template->text = $this->text;
