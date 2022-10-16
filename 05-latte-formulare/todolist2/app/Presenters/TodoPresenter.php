@@ -10,19 +10,19 @@ use Nette\Application\UI\Presenter;
  * @package App\Presenters
  */
 class TodoPresenter extends Presenter{
-  /** @var TodosFacade $todosFacade*/
-  private $todosFacade;
+  private TodosFacade $todosFacade;
 
   /**
    * Akce pro výpis úkolů
    */
-  public function renderDefault(){
+  public function renderDefault():void {
     //TODO tady to bude chtít v rámci plnění úkolů na cvičení nějaké změny
     $this->template->todos = $this->todosFacade->findTodos();
   }
 
-
-  public function injectTodosFacade(TodosFacade $todosFacade){
+  #region injections
+  public function injectTodosFacade(TodosFacade $todosFacade):void {
     $this->todosFacade=$todosFacade;
   }
+  #endregion injections
 }

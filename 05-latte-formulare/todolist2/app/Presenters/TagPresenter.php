@@ -13,10 +13,8 @@ use Nette\Application\BadRequestException;
  * @package App\Presenters
  */
 class TagPresenter extends \Nette\Application\UI\Presenter {
-  /** @var TagsFacade $tagsFacade */
-  private /*TagsFacade*/ $tagsFacade;
-  /** @var TagEditFormFactory $tagEditForm */
-  private $tagEditFormFactory;
+  private TagsFacade $tagsFacade;
+  private TagEditFormFactory $tagEditFormFactory;
 
   /**
    * Akce pro zobrazení přehledu tagů
@@ -87,16 +85,10 @@ class TagPresenter extends \Nette\Application\UI\Presenter {
   }
 
   #region injections
-  /**
-   * @param TagsFacade $tagsFacade
-   */
   public function injectTagsFacade(TagsFacade $tagsFacade):void {
     $this->tagsFacade=$tagsFacade;
   }
 
-  /**
-   * @param TagEditFormFactory $tagEditFormFactory
-   */
   public function injectTagEditFormFactory(TagEditFormFactory $tagEditFormFactory):void {
     $this->tagEditFormFactory=$tagEditFormFactory;
   }

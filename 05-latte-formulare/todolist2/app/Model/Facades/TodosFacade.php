@@ -12,10 +12,8 @@ use App\Model\Repositories\TodoRepository;
  * @package App\Model\Facades
  */
 class TodosFacade{
-  /** @var TodoRepository $todoRepository */
-  private $todoRepository;
-  /** @var TodoItemRepository $todoItemRepository */
-  private $todoItemRepository;
+  private TodoRepository $todoRepository;
+  private TodoItemRepository $todoItemRepository;
 
   public function __construct(TodoRepository $todoRepository, TodoItemRepository $todoItemRepository){
     $this->todoRepository=$todoRepository;
