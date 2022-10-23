@@ -12,23 +12,21 @@ use App\Model\Facades\CategoriesFacade;
  * @package App\Presenters
  */
 class CategoryPresenter extends \Nette\Application\UI\Presenter {
-  /** @var CategoriesFacade $categoriesFacade */
-  private /*CategoriesFacade*/ $categoriesFacade;
-  /** @var CategoryEditFormFactory $categoryEditFormFactory */
-  private /*CategoryEditFormFactory*/ $categoryEditFormFactory;
+  private CategoriesFacade $categoriesFacade;
+  private CategoryEditFormFactory $categoryEditFormFactory;
 
   /**
    * Výchozí akce - zatím jen přesměrovává na seznam kategorií
    * @throws \Nette\Application\AbortException
    */
-  public function actionDefault(){
+  public function actionDefault():void {
     $this->redirect('list');
   }
 
   /**
    * Akce pro zobrazení seznamu dostupných kategorií
    */
-  public function renderList(){
+  public function renderList():void {
     $this->template->categories=$this->categoriesFacade->findCategories(['order'=>'title']);
   }
 
@@ -84,7 +82,7 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
     return $form;
   }
 
-  protected function startup(){
+  protected function startup():void {
     parent::startup();
     if (!$this->user->isLoggedIn()){
       $this->redirect('User:login');

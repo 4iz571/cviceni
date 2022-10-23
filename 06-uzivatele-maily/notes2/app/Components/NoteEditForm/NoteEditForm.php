@@ -31,21 +31,17 @@ class NoteEditForm extends Form{
   public $onFailed = [];
   /** @var callable[] $onCancel */
   public $onCancel = [];
-  /** @var CategoriesFacade $tagsFacade */
-  private $categoriesFacade;
-  /** @var NotesFacade $notesFacade */
-  private $notesFacade;
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var User $user */
-  private $user;
+
+  private CategoriesFacade $categoriesFacade;
+  private NotesFacade $notesFacade;
+  private UsersFacade $usersFacade;
+  private User $user;
 
   /**
    * TagEditForm constructor.
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    * @param CategoriesFacade $categoriesFacade
-   * @noinspection PhpOptionalBeforeRequiredParametersInspection
    */
   public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade){
     parent::__construct($parent, $name);
@@ -70,7 +66,7 @@ class NoteEditForm extends Form{
   /**
    * Vytvoření struktury formuláře
    */
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $noteId=$this->addHidden('noteId');
     $this->addText('title','Předmět:')
       ->setRequired('Musíte zadat předmět');

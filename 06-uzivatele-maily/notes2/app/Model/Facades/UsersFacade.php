@@ -10,8 +10,7 @@ use App\Model\Repositories\UserRepository;
  * @package App\Model\Facades
  */
 class UsersFacade{
-  /** @var UserRepository $userRepository */
-  private /*UserRepository*/ $userRepository;
+  private UserRepository $userRepository;
 
   public function __construct(UserRepository $userRepository){
     $this->userRepository=$userRepository;
@@ -42,7 +41,7 @@ class UsersFacade{
    * @param User &$user
    * @return bool
    */
-  public function saveUser(User &$user) {
+  public function saveUser(User &$user):bool {
     return (bool)$this->userRepository->persist($user);
   }
 

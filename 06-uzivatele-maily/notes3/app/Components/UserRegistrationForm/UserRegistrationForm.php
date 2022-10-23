@@ -25,17 +25,15 @@ class UserRegistrationForm extends Form{
   public $onFinished = [];
   /** @var callable[] $onCancel */
   public $onCancel = [];
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var Nette\Security\Passwords $passwords */
-  private $passwords;
+
+  private UsersFacade $usersFacade;
+  private Nette\Security\Passwords $passwords;
 
   /**
    * UserRegistrationForm constructor.
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    * @param UsersFacade $usersFacade
-   * @noinspection PhpOptionalBeforeRequiredParametersInspection
    */
   public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade, Nette\Security\Passwords $passwords){
     parent::__construct($parent, $name);
@@ -44,7 +42,7 @@ class UserRegistrationForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $this->addText('name','Jméno a příjmení:')
       ->setRequired('Zadejte své jméno')
       ->setHtmlAttribute('maxlength',40)

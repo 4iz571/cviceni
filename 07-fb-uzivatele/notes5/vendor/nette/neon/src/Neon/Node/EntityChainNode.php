@@ -20,11 +20,9 @@ final class EntityChainNode extends Node
 	public $chain = [];
 
 
-	public function __construct(array $chain = [], int $startPos = null, int $endPos = null)
+	public function __construct(array $chain = [])
 	{
 		$this->chain = $chain;
-		$this->startPos = $startPos;
-		$this->endPos = $endPos ?? $startPos;
 	}
 
 
@@ -34,7 +32,8 @@ final class EntityChainNode extends Node
 		foreach ($this->chain as $item) {
 			$entities[] = $item->toValue();
 		}
-		return new Neon\Entity(Neon\Neon::CHAIN, $entities);
+
+		return new Neon\Entity(Neon\Neon::Chain, $entities);
 	}
 
 
@@ -44,8 +43,10 @@ final class EntityChainNode extends Node
 	}
 
 
-	public function getSubNodes(): array
+	public function &getIterator(): \Generator
 	{
-		return $this->chain;
+		foreach ($this->chain as &$item) {
+			yield $item;
+		}
 	}
 }

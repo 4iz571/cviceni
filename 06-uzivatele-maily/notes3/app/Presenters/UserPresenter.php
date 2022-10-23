@@ -14,18 +14,15 @@ use Nette;
  * @package App\Presenters
  */
 class UserPresenter extends BasePresenter{
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var UserLoginFormFactory $userLoginFormFactory */
-  private $userLoginFormFactory;
-  /** @var UserRegistrationFormFactory $userRegistrationFormFactory */
-  private $userRegistrationFormFactory;
+  private UsersFacade $usersFacade;
+  private UserLoginFormFactory $userLoginFormFactory;
+  private UserRegistrationFormFactory $userRegistrationFormFactory;
 
   /**
    * Akce pro odhlášení uživatele
    * @throws Nette\Application\AbortException
    */
-  public function actionLogout(){
+  public function actionLogout():void {
     if ($this->user->isLoggedIn()){
       $this->user->logout();
     }
@@ -36,7 +33,7 @@ class UserPresenter extends BasePresenter{
    * Akce pro přihlášení - pokud už je uživatel přihlášen, tak ho jen přesměrujeme na homepage
    * @throws Nette\Application\AbortException
    */
-  public function actionLogin(){
+  public function actionLogin():void {
     if ($this->user->isLoggedIn()){
       $this->redirect('Homepage:default');
     }
@@ -46,7 +43,7 @@ class UserPresenter extends BasePresenter{
    * Akce pro registraci - pokud už je uživatel přihlášen, tak ho jen přesměrujeme na homepage
    * @throws Nette\Application\AbortException
    */
-  public function actionRegister(){
+  public function actionRegister():void {
     if ($this->user->isLoggedIn()){
       $this->redirect('Homepage:default');
     }
@@ -56,7 +53,7 @@ class UserPresenter extends BasePresenter{
    * Formulář pro přihlášení existujícího uživatele
    * @return UserLoginForm
    */
-  protected function createComponentUserLoginForm():UserLoginForm{
+  protected function createComponentUserLoginForm():UserLoginForm {
     $form=$this->userLoginFormFactory->create();
     $form->onFinished[]=function()use($form){
       $values=$form->getValues('array');
@@ -78,7 +75,7 @@ class UserPresenter extends BasePresenter{
    * Formulář pro registraci nového uživatele
    * @return UserRegistrationForm
    */
-  protected function createComponentUserRegistrationForm():UserRegistrationForm{
+  protected function createComponentUserRegistrationForm():UserRegistrationForm {
     $form=$this->userRegistrationFormFactory->create();
     $form->onFinished[]=function()use($form){
       $values=$form->getValues('array');
@@ -98,15 +95,15 @@ class UserPresenter extends BasePresenter{
   }
 
   #region injections
-  public function injectUsersFacade(UsersFacade $usersFacade){
+  public function injectUsersFacade(UsersFacade $usersFacade):void {
     $this->usersFacade=$usersFacade;
   }
 
-  public function injectUserLoginFormFactory(UserLoginFormFactory $userLoginFormFactory){
+  public function injectUserLoginFormFactory(UserLoginFormFactory $userLoginFormFactory):void {
     $this->userLoginFormFactory=$userLoginFormFactory;
   }
 
-  public function injectUserRegistrationFormFactory(UserRegistrationFormFactory $userRegistrationFormFactory){
+  public function injectUserRegistrationFormFactory(UserRegistrationFormFactory $userRegistrationFormFactory):void {
     $this->userRegistrationFormFactory=$userRegistrationFormFactory;
   }
   #endregion injections

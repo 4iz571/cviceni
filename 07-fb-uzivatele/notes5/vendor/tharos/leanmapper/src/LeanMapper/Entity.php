@@ -761,7 +761,7 @@ abstract class Entity
      * @param Property|string $property micro-optimalization
      * @throws InvalidMethodCallException
      */
-    protected function assignEntityToProperty(?Entity $entity = null, $property):void
+    protected function assignEntityToProperty(?Entity $entity, $property):void
     {
         if ($entity !== null) {
             $this->useMapper($entity->mapper);
@@ -858,6 +858,12 @@ abstract class Entity
     private function getHasOneValue(Property $property, Relationship\HasOne $relationship, ?Filtering $filtering = null): ?Entity
     {
         if (!$relationship->hasTargetTable()) {
+            $viaColumn = $relationship->getColumnReferencingTargetTable();
+
+            if ($this->row->hasReferencedRow($viaColumn) && $this->row->getReferencedRow($viaColumn) === null && $property->isNullable()) {
+                return null;
+            }
+
             throw new InvalidStateException('Cannot get referenced Entity for detached Entity.');
         }
         $targetTable = $relationship->getTargetTable();

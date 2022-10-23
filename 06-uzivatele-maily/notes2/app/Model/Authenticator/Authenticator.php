@@ -13,10 +13,8 @@ use Nette\Security\SimpleIdentity;
  * @package App\Model\Authenticator
  */
 class Authenticator implements \Nette\Security\Authenticator{
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var Passwords $passwords */
-  private $passwords;
+  private UsersFacade $usersFacade;
+  private Passwords $passwords;
 
   public function __construct(Passwords $passwords, UsersFacade $usersFacade){
     $this->passwords=$passwords;
@@ -26,7 +24,7 @@ class Authenticator implements \Nette\Security\Authenticator{
   /**
    * @inheritDoc
    */
-  function authenticate(string $email, string $password):IIdentity{
+  function authenticate(string $email, string $password):IIdentity {
     try{
       $user=$this->usersFacade->getUserByEmail($email);
     }catch (\Exception $e){

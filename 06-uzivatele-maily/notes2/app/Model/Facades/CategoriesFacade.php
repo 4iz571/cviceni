@@ -10,8 +10,7 @@ use App\Model\Repositories\CategoryRepository;
  * @package App\Model\Facades
  */
 class CategoriesFacade{
-  /** @var CategoryRepository $categoryRepository */
-  private /*CategoryRepository*/ $categoryRepository;
+  private CategoryRepository $categoryRepository;
 
   public function __construct(CategoryRepository $categoryRepository){
     $this->categoryRepository=$categoryRepository;

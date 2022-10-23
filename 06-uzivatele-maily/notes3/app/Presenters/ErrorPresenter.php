@@ -14,18 +14,15 @@ final class ErrorPresenter implements Nette\Application\IPresenter
 {
 	use Nette\SmartObject;
 
-	/** @var ILogger */
-	private $logger;
+	private ILogger $logger;
 
 
-	public function __construct(ILogger $logger)
-	{
+	public function __construct(ILogger $logger){
 		$this->logger = $logger;
 	}
 
 
-	public function run(Nette\Application\Request $request): Nette\Application\Response
-	{
+	public function run(Nette\Application\Request $request):Nette\Application\Response {
 		$exception = $request->getParameter('exception');
 
 		if ($exception instanceof Nette\Application\BadRequestException) {

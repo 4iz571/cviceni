@@ -16,14 +16,10 @@ use App\Model\Repositories\UserRepository;
  * @package App\Model\Facades
  */
 class UsersFacade{
-  /** @var UserRepository $userRepository */
-  private $userRepository;
-  /** @var PermissionRepository $permissionRepository */
-  private $permissionRepository;
-  /** @var RoleRepository $roleRepository */
-  private $roleRepository;
-  /** @var ResourceRepository $resourceRepository */
-  private $resourceRepository;
+  private UserRepository $userRepository;
+  private PermissionRepository $permissionRepository;
+  private RoleRepository $roleRepository;
+  private ResourceRepository $resourceRepository;
 
   public function __construct(UserRepository $userRepository, PermissionRepository $permissionRepository, RoleRepository $roleRepository, ResourceRepository $resourceRepository){
     $this->userRepository=$userRepository;

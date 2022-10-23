@@ -27,15 +27,14 @@ class CategoryEditForm extends Form{
   public $onFailed = [];
   /** @var callable[] $onCancel */
   public $onCancel = [];
-  /** @var CategoriesFacade $tagsFacade */
-  private $categoriesFacade;
+
+  private CategoriesFacade $categoriesFacade;
 
   /**
    * TagEditForm constructor.
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    * @param CategoriesFacade $categoriesFacade
-   * @noinspection PhpOptionalBeforeRequiredParametersInspection
    */
   public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, CategoriesFacade $categoriesFacade){
     parent::__construct($parent, $name);
@@ -43,7 +42,7 @@ class CategoryEditForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $categoryId=$this->addHidden('categoryId');
     $this->addText('title','Název kategorie')
       ->setRequired('Musíte zadat název kategorie');

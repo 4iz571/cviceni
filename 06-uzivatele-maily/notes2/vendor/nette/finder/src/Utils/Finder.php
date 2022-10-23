@@ -23,12 +23,14 @@ use RecursiveIteratorIterator;
  *     ->from('.')
  *     ->exclude('temp');
  * </code>
+ *
+ * @implements \IteratorAggregate<string, \SplFileInfo>
  */
 class Finder implements \IteratorAggregate, \Countable
 {
 	use Nette\SmartObject;
 
-	/** @var callable  extension methods */
+	/** @var callable[]  extension methods */
 	private static $extMethods = [];
 
 	/** @var array */
@@ -51,37 +53,37 @@ class Finder implements \IteratorAggregate, \Countable
 
 
 	/**
-	 * Begins search for files matching mask and all directories.
-	 * @param  string|string[]  $masks
+	 * Begins search for files and directories matching mask.
+	 * @param  string  ...$masks
 	 * @return static
 	 */
 	public static function find(...$masks): self
 	{
-		$masks = $masks && is_array($masks[0]) ? $masks[0] : $masks;
+		$masks = is_array($tmp = reset($masks)) ? $tmp : $masks;
 		return (new static)->select($masks, 'isDir')->select($masks, 'isFile');
 	}
 
 
 	/**
 	 * Begins search for files matching mask.
-	 * @param  string|string[]  $masks
+	 * @param  string  ...$masks
 	 * @return static
 	 */
 	public static function findFiles(...$masks): self
 	{
-		$masks = $masks && is_array($masks[0]) ? $masks[0] : $masks;
+		$masks = is_array($tmp = reset($masks)) ? $tmp : $masks;
 		return (new static)->select($masks, 'isFile');
 	}
 
 
 	/**
 	 * Begins search for directories matching mask.
-	 * @param  string|string[]  $masks
+	 * @param  string  ...$masks
 	 * @return static
 	 */
 	public static function findDirectories(...$masks): self
 	{
-		$masks = $masks && is_array($masks[0]) ? $masks[0] : $masks;
+		$masks = is_array($tmp = reset($masks)) ? $tmp : $masks;
 		return (new static)->select($masks, 'isDir');
 	}
 
@@ -105,7 +107,7 @@ class Finder implements \IteratorAggregate, \Countable
 
 	/**
 	 * Searches in the given folder(s).
-	 * @param  string|string[]  $paths
+	 * @param  string  ...$paths
 	 * @return static
 	 */
 	public function in(...$paths): self
@@ -117,7 +119,7 @@ class Finder implements \IteratorAggregate, \Countable
 
 	/**
 	 * Searches recursively from the given folder(s).
-	 * @param  string|string[]  $paths
+	 * @param  string  ...$paths
 	 * @return static
 	 */
 	public function from(...$paths): self
@@ -125,7 +127,8 @@ class Finder implements \IteratorAggregate, \Countable
 		if ($this->paths) {
 			throw new Nette\InvalidStateException('Directory to search has already been specified.');
 		}
-		$this->paths = is_array($paths[0]) ? $paths[0] : $paths;
+
+		$this->paths = is_array($tmp = reset($paths)) ? $tmp : $paths;
 		$this->cursor = &$this->exclude;
 		return $this;
 	}
@@ -161,9 +164,13 @@ class Finder implements \IteratorAggregate, \Countable
 				$mask = ltrim($mask, '/');
 				$prefix = '(?<=^/)';
 			}
-			$pattern[] = $prefix . strtr(preg_quote($mask, '#'),
-				['\*\*' => '.*', '\*' => '[^/]*', '\?' => '[^/]', '\[\!' => '[^', '\[' => '[', '\]' => ']', '\-' => '-']);
+
+			$pattern[] = $prefix . strtr(
+				preg_quote($mask, '#'),
+				['\*\*' => '.*', '\*' => '[^/]*', '\?' => '[^/]', '\[\!' => '[^', '\[' => '[', '\]' => ']', '\-' => '-']
+			);
 		}
+
 		return $pattern ? '#/(' . implode('|', $pattern) . ')$#Di' : null;
 	}
 
@@ -190,14 +197,14 @@ class Finder implements \IteratorAggregate, \Countable
 
 		} elseif (count($this->paths) === 1) {
 			return $this->buildIterator((string) $this->paths[0]);
-
-		} else {
-			$iterator = new \AppendIterator();
-			foreach ($this->paths as $path) {
-				$iterator->append($this->buildIterator((string) $path));
-			}
-			return $iterator;
 		}
+
+		$iterator = new \AppendIterator;
+		foreach ($this->paths as $path) {
+			$iterator->append($this->buildIterator((string) $path));
+		}
+
+		return $iterator;
 	}
 
 
@@ -217,6 +224,7 @@ class Finder implements \IteratorAggregate, \Countable
 						}
 					}
 				}
+
 				return true;
 			});
 		}
@@ -237,8 +245,10 @@ class Finder implements \IteratorAggregate, \Countable
 						continue 2;
 					}
 				}
+
 				return true;
 			}
+
 			return false;
 		});
 
@@ -252,25 +262,26 @@ class Finder implements \IteratorAggregate, \Countable
 	/**
 	 * Restricts the search using mask.
 	 * Excludes directories from recursive traversing.
-	 * @param  string|string[]  $masks
+	 * @param  string  ...$masks
 	 * @return static
 	 */
 	public function exclude(...$masks): self
 	{
-		$masks = $masks && is_array($masks[0]) ? $masks[0] : $masks;
+		$masks = is_array($tmp = reset($masks)) ? $tmp : $masks;
 		$pattern = self::buildPattern($masks);
 		if ($pattern) {
 			$this->filter(function (RecursiveDirectoryIterator $file) use ($pattern): bool {
 				return !preg_match($pattern, '/' . strtr($file->getSubPathName(), '\\', '/'));
 			});
 		}
+
 		return $this;
 	}
 
 
 	/**
 	 * Restricts the search using callback.
-	 * @param  callable  $callback  function (RecursiveDirectoryIterator $file): bool
+	 * @param  callable(RecursiveDirectoryIterator): bool  $callback
 	 * @return static
 	 */
 	public function filter(callable $callback): self
@@ -296,12 +307,13 @@ class Finder implements \IteratorAggregate, \Countable
 	 * @param  string  $operator  "[operator] [size] [unit]" example: >=10kB
 	 * @return static
 	 */
-	public function size(string $operator, int $size = null): self
+	public function size(string $operator, ?int $size = null): self
 	{
 		if (func_num_args() === 1) { // in $operator is predicate
 			if (!preg_match('#^(?:([=<>!]=?|<>)\s*)?((?:\d*\.)?\d+)\s*(K|M|G|)B?$#Di', $operator, $matches)) {
 				throw new Nette\InvalidArgumentException('Invalid size predicate format.');
 			}
+
 			[, $operator, $size, $unit] = $matches;
 			static $units = ['' => 1, 'k' => 1e3, 'm' => 1e6, 'g' => 1e9];
 			$size *= $units[strtolower($unit)];
@@ -325,9 +337,11 @@ class Finder implements \IteratorAggregate, \Countable
 			if (!preg_match('#^(?:([=<>!]=?|<>)\s*)?(.+)$#Di', $operator, $matches)) {
 				throw new Nette\InvalidArgumentException('Invalid date predicate format.');
 			}
+
 			[, $operator, $date] = $matches;
 			$operator = $operator ?: '=';
 		}
+
 		$date = DateTime::from($date)->format('U');
 		return $this->filter(function (RecursiveDirectoryIterator $file) use ($operator, $date): bool {
 			return self::compare($file->getMTime(), $operator, $date);
@@ -369,7 +383,7 @@ class Finder implements \IteratorAggregate, \Countable
 	{
 		return isset(self::$extMethods[$name])
 			? (self::$extMethods[$name])($this, ...$args)
-			: Nette\Utils\ObjectHelpers::strictCall(get_class($this), $name, array_keys(self::$extMethods));
+			: Nette\Utils\ObjectHelpers::strictCall(static::class, $name, array_keys(self::$extMethods));
 	}
 
 
