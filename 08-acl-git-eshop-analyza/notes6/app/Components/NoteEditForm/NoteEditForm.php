@@ -31,16 +31,12 @@ class NoteEditForm extends Form{
   public $onFailed = [];
   /** @var callable[] $onCancel */
   public $onCancel = [];
-  /** @var CategoriesFacade $tagsFacade */
-  private $categoriesFacade;
-  /** @var NotesFacade $notesFacade */
-  private $notesFacade;
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var User $user */
-  private $user;
-  /** @var Nette\Security\User $currentUser */
-  private $currentUser;
+
+  private CategoriesFacade $categoriesFacade;
+  private NotesFacade $notesFacade;
+  private UsersFacade $usersFacade;
+  private User $user;
+  private Nette\Security\User $currentUser;
 
   /**
    * TagEditForm constructor.
@@ -73,7 +69,7 @@ class NoteEditForm extends Form{
   /**
    * Vytvoření struktury formuláře
    */
-  private function createSubcomponents(){
+  private function createSubcomponents():void{
     $noteId=$this->addHidden('noteId');
     $this->addText('title','Předmět:')
       ->setRequired('Musíte zadat předmět');

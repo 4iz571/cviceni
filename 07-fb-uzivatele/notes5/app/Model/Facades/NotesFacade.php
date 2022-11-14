@@ -11,8 +11,7 @@ use App\Model\Repositories\NoteRepository;
  * @package App\Model\Facades
  */
 class NotesFacade{
-  /** @var NoteRepository $noteRepository */
-  private /*NoteRepository*/ $noteRepository;
+  private NoteRepository $noteRepository;
 
   public function __construct(NoteRepository $noteRepository){
     $this->noteRepository=$noteRepository;

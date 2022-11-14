@@ -12,23 +12,21 @@ use App\Model\Facades\CategoriesFacade;
  * @package App\Presenters
  */
 class CategoryPresenter extends BasePresenter {
-  /** @var CategoriesFacade $categoriesFacade */
-  private /*CategoriesFacade*/ $categoriesFacade;
-  /** @var CategoryEditFormFactory $categoryEditFormFactory */
-  private /*CategoryEditFormFactory*/ $categoryEditFormFactory;
+  private CategoriesFacade $categoriesFacade;
+  private CategoryEditFormFactory $categoryEditFormFactory;
 
   /**
    * Výchozí akce - zatím jen přesměrovává na seznam kategorií
    * @throws \Nette\Application\AbortException
    */
-  public function actionDefault(){
+  public function actionDefault():void{
     $this->redirect('list');
   }
 
   /**
    * Akce pro zobrazení seznamu dostupných kategorií
    */
-  public function renderList(){
+  public function renderList():void{
     $this->template->categories=$this->categoriesFacade->findCategories(['order'=>'title']);
   }
 
@@ -85,10 +83,10 @@ class CategoryPresenter extends BasePresenter {
   }
 
   #region injections
-  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade){
+  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade):void{
     $this->categoriesFacade=$categoriesFacade;
   }
-  public function injectCategoryEditFormFactory(CategoryEditFormFactory $categoryEditFormFactory){
+  public function injectCategoryEditFormFactory(CategoryEditFormFactory $categoryEditFormFactory):void{
     $this->categoryEditFormFactory=$categoryEditFormFactory;
   }
   #endregion injections

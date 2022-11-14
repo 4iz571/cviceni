@@ -44,7 +44,7 @@ class UserRegistrationForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void{
     $this->addText('name','Jméno a příjmení:')
       ->setRequired('Zadejte své jméno')
       ->setHtmlAttribute('maxlength',40)

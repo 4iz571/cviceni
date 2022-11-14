@@ -27,8 +27,8 @@ class CategoryEditForm extends Form{
   public $onFailed = [];
   /** @var callable[] $onCancel */
   public $onCancel = [];
-  /** @var CategoriesFacade $tagsFacade */
-  private $categoriesFacade;
+
+  private CategoriesFacade $categoriesFacade;
 
   /**
    * TagEditForm constructor.
@@ -43,7 +43,7 @@ class CategoryEditForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void{
     $categoryId=$this->addHidden('categoryId');
     $this->addText('title','Název kategorie')
       ->setRequired('Musíte zadat název kategorie');

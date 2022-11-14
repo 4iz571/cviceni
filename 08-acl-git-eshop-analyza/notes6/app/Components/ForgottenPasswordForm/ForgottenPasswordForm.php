@@ -24,10 +24,8 @@ class ForgottenPasswordForm extends Form{
   /** @var callable[] $onCancel */
   public $onCancel = [];
 
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var Nette\Application\LinkGenerator $linkGenerator */
-  private $linkGenerator;
+  private UsersFacade $usersFacade;
+  private Nette\Application\LinkGenerator $linkGenerator;
 
   /**
    * ForgottenPasswordForm constructor.
@@ -42,7 +40,7 @@ class ForgottenPasswordForm extends Form{
     $this->linkGenerator=$linkGenerator;
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void{
     $this->addEmail('email','E-mail')
       ->setRequired('Zadejte platný email');
 

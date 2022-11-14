@@ -22,13 +22,10 @@ final class ArrayItemNode extends Node
 	public $value;
 
 
-	public function __construct(int $pos = null)
-	{
-		$this->startPos = $this->endPos = $pos;
-	}
-
-
-	/** @param  self[]  $items */
+	/**
+	 * @param  self[]  $items
+	 * @return mixed[]
+	 */
 	public static function itemsToArray(array $items): array
 	{
 		$res = [];
@@ -39,6 +36,7 @@ final class ArrayItemNode extends Node
 				$res[(string) $item->key->toValue()] = $item->value->toValue();
 			}
 		}
+
 		return $res;
 	}
 
@@ -52,6 +50,7 @@ final class ArrayItemNode extends Node
 				. ($item->key ? $item->key->toString() . ': ' : '')
 				. $item->value->toString();
 		}
+
 		return $res;
 	}
 
@@ -63,10 +62,11 @@ final class ArrayItemNode extends Node
 		foreach ($items as $item) {
 			$v = $item->value->toString();
 			$res .= ($item->key ? $item->key->toString() . ':' : '-')
-				. (strpos($v, "\n") === false
-					? ' ' . $v . "\n"
-					: "\n" . preg_replace('#^(?=.)#m', "\t", $v) . (substr($v, -2, 1) === "\n" ? '' : "\n"));
+				. ($item->value instanceof BlockArrayNode && $item->value->items
+					? "\n" . $v . (substr($v, -2, 1) === "\n" ? '' : "\n")
+					: ' ' . $v . "\n");
 		}
+
 		return $res;
 	}
 
@@ -83,8 +83,11 @@ final class ArrayItemNode extends Node
 	}
 
 
-	public function getSubNodes(): array
+	public function &getIterator(): \Generator
 	{
-		return $this->key ? [$this->key, $this->value] : [$this->value];
+		if ($this->key) {
+			yield $this->key;
+		}
+		yield $this->value;
 	}
 }

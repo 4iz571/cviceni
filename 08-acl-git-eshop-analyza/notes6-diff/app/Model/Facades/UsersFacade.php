@@ -24,16 +24,11 @@ use Nette\Utils\Random;
  * @package App\Model\Facades
  */
 class UsersFacade{
-  /** @var UserRepository $userRepository */
-  private $userRepository;
-  /** @var PermissionRepository $permissionRepository */
-  private $permissionRepository;
-  /** @var RoleRepository $roleRepository */
-  private $roleRepository;
-  /** @var ResourceRepository $resourceRepository */
-  private $resourceRepository;
-  /** @var ForgottenPasswordRepository $forgottenPasswordRepository */
-  private $forgottenPasswordRepository;
+  private UserRepository $userRepository;
+  private PermissionRepository $permissionRepository;
+  private RoleRepository $roleRepository;
+  private ResourceRepository $resourceRepository;
+  private ForgottenPasswordRepository $forgottenPasswordRepository;
 
   public function __construct(UserRepository $userRepository, PermissionRepository $permissionRepository,
                               RoleRepository $roleRepository, ResourceRepository $resourceRepository,
@@ -70,7 +65,7 @@ class UsersFacade{
    * @param User &$user
    * @return bool
    */
-  public function saveUser(User &$user) {
+  public function saveUser(User &$user):bool {
     return (bool)$this->userRepository->persist($user);
   }
 
@@ -159,7 +154,7 @@ class UsersFacade{
    * Metoda pro jednoduché smazání kódů pro obnovu hesla pro konkrétního uživatele
    * @param User|int $user
    */
-  public function deleteForgottenPasswordsByUser($user){
+  public function deleteForgottenPasswordsByUser($user):void {
     try{
       if ($user instanceof User){
         $user=$user->userId;

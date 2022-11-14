@@ -28,10 +28,8 @@ class NewPasswordForm extends Form{
   /** @var callable[] $onCancel */
   public $onCancel = [];
 
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var Nette\Security\Passwords $passwords */
-  private $passwords;
+  private UsersFacade $usersFacade;
+  private Nette\Security\Passwords $passwords;
 
   /**
    * ForgottenPasswordForm constructor.
@@ -47,7 +45,7 @@ class NewPasswordForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void{
     $this->addHidden('userId');
 
     $password=$this->addPassword('password','Heslo');
@@ -89,7 +87,7 @@ class NewPasswordForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false){
+  public function setDefaults($values, bool $erase = false):self{
     if ($values instanceof User){
       $this->setDefaults(['userId'=>$values->userId]);
     }

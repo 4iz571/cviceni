@@ -20,7 +20,7 @@ class Loader
 {
 	use Nette\SmartObject;
 
-	private const INCLUDES_KEY = 'includes';
+	private const IncludesKey = 'includes';
 
 	private $adapters = [
 		'php' => Adapters\PhpAdapter::class,
@@ -46,27 +46,30 @@ class Loader
 		if (isset($this->loadedFiles[$file])) {
 			throw new Nette\InvalidStateException(sprintf("Recursive included file '%s'", $file));
 		}
+
 		$this->loadedFiles[$file] = true;
 
 		$this->dependencies[] = $file;
 		$data = $this->getAdapter($file)->load($file);
 
 		$res = [];
-		if (isset($data[self::INCLUDES_KEY])) {
-			Validators::assert($data[self::INCLUDES_KEY], 'list', "section 'includes' in file '$file'");
-			$includes = Nette\DI\Helpers::expand($data[self::INCLUDES_KEY], $this->parameters);
+		if (isset($data[self::IncludesKey])) {
+			Validators::assert($data[self::IncludesKey], 'list', "section 'includes' in file '$file'");
+			$includes = Nette\DI\Helpers::expand($data[self::IncludesKey], $this->parameters);
 			foreach ($includes as $include) {
 				$include = $this->expandIncludedFile($include, $file);
 				$res = Nette\Schema\Helpers::merge($this->load($include, $merge), $res);
 			}
 		}
-		unset($data[self::INCLUDES_KEY], $this->loadedFiles[$file]);
+
+		unset($data[self::IncludesKey], $this->loadedFiles[$file]);
 
 		if ($merge === false) {
 			$res[] = $data;
 		} else {
 			$res = Nette\Schema\Helpers::merge($data, $res);
 		}
+
 		return $res;
 	}
 
@@ -120,6 +123,7 @@ class Loader
 		if (!isset($this->adapters[$extension])) {
 			throw new Nette\InvalidArgumentException(sprintf("Unknown file extension '%s'.", $file));
 		}
+
 		return is_object($this->adapters[$extension])
 			? $this->adapters[$extension]
 			: new $this->adapters[$extension];

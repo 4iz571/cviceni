@@ -7,8 +7,7 @@ namespace App\Model\Authorizator;
  * @package App\Model\Authorizator
  */
 class AuthenticatedRole implements \Nette\Security\Role{
-  /** @var int $userId */
-  public $userId;
+  public int $userId;
 
   /**
    * AuthenticatedRole constructor.

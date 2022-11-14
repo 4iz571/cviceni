@@ -8,10 +8,8 @@ use App\Model\Facades\NotesFacade;
 use Nette;
 
 class HomepagePresenter extends BasePresenter{
-  /** @var NotesFacade $notesFacade */
-  private $notesFacade;
-  /** @var NoteEditFormFactory $noteEditFormFactory */
-  private $noteEditFormFactory;
+  private NotesFacade $notesFacade;
+  private NoteEditFormFactory $noteEditFormFactory;
 
   /**
    * Akce vykreslující přehled příspěvků
@@ -86,11 +84,11 @@ class HomepagePresenter extends BasePresenter{
   }
 
   #region injections
-  public function injectNotesFacade(NotesFacade $notesFacade){
+  public function injectNotesFacade(NotesFacade $notesFacade):void{
     $this->notesFacade=$notesFacade;
   }
 
-  public function injectNoteEditFormFactory(NoteEditFormFactory $noteEditFormFactory){
+  public function injectNoteEditFormFactory(NoteEditFormFactory $noteEditFormFactory):void{
     $this->noteEditFormFactory=$noteEditFormFactory;
   }
   #endregion injections
