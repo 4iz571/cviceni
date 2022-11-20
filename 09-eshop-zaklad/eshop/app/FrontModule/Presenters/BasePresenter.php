@@ -12,14 +12,13 @@ use Nette\Application\ForbiddenRequestException;
  * @package App\FrontModule\Presenters
  */
 abstract class BasePresenter extends \Nette\Application\UI\Presenter {
-  /** @var UserLoginControlFactory $userLoginControlFactory */
-  private $userLoginControlFactory;
+  private UserLoginControlFactory $userLoginControlFactory;
 
   /**
    * @throws ForbiddenRequestException
    * @throws AbortException
    */
-  protected function startup(){
+  protected function startup():void {
     parent::startup();
     $presenterName = $this->request->presenterName;
     $action = !empty($this->request->parameters['action'])?$this->request->parameters['action']:'';

@@ -11,14 +11,13 @@ use Nette\Security\User;
  * @package App\FrontModule\Components\UserLoginControl
  */
 class UserLoginControl extends Control{
-  /** @var User $user */
-  private $user;
+  private User $user;
 
   /**
    * Akce renderující šablonu s odkazem pro zobrazení harmonogramu na desktopu
    * @param array $params = []
    */
-  public function render($params=[]){
+  public function render($params=[]):void {
     $template=$this->prepareTemplate('default');
     $template->user=$this->user;
     $template->class=(!empty($params['class'])?$params['class']:'');
@@ -29,7 +28,7 @@ class UserLoginControl extends Control{
    * Signál pro přihlášení uživatele s uložením requestu
    * @throws \Nette\Application\AbortException
    */
-  public function handleLogin(){
+  public function handleLogin():void {
     if ($this->user->isLoggedIn()){
       $this->presenter->redirect('this');
     }else{
@@ -40,7 +39,7 @@ class UserLoginControl extends Control{
   /**
    * @throws \Nette\Application\AbortException
    */
-  public function handleLogout(){
+  public function handleLogout():void {
     if (!$this->user->isLoggedIn()){
       $this->presenter->redirect('this');
     }else{
@@ -61,7 +60,7 @@ class UserLoginControl extends Control{
    * @param string $templateName=''
    * @return Template
    */
-  private function prepareTemplate(string $templateName=''):Template{
+  private function prepareTemplate(string $templateName=''):Template {
     $template=$this->template;
     if (!empty($templateName)){
       $template->setFile(__DIR__.'/templates/'.$templateName.'.latte');
