@@ -45,7 +45,7 @@ final class Statement implements Nette\Schema\DynamicParameter
 					|| $entity[0] instanceof self
 					|| $entity[0] instanceof Reference
 					|| $entity[0] instanceof Definition)
-		)) {
+			)) {
 			throw new Nette\InvalidArgumentException('Argument is not valid Statement entity.');
 		}
 
@@ -53,6 +53,7 @@ final class Statement implements Nette\Schema\DynamicParameter
 		if (is_string($entity) && Strings::contains($entity, '::') && !Strings::contains($entity, '?')) {
 			$entity = explode('::', $entity, 2);
 		}
+
 		if (is_string($entity) && substr($entity, 0, 1) === '@') { // normalize @service to Reference
 			$entity = new Reference(substr($entity, 1));
 		} elseif (is_array($entity) && is_string($entity[0]) && substr($entity[0], 0, 1) === '@') {

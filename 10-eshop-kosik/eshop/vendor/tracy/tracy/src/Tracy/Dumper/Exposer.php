@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 namespace Tracy\Dumper;
+use Ds;
 
 
 /**
@@ -59,6 +60,7 @@ final class Exposer
 		if (isset($cache[$class])) {
 			return $cache[$class];
 		}
+
 		$rc = new \ReflectionClass($class);
 		$parentProps = $rc->getParentClass() ? self::getProperties($rc->getParentClass()->getName()) : [];
 		$props = [];
@@ -92,6 +94,7 @@ final class Exposer
 		foreach ($rc->getParameters() as $param) {
 			$params[] = '$' . $param->getName();
 		}
+
 		$value->value .= '(' . implode(', ', $params) . ')';
 
 		$uses = [];
@@ -101,6 +104,7 @@ final class Exposer
 			$uses[] = '$' . $name;
 			$describer->addPropertyTo($useValue, '$' . $name, $v);
 		}
+
 		if ($uses) {
 			$useValue->value = implode(', ', $uses);
 			$useValue->collapsed = true;
@@ -149,6 +153,32 @@ final class Exposer
 	}
 
 
+	public static function exposeGenerator(\Generator $gen, Value $value, Describer $describer): void
+	{
+		try {
+			$r = new \ReflectionGenerator($gen);
+			$describer->addPropertyTo($value, 'file', $r->getExecutingFile() . ':' . $r->getExecutingLine());
+			$describer->addPropertyTo($value, 'this', $r->getThis());
+		} catch (\ReflectionException $e) {
+			$value->value = get_class($gen) . ' (terminated)';
+		}
+	}
+
+
+	public static function exposeFiber(\Fiber $fiber, Value $value, Describer $describer): void
+	{
+		if ($fiber->isTerminated()) {
+			$value->value = get_class($fiber) . ' (terminated)';
+		} elseif (!$fiber->isStarted()) {
+			$value->value = get_class($fiber) . ' (not started)';
+		} else {
+			$r = new \ReflectionFiber($fiber);
+			$describer->addPropertyTo($value, 'file', $r->getExecutingFile() . ':' . $r->getExecutingLine());
+			$describer->addPropertyTo($value, 'callable', $r->getCallable());
+		}
+	}
+
+
 	public static function exposeSplFileInfo(\SplFileInfo $obj): array
 	{
 		return ['path' => $obj->getPathname()];
@@ -161,6 +191,7 @@ final class Exposer
 		foreach (clone $obj as $item) {
 			$res[] = ['object' => $item, 'data' => $obj[$item]];
 		}
+
 		return $res;
 	}
 
@@ -169,7 +200,8 @@ final class Exposer
 		\__PHP_Incomplete_Class $obj,
 		Value $value,
 		Describer $describer
-	): void {
+	): void
+	{
 		$values = (array) $obj;
 		$class = $values['__PHP_Incomplete_Class_Name'];
 		unset($values['__PHP_Incomplete_Class_Name']);
@@ -185,17 +217,20 @@ final class Exposer
 				$k = (string) $k;
 				$decl = null;
 			}
+
 			$describer->addPropertyTo($value, $k, $v, $type, $refId, $decl);
 		}
+
 		$value->value = $class . ' (Incomplete Class)';
 	}
 
 
 	public static function exposeDsCollection(
-		\Ds\Collection $obj,
+		Ds\Collection $obj,
 		Value $value,
 		Describer $describer
-	): void {
+	): void
+	{
 		foreach ($obj as $k => $v) {
 			$describer->addPropertyTo($value, (string) $k, $v, Value::PROP_VIRTUAL);
 		}
@@ -203,13 +238,14 @@ final class Exposer
 
 
 	public static function exposeDsMap(
-		\Ds\Map $obj,
+		Ds\Map $obj,
 		Value $value,
 		Describer $describer
-	): void {
+	): void
+	{
 		$i = 0;
 		foreach ($obj as $k => $v) {
-			$describer->addPropertyTo($value, (string) $i++, new \Ds\Pair($k, $v), Value::PROP_VIRTUAL);
+			$describer->addPropertyTo($value, (string) $i++, new Ds\Pair($k, $v), Value::PROP_VIRTUAL);
 		}
 	}
 }

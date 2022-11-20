@@ -13,6 +13,7 @@ namespace Dibi;
 /**
  * Result set single row.
  */
+#[\AllowDynamicProperties]
 class Row implements \ArrayAccess, \IteratorAggregate, \Countable
 {
 	public function __construct(array $arr)
@@ -33,15 +34,17 @@ class Row implements \ArrayAccess, \IteratorAggregate, \Countable
 	 * Converts value to DateTime object.
 	 * @return DateTime|string|null
 	 */
-	public function asDateTime(string $key, string $format = null)
+	public function asDateTime(string $key, ?string $format = null)
 	{
 		$time = $this[$key];
 		if (!$time instanceof DateTime) {
 			if (!$time || substr((string) $time, 0, 7) === '0000-00') { // '', null, false, '0000-00-00', ...
 				return null;
 			}
+
 			$time = new DateTime($time);
 		}
+
 		return $format === null ? $time : $time->format($format);
 	}
 

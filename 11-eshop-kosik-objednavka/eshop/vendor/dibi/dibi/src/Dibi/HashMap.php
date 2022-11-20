@@ -14,6 +14,7 @@ namespace Dibi;
  * Lazy cached storage.
  * @internal
  */
+#[\AllowDynamicProperties]
 abstract class HashMapBase
 {
 	/** @var callable */
@@ -50,6 +51,7 @@ final class HashMap extends HashMapBase
 		if ($nm === '') {
 			$nm = "\xFF";
 		}
+
 		$this->$nm = $val;
 	}
 
@@ -58,7 +60,7 @@ final class HashMap extends HashMapBase
 	{
 		if ($nm === '') {
 			$nm = "\xFF";
-			return isset($this->$nm) ? $this->$nm : $this->$nm = $this->getCallback()('');
+			return isset($this->$nm) && true ? $this->$nm : $this->$nm = $this->getCallback()('');
 		} else {
 			return $this->$nm = $this->getCallback()($nm);
 		}

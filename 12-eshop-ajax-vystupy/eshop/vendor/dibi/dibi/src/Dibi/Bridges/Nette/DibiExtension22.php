@@ -22,10 +22,11 @@ class DibiExtension22 extends Nette\DI\CompilerExtension
 	/** @var bool|null */
 	private $debugMode;
 
-	private ?bool $cliMode;
+	/** @var bool|null */
+	private $cliMode;
 
 
-	public function __construct(bool $debugMode = null, bool $cliMode = null)
+	public function __construct(?bool $debugMode = null, ?bool $cliMode = null)
 	{
 		$this->debugMode = $debugMode;
 		$this->cliMode = $cliMode;
@@ -54,6 +55,7 @@ class DibiExtension22 extends Nette\DI\CompilerExtension
 			foreach ((array) $config['flags'] as $flag) {
 				$flags |= constant($flag);
 			}
+
 			$config['flags'] = $flags;
 		}
 
@@ -67,6 +69,7 @@ class DibiExtension22 extends Nette\DI\CompilerExtension
 				[[Dibi\Bridges\Tracy\Panel::class, 'renderException']]
 			);
 		}
+
 		if ($useProfiler) {
 			$panel = $container->addDefinition($this->prefix('panel'))
 				->setFactory(Dibi\Bridges\Tracy\Panel::class, [

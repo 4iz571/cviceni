@@ -19,13 +19,13 @@ final class Reflection
 {
 	use Nette\StaticClass;
 
-	private const BUILTIN_TYPES = [
+	private const BuiltinTypes = [
 		'string' => 1, 'int' => 1, 'float' => 1, 'bool' => 1, 'array' => 1, 'object' => 1,
 		'callable' => 1, 'iterable' => 1, 'void' => 1, 'null' => 1, 'mixed' => 1, 'false' => 1,
 		'never' => 1,
 	];
 
-	private const CLASS_KEYWORDS = [
+	private const ClassKeywords = [
 		'self' => 1, 'parent' => 1, 'static' => 1,
 	];
 
@@ -35,7 +35,7 @@ final class Reflection
 	 */
 	public static function isBuiltinType(string $type): bool
 	{
-		return isset(self::BUILTIN_TYPES[strtolower($type)]);
+		return isset(self::BuiltinTypes[strtolower($type)]);
 	}
 
 
@@ -44,7 +44,7 @@ final class Reflection
 	 */
 	public static function isClassKeyword(string $name): bool
 	{
-		return isset(self::CLASS_KEYWORDS[strtolower($name)]);
+		return isset(self::ClassKeywords[strtolower($name)]);
 	}
 
 
@@ -150,6 +150,7 @@ final class Reflection
 					$name = self::toString($param);
 					throw new \ReflectionException("Unable to resolve constant $orig used as default value of $name.", 0, $e);
 				}
+
 				return $rcc->getValue();
 
 			} elseif (!defined($const)) {
@@ -159,8 +160,10 @@ final class Reflection
 					throw new \ReflectionException("Unable to resolve constant $orig used as default value of $name.");
 				}
 			}
+
 			return constant($const);
 		}
+
 		return $param->getDefaultValue();
 	}
 
@@ -178,6 +181,7 @@ final class Reflection
 				return self::getPropertyDeclaringClass($trait->getProperty($prop->name));
 			}
 		}
+
 		return $prop->getDeclaringClass();
 	}
 
@@ -213,6 +217,7 @@ final class Reflection
 				return self::getMethodDeclaringMethod($m);
 			}
 		}
+
 		return $method;
 	}
 
@@ -256,7 +261,7 @@ final class Reflection
 		if (empty($name)) {
 			throw new Nette\InvalidArgumentException('Class name must not be empty.');
 
-		} elseif (isset(self::BUILTIN_TYPES[$lower])) {
+		} elseif (isset(self::BuiltinTypes[$lower])) {
 			return $lower;
 
 		} elseif ($lower === 'self' || $lower === 'static') {
@@ -292,6 +297,7 @@ final class Reflection
 		if ($class->isAnonymous()) {
 			throw new Nette\NotImplementedException('Anonymous classes are not supported.');
 		}
+
 		static $cache = [];
 		if (!isset($cache[$name = $class->name])) {
 			if ($class->isInternal()) {
@@ -301,6 +307,7 @@ final class Reflection
 				$cache = self::parseUseStatements($code, $name) + $cache;
 			}
 		}
+
 		return $cache[$name];
 	}
 
@@ -308,7 +315,7 @@ final class Reflection
 	/**
 	 * Parses PHP code to [class => [alias => class, ...]]
 	 */
-	private static function parseUseStatements(string $code, string $forClass = null): array
+	private static function parseUseStatements(string $code, ?string $forClass = null): array
 	{
 		try {
 			$tokens = token_get_all($code, TOKEN_PARSE);
@@ -316,6 +323,7 @@ final class Reflection
 			trigger_error($e->getMessage(), E_USER_NOTICE);
 			$tokens = [];
 		}
+
 		$namespace = $class = $classLevel = $level = null;
 		$res = $uses = [];
 
@@ -345,6 +353,7 @@ final class Reflection
 							return $res;
 						}
 					}
+
 					break;
 
 				case T_USE:
@@ -358,11 +367,11 @@ final class Reflection
 									$tmp = explode('\\', $suffix);
 									$uses[end($tmp)] = $name . $suffix;
 								}
+
 								if (!self::fetch($tokens, ',')) {
 									break;
 								}
 							}
-
 						} elseif (self::fetch($tokens, T_AS)) {
 							$uses[self::fetch($tokens, T_STRING)] = $name;
 
@@ -370,10 +379,12 @@ final class Reflection
 							$tmp = explode('\\', $name);
 							$uses[end($tmp)] = $name;
 						}
+
 						if (!self::fetch($tokens, ',')) {
 							break;
 						}
 					}
+
 					break;
 
 				case T_CURLY_OPEN:
@@ -386,6 +397,7 @@ final class Reflection
 					if ($level === $classLevel) {
 						$class = $classLevel = null;
 					}
+
 					$level--;
 			}
 		}
@@ -404,8 +416,10 @@ final class Reflection
 			} elseif (!in_array($token, [T_DOC_COMMENT, T_WHITESPACE, T_COMMENT], true)) {
 				break;
 			}
+
 			next($tokens);
 		}
+
 		return $res;
 	}
 }

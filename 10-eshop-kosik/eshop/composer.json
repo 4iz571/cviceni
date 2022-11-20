@@ -1,10 +1,10 @@
 {
-	"name": "4iz571/notes-leanmapper",
-	"description": "Ukázková aplikace pro výuku 4iz571",
+	"name": "4iz571/eshop",
+	"description": "Ukázkový e-shop pro výuku 4iz571",
 	"type": "project",
 	"license": ["proprietary"],
 	"require": {
-		"php": ">= 7.2",
+		"php": ">= 7.4",
 		"nette/application": "^3.1",
 		"nette/bootstrap": "^3.1",
 		"nette/caching": "^3.1",
@@ -31,7 +31,7 @@
 	"minimum-stability": "stable",
   "config": {
     "platform": {
-      "php": "7.2"
+      "php": "7.4"
     }
   }
 }

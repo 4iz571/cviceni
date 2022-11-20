@@ -53,7 +53,7 @@ class Event
 	public $source;
 
 
-	public function __construct(Connection $connection, int $type, string $sql = null)
+	public function __construct(Connection $connection, int $type, ?string $sql = null)
 	{
 		$this->connection = $connection;
 		$this->type = $type;
@@ -70,7 +70,11 @@ class Event
 
 		$dibiDir = dirname((new \ReflectionClass('dibi'))->getFileName()) . DIRECTORY_SEPARATOR;
 		foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $row) {
-			if (isset($row['file']) && is_file($row['file']) && strpos($row['file'], $dibiDir) !== 0) {
+			if (
+				isset($row['file'])
+				&& preg_match('~\.(php.?|phtml)$~', $row['file'])
+				&& substr($row['file'], 0, strlen($dibiDir)) !== $dibiDir
+			) {
 				$this->source = [$row['file'], (int) $row['line']];
 				break;
 			}

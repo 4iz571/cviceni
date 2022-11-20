@@ -17,7 +17,7 @@ use Nette;
  */
 final class Dumper
 {
-	private const INDENT_LENGTH = 4;
+	private const IndentLength = 4;
 
 	/** @var int */
 	public $maxDepth = 50;
@@ -110,7 +110,7 @@ final class Dumper
 		if (empty($var)) {
 			return '[]';
 
-		} elseif ($level > $this->maxDepth || in_array($var, $parents ?? [], true)) {
+		} elseif ($level > $this->maxDepth || in_array($var, $parents, true)) {
 			throw new Nette\InvalidArgumentException('Nesting level too deep or recursive dependency.');
 		}
 
@@ -135,7 +135,7 @@ final class Dumper
 		}
 
 		array_pop($parents);
-		$wrap = strpos($outInline, "\n") !== false || $level * self::INDENT_LENGTH + $column + strlen($outInline) + 3 > $this->wrapLength; // 3 = [],
+		$wrap = strpos($outInline, "\n") !== false || $level * self::IndentLength + $column + strlen($outInline) + 3 > $this->wrapLength; // 3 = [],
 		return '[' . ($wrap ? $outWrapped : $outInline) . ']';
 	}
 
@@ -155,6 +155,7 @@ final class Dumper
 					? '\Closure::fromCallable(' . $this->dump($inner) . ')'
 					: implode('::', (array) $inner) . '(...)';
 			}
+
 			throw new Nette\InvalidArgumentException('Cannot dump closure.');
 		}
 
@@ -169,7 +170,7 @@ final class Dumper
 		$arr = (array) $var;
 		$space = str_repeat($this->indentation, $level);
 
-		if ($level > $this->maxDepth || in_array($var, $parents ?? [], true)) {
+		if ($level > $this->maxDepth || in_array($var, $parents, true)) {
 			throw new Nette\InvalidArgumentException('Nesting level too deep or recursive dependency.');
 		}
 
@@ -227,6 +228,7 @@ final class Dumper
 				if (!is_array($arg)) {
 					throw new Nette\InvalidArgumentException('Argument must be an array.');
 				}
+
 				$res .= $this->dumpArguments($arg, strlen($res) - strrpos($res, "\n"), $token === '...?:');
 
 			} else { // $  ->  ::
@@ -234,12 +236,15 @@ final class Dumper
 				if ($arg instanceof Literal || !Helpers::isIdentifier($arg)) {
 					$arg = '{' . $this->dumpVar($arg) . '}';
 				}
+
 				$res .= substr($token, 0, -1) . $arg;
 			}
 		}
+
 		if ($args) {
 			throw new Nette\InvalidArgumentException('Insufficient number of placeholders.');
 		}
+
 		return $res;
 	}
 

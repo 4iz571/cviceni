@@ -18,7 +18,7 @@ use Tracy\Helpers;
  */
 final class Renderer
 {
-	private const TYPE_ARRAY_KEY = 'array';
+	private const TypeArrayKey = 'array';
 
 	/** @var int|bool */
 	public $collapseTop = 14;
@@ -187,7 +187,7 @@ final class Renderer
 	 */
 	private function renderString($str, int $depth, $keyType): string
 	{
-		if ($keyType === self::TYPE_ARRAY_KEY) {
+		if ($keyType === self::TypeArrayKey) {
 			$indent = '<span class="tracy-dump-indent">   ' . str_repeat('|  ', $depth - 1) . ' </span>';
 			return '<span class="tracy-dump-string">'
 				. "<span class='tracy-dump-lq'>'</span>"
@@ -196,7 +196,7 @@ final class Renderer
 				. '</span>';
 
 		} elseif ($keyType !== null) {
-			static $classes = [
+			$classes = [
 				Value::PROP_PUBLIC => 'tracy-dump-public',
 				Value::PROP_PROTECTED => 'tracy-dump-protected',
 				Value::PROP_DYNAMIC => 'tracy-dump-dynamic',
@@ -235,6 +235,7 @@ final class Renderer
 					$indent = '<span class="tracy-dump-indent">   ' . str_repeat('|  ', $depth) . ' </span>';
 					$toggle = '<span class="tracy-toggle' . ($collapsed ? ' tracy-collapsed' : '') . '">string</span>' . "\n";
 				}
+
 				return $toggle
 					. '<div class="tracy-dump-string' . ($collapsed ? ' tracy-collapsed' : '')
 					. '" title="' . $str->length . ' ' . $unit . '">'
@@ -282,8 +283,10 @@ final class Renderer
 					$ref = new Value(Value::TYPE_REF, $array->id);
 					$this->copySnapshot($ref);
 					return '<span class="tracy-toggle tracy-collapsed" data-tracy-dump=\'' . json_encode($ref) . "'>" . $out . '</span>';
+
+				} elseif ($this->hash) {
+					return $out . (isset($this->above[$array->id]) ? ' <i>see above</i>' : ' <i>see below</i>');
 				}
-				return $out . (isset($this->above[$array->id]) ? ' <i>see above</i>' : ' <i>see below</i>');
 			}
 		}
 
@@ -310,7 +313,7 @@ final class Renderer
 		foreach ($items as $info) {
 			[$k, $v, $ref] = $info + [2 => null];
 			$out .= $indent
-				. $this->renderVar($k, $depth + 1, self::TYPE_ARRAY_KEY)
+				. $this->renderVar($k, $depth + 1, self::TypeArrayKey)
 				. ' => '
 				. ($ref && $this->hash ? '<span class="tracy-dump-hash">&' . $ref . '</span> ' : '')
 				. ($tmp = $this->renderVar($v, $depth + 1))
@@ -320,6 +323,7 @@ final class Renderer
 		if ($count > count($items)) {
 			$out .= $indent . "…\n";
 		}
+
 		unset($this->parents[$array->id ?? null]);
 		return $out . '</div>';
 	}
@@ -339,8 +343,11 @@ final class Renderer
 			);
 		}
 
+		$pos = strrpos($object->value, '\\');
 		$out = '<span class="tracy-dump-object"' . $editorAttributes . '>'
-			. Helpers::escapeHtml($object->value)
+			. ($pos
+				? Helpers::escapeHtml(substr($object->value, 0, $pos + 1)) . '<b>' . Helpers::escapeHtml(substr($object->value, $pos + 1)) . '</b>'
+				: Helpers::escapeHtml($object->value))
 			. '</span>'
 			. ($object->id && $this->hash ? ' <span class="tracy-dump-hash">#' . $object->id . '</span>' : '');
 
@@ -358,8 +365,10 @@ final class Renderer
 				$ref = new Value(Value::TYPE_REF, $object->id);
 				$this->copySnapshot($ref);
 				return '<span class="tracy-toggle tracy-collapsed" data-tracy-dump=\'' . json_encode($ref) . "'>" . $out . '</span>';
+
+			} elseif ($this->hash) {
+				return $out . (isset($this->above[$object->id]) ? ' <i>see above</i>' : ' <i>see below</i>');
 			}
-			return $out . (isset($this->above[$object->id]) ? ' <i>see above</i>' : ' <i>see below</i>');
 		}
 
 		$collapsed = $object->collapsed ?? ($depth
@@ -391,6 +400,7 @@ final class Renderer
 		if ($object->length > count($object->items)) {
 			$out .= $indent . "…\n";
 		}
+
 		unset($this->parents[$object->id]);
 		return $out . '</div>';
 	}
@@ -410,6 +420,7 @@ final class Renderer
 				$this->copySnapshot($ref);
 				return '<span class="tracy-toggle tracy-collapsed" data-tracy-dump=\'' . json_encode($ref) . "'>" . $out . '</span>';
 			}
+
 			return $out . ' <i>see above</i>';
 
 		} else {
@@ -422,6 +433,7 @@ final class Renderer
 					. ($tmp = $this->renderVar($v, $depth + 1))
 					. (substr($tmp, -6) === '</div>' ? '' : "\n");
 			}
+
 			return $out . '</div>';
 		}
 	}
@@ -432,6 +444,7 @@ final class Renderer
 		if ($this->collectingMode) {
 			return;
 		}
+
 		if ($this->snapshotSelection === null) {
 			$this->snapshotSelection = [];
 		}
@@ -477,6 +490,7 @@ final class Renderer
 				} else {
 					$stack[] = isset($m[1], $colors[$m[1]]) ? $colors[$m[1]] : '0';
 				}
+
 				return "\033[" . end($stack) . 'm';
 			},
 			$s

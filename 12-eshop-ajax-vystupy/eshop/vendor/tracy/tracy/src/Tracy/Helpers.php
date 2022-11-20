@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace Tracy;
 
+use Nette;
+
 
 /**
  * Rendering helpers for Debugger.
@@ -18,15 +20,16 @@ class Helpers
 	/**
 	 * Returns HTML link to editor.
 	 */
-	public static function editorLink(string $file, int $line = null): string
+	public static function editorLink(string $file, ?int $line = null): string
 	{
 		$file = strtr($origFile = $file, Debugger::$editorMapping);
 		if ($editor = self::editorUri($origFile, $line)) {
 			$parts = explode('/', strtr($file, '\\', '/'));
 			$file = array_pop($parts);
-			while ($parts && strlen($file) < 42) {
+			while ($parts && strlen($file) < 50) {
 				$file = array_pop($parts) . '/' . $file;
 			}
+
 			$file = ($parts ? '.../' : '') . $file;
 			$file = strtr($file, '/', DIRECTORY_SEPARATOR);
 
@@ -49,14 +52,17 @@ class Helpers
 	 */
 	public static function editorUri(
 		string $file,
-		int $line = null,
+		?int $line = null,
 		string $action = 'open',
 		string $search = '',
 		string $replace = ''
-	): ?string {
+	): ?string
+	{
 		if (Debugger::$editor && $file && ($action === 'create' || is_file($file))) {
 			$file = strtr($file, '/', DIRECTORY_SEPARATOR);
 			$file = strtr($file, Debugger::$editorMapping);
+			$search = str_replace("\n", PHP_EOL, $search);
+			$replace = str_replace("\n", PHP_EOL, $replace);
 			return strtr(Debugger::$editor, [
 				'%action' => $action,
 				'%file' => rawurlencode($file),
@@ -65,6 +71,7 @@ class Helpers
 				'%replace' => rawurlencode($replace),
 			]);
 		}
+
 		return null;
 	}
 
@@ -84,7 +91,7 @@ class Helpers
 	}
 
 
-	public static function findTrace(array $trace, $method, int &$index = null): ?array
+	public static function findTrace(array $trace, $method, ?int &$index = null): ?array
 	{
 		$m = is_array($method) ? $method : explode('::', $method);
 		foreach ($trace as $i => $item) {
@@ -98,6 +105,7 @@ class Helpers
 				return $item;
 			}
 		}
+
 		return null;
 	}
 
@@ -126,12 +134,15 @@ class Helpers
 					$frame['type'] = isset($row['type']) && $row['type'] === 'dynamic' ? '->' : '::';
 					$frame['class'] = $row['class'];
 				}
+
 				$stack[] = $frame;
 			}
+
 			$ref = new \ReflectionProperty('Exception', 'trace');
 			$ref->setAccessible(true);
 			$ref->setValue($exception, $stack);
 		}
+
 		return $exception;
 	}
 
@@ -184,7 +195,7 @@ class Helpers
 		$message = $e->getMessage();
 		if (
 			(!$e instanceof \Error && !$e instanceof \ErrorException)
-			|| $e instanceof \Nette\MemberAccessException
+			|| $e instanceof Nette\MemberAccessException
 			|| strpos($e->getMessage(), 'did you mean')
 		) {
 			// do nothing
@@ -220,11 +231,12 @@ class Helpers
 		}
 
 		if (isset($hint)) {
+			$loc = Debugger::mapSource($e->getFile(), $e->getLine()) ?? ['file' => $e->getFile(), 'line' => $e->getLine()];
 			$ref = new \ReflectionProperty($e, 'message');
 			$ref->setAccessible(true);
 			$ref->setValue($e, $message);
-			$e->tracyAction = [
-				'link' => self::editorUri($e->getFile(), $e->getLine(), 'fix', $replace[0], $replace[1]),
+			@$e->tracyAction = [ // dynamic properties are deprecated since PHP 8.2
+				'link' => self::editorUri($loc['file'], $loc['line'], 'fix', $replace[0], $replace[1]),
 				'label' => 'fix it',
 			];
 		}
@@ -246,6 +258,7 @@ class Helpers
 			$hint = self::getSuggestion($items, $m[2]);
 			return $hint ? $message . ", did you mean $$hint?" : $message;
 		}
+
 		return $message;
 	}
 
@@ -263,12 +276,14 @@ class Helpers
 					break;
 				}
 			}
+
 			if ($i > $max && $i < count($segments) && ($file = (new \ReflectionClass($class))->getFileName())) {
 				$max = $i;
 				$res = array_merge(array_slice(explode(DIRECTORY_SEPARATOR, $file), 0, $i - count($parts)), array_slice($segments, $i));
 				$res = implode(DIRECTORY_SEPARATOR, $res) . '.php';
 			}
 		}
+
 		return $res;
 	}
 
@@ -290,6 +305,7 @@ class Helpers
 				$best = $item;
 			}
 		}
+
 		return $best;
 	}
 
@@ -299,8 +315,9 @@ class Helpers
 	{
 		return empty($_SERVER['HTTP_X_REQUESTED_WITH'])
 			&& empty($_SERVER['HTTP_X_TRACY_AJAX'])
+			&& isset($_SERVER['HTTP_HOST'])
 			&& !self::isCli()
-			&& !preg_match('#^Content-Type: (?!text/html)#im', implode("\n", headers_list()));
+			&& !preg_match('#^Content-Type: *+(?!text/html)#im', implode("\n", headers_list()));
 	}
 
 
@@ -308,6 +325,20 @@ class Helpers
 	public static function isAjax(): bool
 	{
 		return isset($_SERVER['HTTP_X_TRACY_AJAX']) && preg_match('#^\w{10,15}$#D', $_SERVER['HTTP_X_TRACY_AJAX']);
+	}
+
+
+	/** @internal */
+	public static function isRedirect(): bool
+	{
+		return (bool) preg_match('#^Location:#im', implode("\n", headers_list()));
+	}
+
+
+	/** @internal */
+	public static function createId(): string
+	{
+		return bin2hex(random_bytes(5));
 	}
 
 
@@ -359,7 +390,7 @@ class Helpers
 
 
 	/** @internal */
-	public static function encodeString(string $s, int $maxLength = null, bool $showWhitespaces = true): string
+	public static function encodeString(string $s, ?int $maxLength = null, bool $showWhitespaces = true): string
 	{
 		$utf8 = self::isUtf8($s);
 		$len = $utf8 ? self::utf8Length($s) : strlen($s);
@@ -373,7 +404,7 @@ class Helpers
 
 	private static function doEncodeString(string $s, bool $utf8, bool $showWhitespaces): string
 	{
-		static $specials = [
+		$specials = [
 			true => [
 				"\r" => '<i>\r</i>',
 				"\n" => "<i>\\n</i>\n",
@@ -425,7 +456,9 @@ class Helpers
 	/** @internal */
 	public static function utf8Length(string $s): int
 	{
-		return strlen(utf8_decode($s));
+		return function_exists('mb_strlen')
+			? mb_strlen($s, 'UTF-8')
+			: strlen(utf8_decode($s));
 	}
 
 
@@ -476,7 +509,7 @@ class Helpers
 				)(?:\s|//[^\n]*+\n|/\*(?:[^*]|\*(?!/))*+\*/)* # optional space
 			())sx
 XX
-,
+			,
 			function ($match) use (&$last) {
 				[, $context, $regexp, $result, $word, $operator] = $match;
 				if ($word !== '') {
@@ -489,8 +522,10 @@ XX
 					if ($regexp) {
 						$result = $context . ($context === '/' ? ' ' : '') . $regexp;
 					}
+
 					$last = '';
 				}
+
 				return $result;
 			},
 			$s . "\n"
@@ -513,13 +548,14 @@ XX
 				)(?:\s|/\*(?:[^*]|\*(?!/))*+\*/)* # optional space
 			())sx
 XX
-,
+			,
 			function ($match) use (&$last) {
 				[, $result, $word] = $match;
 				if ($last === ';') {
 					$result = $result === '}' ? '}' : ';' . $result;
 					$last = '';
 				}
+
 				if ($word !== '') {
 					$result = ($last === 'word' ? ' ' : '') . $result;
 					$last = 'word';
@@ -529,6 +565,7 @@ XX
 				} else {
 					$last = '';
 				}
+
 				return $result;
 			},
 			$s . "\n"
@@ -538,17 +575,12 @@ XX
 
 	public static function detectColors(): bool
 	{
-		return (self::isCli())
+		return self::isCli()
 			&& getenv('NO_COLOR') === false // https://no-color.org
 			&& (getenv('FORCE_COLOR')
-				|| @stream_isatty(STDOUT) // @ may trigger error 'cannot cast a filtered stream on this system'
-				|| (defined('PHP_WINDOWS_VERSION_BUILD')
-					&& (function_exists('sapi_windows_vt100_support') && sapi_windows_vt100_support(STDOUT))
-						|| getenv('ConEmuANSI') === 'ON' // ConEmu
-						|| getenv('ANSICON') !== false // ANSICON
-						|| getenv('term') === 'xterm' // MSYS
-						|| getenv('term') === 'xterm-256color' // MSYS
-					)
+				|| (function_exists('sapi_windows_vt100_support')
+					? sapi_windows_vt100_support(STDOUT)
+					: @stream_isatty(STDOUT)) // @ may trigger error 'cannot cast a filtered stream on this system'
 			);
 	}
 
@@ -559,6 +591,33 @@ XX
 		while (($ex = $ex->getPrevious()) && !in_array($ex, $res, true)) {
 			$res[] = $ex;
 		}
+
 		return $res;
+	}
+
+
+	public static function traverseValue($val, callable $callback, array &$skip = [], ?string $refId = null): void
+	{
+		if (is_object($val)) {
+			$id = spl_object_id($val);
+			if (!isset($skip[$id])) {
+				$skip[$id] = true;
+				$callback($val);
+				self::traverseValue((array) $val, $callback, $skip);
+			}
+
+		} elseif (is_array($val)) {
+			if ($refId) {
+				if (isset($skip[$refId])) {
+					return;
+				}
+				$skip[$refId] = true;
+			}
+
+			foreach ($val as $k => $v) {
+				$refId = ($r = \ReflectionReference::fromArrayElement($val, $k)) ? $r->getId() : null;
+				self::traverseValue($v, $callback, $skip, $refId);
+			}
+		}
 	}
 }

@@ -54,6 +54,7 @@ final class Factory
 				return !is_subclass_of($iface, $item);
 			});
 		}
+
 		if ($from->isInterface()) {
 			$class->setExtends($ifaces);
 		} else {
@@ -62,7 +63,7 @@ final class Factory
 		}
 
 		$class->setComment(Helpers::unformatDocComment((string) $from->getDocComment()));
-		$class->setAttributes(self::getAttributes($from));
+		$class->setAttributes($this->getAttributes($from));
 		if ($from->getParentClass()) {
 			$class->setExtends($from->getParentClass()->name);
 			$class->setImplements(array_diff($class->getImplements(), $from->getParentClass()->getInterfaceNames()));
@@ -82,6 +83,7 @@ final class Factory
 				$props[] = $this->fromPropertyReflection($prop);
 			}
 		}
+
 		$class->setProperties($props);
 
 		$methods = $resolutions = [];
@@ -112,6 +114,7 @@ final class Factory
 				$resolutions[] = $realMethod->name . ' as' . $modifier . $alias;
 			}
 		}
+
 		$class->setMethods($methods);
 
 		if (!$materializeTraits) {
@@ -129,6 +132,7 @@ final class Factory
 				$consts[] = $this->fromConstantReflection($const);
 			}
 		}
+
 		$class->setConstants($consts);
 		$class->setCases($cases);
 
@@ -149,7 +153,7 @@ final class Factory
 		$method->setReturnReference($from->returnsReference());
 		$method->setVariadic($from->isVariadic());
 		$method->setComment(Helpers::unformatDocComment((string) $from->getDocComment()));
-		$method->setAttributes(self::getAttributes($from));
+		$method->setAttributes($this->getAttributes($from));
 		if ($from->getReturnType() instanceof \ReflectionNamedType) {
 			$method->setReturnType($from->getReturnType()->getName());
 			$method->setReturnNullable($from->getReturnType()->allowsNull());
@@ -159,6 +163,7 @@ final class Factory
 		) {
 			$method->setReturnType((string) $from->getReturnType());
 		}
+
 		return $method;
 	}
 
@@ -173,7 +178,8 @@ final class Factory
 		if (!$from->isClosure()) {
 			$function->setComment(Helpers::unformatDocComment((string) $from->getDocComment()));
 		}
-		$function->setAttributes(self::getAttributes($from));
+
+		$function->setAttributes($this->getAttributes($from));
 		if ($from->getReturnType() instanceof \ReflectionNamedType) {
 			$function->setReturnType($from->getReturnType()->getName());
 			$function->setReturnNullable($from->getReturnType()->allowsNull());
@@ -183,12 +189,15 @@ final class Factory
 		) {
 			$function->setReturnType((string) $from->getReturnType());
 		}
+
 		if ($withBody) {
 			if ($from->isClosure()) {
 				throw new Nette\NotSupportedException('The $withBody parameter cannot be used for closures.');
 			}
+
 			$function->setBody($this->getExtractor($from)->extractFunctionBody($from->name));
 		}
+
 		return $function;
 	}
 
@@ -198,8 +207,8 @@ final class Factory
 	{
 		$ref = Nette\Utils\Callback::toReflection($from);
 		return $ref instanceof \ReflectionMethod
-			? self::fromMethodReflection($ref)
-			: self::fromFunctionReflection($ref);
+			? $this->fromMethodReflection($ref)
+			: $this->fromFunctionReflection($ref);
 	}
 
 
@@ -218,21 +227,25 @@ final class Factory
 		) {
 			$param->setType((string) $from->getType());
 		}
+
 		if ($from->isDefaultValueAvailable()) {
 			if ($from->isDefaultValueConstant()) {
 				$parts = explode('::', $from->getDefaultValueConstantName());
 				if (count($parts) > 1) {
 					$parts[0] = Helpers::tagName($parts[0]);
 				}
+
 				$param->setDefaultValue(new Literal(implode('::', $parts)));
 			} elseif (is_object($from->getDefaultValue())) {
 				$param->setDefaultValue($this->fromObject($from->getDefaultValue()));
 			} else {
 				$param->setDefaultValue($from->getDefaultValue());
 			}
+
 			$param->setNullable($param->isNullable() && $param->getDefaultValue() !== null);
 		}
-		$param->setAttributes(self::getAttributes($from));
+
+		$param->setAttributes($this->getAttributes($from));
 		return $param;
 	}
 
@@ -244,7 +257,7 @@ final class Factory
 		$const->setVisibility($this->getVisibility($from));
 		$const->setFinal(PHP_VERSION_ID >= 80100 ? $from->isFinal() : false);
 		$const->setComment(Helpers::unformatDocComment((string) $from->getDocComment()));
-		$const->setAttributes(self::getAttributes($from));
+		$const->setAttributes($this->getAttributes($from));
 		return $const;
 	}
 
@@ -254,7 +267,7 @@ final class Factory
 		$const = new EnumCase($from->name);
 		$const->setValue($from->getValue()->value ?? null);
 		$const->setComment(Helpers::unformatDocComment((string) $from->getDocComment()));
-		$const->setAttributes(self::getAttributes($from));
+		$const->setAttributes($this->getAttributes($from));
 		return $const;
 	}
 
@@ -276,20 +289,22 @@ final class Factory
 			) {
 				$prop->setType((string) $from->getType());
 			}
+
 			$prop->setInitialized($from->hasType() && array_key_exists($prop->getName(), $defaults));
 			$prop->setReadOnly(PHP_VERSION_ID >= 80100 ? $from->isReadOnly() : false);
 		} else {
 			$prop->setInitialized(false);
 		}
+
 		$prop->setComment(Helpers::unformatDocComment((string) $from->getDocComment()));
-		$prop->setAttributes(self::getAttributes($from));
+		$prop->setAttributes($this->getAttributes($from));
 		return $prop;
 	}
 
 
 	public function fromObject(object $obj): Literal
 	{
-		return new Literal('new ' . get_class($obj) . '(/* unknown */)');
+		return new Literal('new \\' . get_class($obj) . '(/* unknown */)');
 	}
 
 
@@ -299,6 +314,7 @@ final class Factory
 		if (!$classes) {
 			throw new Nette\InvalidStateException('The code does not contain any class.');
 		}
+
 		return reset($classes);
 	}
 
@@ -315,6 +331,7 @@ final class Factory
 		if (PHP_VERSION_ID < 80000) {
 			return [];
 		}
+
 		return array_map(function ($attr) {
 			$args = $attr->getArguments();
 			foreach ($args as &$arg) {
@@ -322,6 +339,7 @@ final class Factory
 					$arg = $this->fromObject($arg);
 				}
 			}
+
 			return new Attribute($attr->getName(), $args);
 		}, $from->getAttributes());
 	}
@@ -330,8 +348,8 @@ final class Factory
 	private function getVisibility($from): string
 	{
 		return $from->isPrivate()
-			? ClassType::VISIBILITY_PRIVATE
-			: ($from->isProtected() ? ClassType::VISIBILITY_PROTECTED : ClassType::VISIBILITY_PUBLIC);
+			? ClassType::VisibilityPrivate
+			: ($from->isProtected() ? ClassType::VisibilityProtected : ClassType::VisibilityPublic);
 	}
 
 
@@ -344,6 +362,7 @@ final class Factory
 		} elseif (!$file) {
 			throw new Nette\InvalidStateException("Source code of $from->name not found.");
 		}
+
 		return new Extractor(file_get_contents($file));
 	}
 }

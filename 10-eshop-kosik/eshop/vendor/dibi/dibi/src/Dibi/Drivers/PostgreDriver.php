@@ -64,6 +64,7 @@ class PostgreDriver implements Dibi\Driver
 					}
 				}
 			}
+
 			$connectType = $config['connect_type'] ?? PGSQL_CONNECT_FORCE_NEW;
 
 			set_error_handler(function (int $severity, string $message) use (&$error) {
@@ -127,11 +128,12 @@ class PostgreDriver implements Dibi\Driver
 				return $this->createResultDriver($res);
 			}
 		}
+
 		return null;
 	}
 
 
-	public static function createException(string $message, $code = null, string $sql = null): Dibi\DriverException
+	public static function createException(string $message, $code = null, ?string $sql = null): Dibi\DriverException
 	{
 		if ($code === null && preg_match('#^ERROR:\s+(\S+):\s*#', $message, $m)) {
 			$code = $m[1];
@@ -187,7 +189,7 @@ class PostgreDriver implements Dibi\Driver
 	 * Begins a transaction (if supported).
 	 * @throws Dibi\DriverException
 	 */
-	public function begin(string $savepoint = null): void
+	public function begin(?string $savepoint = null): void
 	{
 		$this->query($savepoint ? "SAVEPOINT {$this->escapeIdentifier($savepoint)}" : 'START TRANSACTION');
 	}
@@ -197,7 +199,7 @@ class PostgreDriver implements Dibi\Driver
 	 * Commits statements in a transaction.
 	 * @throws Dibi\DriverException
 	 */
-	public function commit(string $savepoint = null): void
+	public function commit(?string $savepoint = null): void
 	{
 		$this->query($savepoint ? "RELEASE SAVEPOINT {$this->escapeIdentifier($savepoint)}" : 'COMMIT');
 	}
@@ -207,7 +209,7 @@ class PostgreDriver implements Dibi\Driver
 	 * Rollback changes in a transaction.
 	 * @throws Dibi\DriverException
 	 */
-	public function rollback(string $savepoint = null): void
+	public function rollback(?string $savepoint = null): void
 	{
 		$this->query($savepoint ? "ROLLBACK TO SAVEPOINT {$this->escapeIdentifier($savepoint)}" : 'ROLLBACK');
 	}
@@ -264,6 +266,7 @@ class PostgreDriver implements Dibi\Driver
 		if (!$this->getResource()) {
 			throw new Dibi\Exception('Lost connection to server.');
 		}
+
 		return "'" . pg_escape_string($this->connection, $value) . "'";
 	}
 
@@ -273,6 +276,7 @@ class PostgreDriver implements Dibi\Driver
 		if (!$this->getResource()) {
 			throw new Dibi\Exception('Lost connection to server.');
 		}
+
 		return "'" . pg_escape_bytea($this->connection, $value) . "'";
 	}
 
@@ -328,9 +332,11 @@ class PostgreDriver implements Dibi\Driver
 		if ($limit < 0 || $offset < 0) {
 			throw new Dibi\NotSupportedException('Negative offset or limit.');
 		}
+
 		if ($limit !== null) {
 			$sql .= ' LIMIT ' . $limit;
 		}
+
 		if ($offset) {
 			$sql .= ' OFFSET ' . $offset;
 		}
