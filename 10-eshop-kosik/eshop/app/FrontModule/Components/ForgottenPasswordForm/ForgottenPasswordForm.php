@@ -22,18 +22,14 @@ class ForgottenPasswordForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var Nette\Application\LinkGenerator $linkGenerator */
-  private $linkGenerator;
-  /** @var string $mailFromEmail */
-  private $mailFromEmail = '';
-  /** @var string $mailFromName */
-  private $mailFromName = '';
+  private UsersFacade $usersFacade;
+  private Nette\Application\LinkGenerator $linkGenerator;
+  private string $mailFromEmail = '';
+  private string $mailFromName = '';
 
   /**
    * ForgottenPasswordForm constructor.
@@ -42,7 +38,7 @@ class ForgottenPasswordForm extends Form{
    * @param UsersFacade $usersFacade
    * @param Nette\Application\LinkGenerator $linkGenerator
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade, Nette\Application\LinkGenerator $linkGenerator){
+  public function __construct(?Nette\ComponentModel\IContainer $parent = null, ?string $name = null, UsersFacade $usersFacade, Nette\Application\LinkGenerator $linkGenerator){
     parent::__construct($parent, $name);
     $this->setRenderer(new Bs4FormRenderer(FormLayout::VERTICAL));
     $this->usersFacade=$usersFacade;
@@ -60,7 +56,7 @@ class ForgottenPasswordForm extends Form{
     $this->mailFromName=$name;
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $this->addEmail('email','E-mail')
       ->setRequired('Zadejte platný email');
 

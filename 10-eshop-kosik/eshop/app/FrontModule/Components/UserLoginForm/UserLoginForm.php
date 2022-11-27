@@ -20,10 +20,8 @@ class UserLoginForm extends Form{
 
   use SmartObject;
 
-  /** @var callable[] $onFinished */
-  public $onFinished = [];
-  /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onFinished = [];
+  public array $onCancel = [];
 
   /**
    * UserRegistrationForm constructor.
@@ -36,7 +34,7 @@ class UserLoginForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $this->addEmail('email','E-mail')
       ->setRequired('Zadejte platný email');
     $password=$this->addPassword('password','Heslo')

@@ -24,13 +24,13 @@ class CategoryEditForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onFailed */
-  public $onFailed = [];
+  public array $onFailed = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
-  /** @var CategoriesFacade $categoriesFacade */
-  private $categoriesFacade;
+  public array $onCancel = [];
+
+  private CategoriesFacade $categoriesFacade;
 
   /**
    * TagEditForm constructor.
@@ -46,7 +46,7 @@ class CategoryEditForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $categoryId=$this->addHidden('categoryId');
     $this->addText('title','Název kategorie')
       ->setRequired('Musíte zadat název kategorie');
