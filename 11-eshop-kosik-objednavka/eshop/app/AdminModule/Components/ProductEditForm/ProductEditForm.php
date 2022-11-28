@@ -86,7 +86,7 @@ class ProductEditForm extends Form{
 
     $this->addText('price', 'Cena')
       ->setHtmlType('number')
-      ->addRule(Form::NUMERIC)
+      ->addRule(Form::NUMERIC,'Musíte zadat platnou cenu produktu')
       ->setRequired('Musíte zadat cenu produktu');//tady by mohly být další kontroly pro min, max atp.
 
     $this->addCheckbox('available', 'Nabízeno ke koupi')
