@@ -12,8 +12,7 @@ use Nette\Utils\Strings;
  * @package App\Model\Facades
  */
 class ProductsFacade{
-  /** @var ProductRepository $productRepository */
-  private $productRepository;
+  private ProductRepository $productRepository;
 
   /**
    * Metoda pro získání jednoho produktu
@@ -59,7 +58,7 @@ class ProductsFacade{
    * Metoda pro uložení produktu
    * @param Product &$product
    */
-  public function saveProduct(Product &$product){
+  public function saveProduct(Product &$product):void {
     #region URL produktu
     if (empty($product->url)){
       //pokud je URL prázdná, vygenerujeme ji podle názvu produktu
@@ -98,7 +97,7 @@ class ProductsFacade{
    * @param Product $product
    * @throws \Exception
    */
-  public function saveProductPhoto(FileUpload $fileUpload, Product &$product) {
+  public function saveProductPhoto(FileUpload $fileUpload, Product &$product):void {
     if ($fileUpload->isOk() && $fileUpload->isImage()){
       $fileExtension=strtolower($fileUpload->getImageFileExtension());
       $fileUpload->move(__DIR__.'/../../../www/img/products/'.$product->productId.'.'.$fileExtension);

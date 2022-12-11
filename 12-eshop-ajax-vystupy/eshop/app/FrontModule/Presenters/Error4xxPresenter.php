@@ -7,7 +7,7 @@ namespace App\FrontModule\Presenters;
 use Nette;
 
 final class Error4xxPresenter extends BasePresenter {
-	public function startup():void{
+	public function startup():void {
 		parent::startup();
 		if (!$this->getRequest()->isMethod(Nette\Application\Request::FORWARD)) {
 			$this->error();

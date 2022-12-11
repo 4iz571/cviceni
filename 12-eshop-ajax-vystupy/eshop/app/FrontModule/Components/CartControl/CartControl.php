@@ -10,24 +10,20 @@ use Nette\Application\UI\Control;
 use Nette\Application\UI\Template;
 use Nette\Http\Session;
 use Nette\Http\SessionSection;
-use Nette\Security;
+use Nette\Security\User;
 
 /**
  * Class CartControl
  * @package App\FrontModule\Components\CartControl
  */
 class CartControl extends Control{
-  /** @var Security\User $user */
-  private $user;
-  /** @var CartFacade $cartFacade */
-  private $cartFacade;
-  /** @var SessionSection */
-  private $cartSession;
-  /** @var Cart $cart */
-  private $cart;
+  private User $user;
+  private SessionSection $cartSession;
+  private CartFacade $cartFacade;
+  private Cart $cart;
 
   /**
-   * Akce renderující šablonu s odkazem pro zobrazení harmonogramu na desktopu
+   * Akce renderující šablonu s odkazem pro zobrazení košíku
    * @param array $params = []
    */
   public function render($params=[]):void {
@@ -86,11 +82,11 @@ class CartControl extends Control{
 
   /**
    * UserLoginControl constructor.
-   * @param Security\User $user
+   * @param User $user
    * @param Session $session
    * @param CartFacade $cartFacade
    */
-  public function __construct(Security\User $user, Session $session, CartFacade $cartFacade){
+  public function __construct(User $user, Session $session, CartFacade $cartFacade){
     $this->user=$user;
     $this->cartFacade=$cartFacade;
     $this->cartSession=$session->getSection('cart');

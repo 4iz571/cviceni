@@ -18,8 +18,7 @@ class ProductCartForm extends Form{
 
   use SmartObject;
 
-  /** @var CartControl $cartControl */
-  private $cartControl;
+  private CartControl $cartControl;
 
   /**
    * ProductCartForm constructor.

@@ -24,13 +24,12 @@ class UserRegistrationForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var Nette\Security\Passwords $passwords */
-  private $passwords;
+  public array $onCancel = [];
+
+  private UsersFacade $usersFacade;
+  private Nette\Security\Passwords $passwords;
 
   /**
    * UserRegistrationForm constructor.
@@ -47,7 +46,7 @@ class UserRegistrationForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $this->addText('name','Jméno a příjmení:')
       ->setRequired('Zadejte své jméno')
       ->setHtmlAttribute('maxlength',40)

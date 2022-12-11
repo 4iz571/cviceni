@@ -11,10 +11,8 @@ use App\Model\Facades\ProductsFacade;
  * @package App\AdminModule\Presenters
  */
 class ProductPresenter extends BasePresenter{
-  /** @var ProductsFacade $productsFacade */
-  private $productsFacade;
-  /** @var ProductEditFormFactory $productEditFormFactory */
-  private $productEditFormFactory;
+  private ProductsFacade $productsFacade;
+  private ProductEditFormFactory $productEditFormFactory;
 
   /**
    * Akce pro vykreslení seznamu produktů
@@ -70,10 +68,10 @@ class ProductPresenter extends BasePresenter{
   }
 
   #region injections
-  public function injectProductsFacade(ProductsFacade $productsFacade){
+  public function injectProductsFacade(ProductsFacade $productsFacade):void {
     $this->productsFacade=$productsFacade;
   }
-  public function injectProductEditFormFactory(ProductEditFormFactory $productEditFormFactory){
+  public function injectProductEditFormFactory(ProductEditFormFactory $productEditFormFactory):void {
     $this->productEditFormFactory=$productEditFormFactory;
   }
   #endregion injections

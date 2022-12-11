@@ -21,26 +21,22 @@ use Nette\Application\BadRequestException;
  * @property string $backlink
  */
 class UserPresenter extends BasePresenter{
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var UserLoginFormFactory $userLoginFormFactory */
-  private $userLoginFormFactory;
-  /** @var UserRegistrationFormFactory $userRegistrationFormFactory */
-  private $userRegistrationFormFactory;
-  /** @var ForgottenPasswordFormFactory $forgottenPasswordFormFactory */
-  private $forgottenPasswordFormFactory;
-  /** @var NewPasswordFormFactory $newPasswordFormFactory */
-  private $newPasswordFormFactory;
-  /** @var FacebookApi $facebookApi */
-  private $facebookApi;
+
   /** @persistent */
-  public $backlink = '';
+  public string $backlink = '';
+
+  private UsersFacade $usersFacade;
+  private UserLoginFormFactory $userLoginFormFactory;
+  private UserRegistrationFormFactory $userRegistrationFormFactory;
+  private ForgottenPasswordFormFactory $forgottenPasswordFormFactory;
+  private NewPasswordFormFactory $newPasswordFormFactory;
+  private FacebookApi $facebookApi;
   
   /**
    * Akce pro odhlášení uživatele
    * @throws Nette\Application\AbortException
    */
-  public function actionLogout(){
+  public function actionLogout():void {
     if ($this->user->isLoggedIn()){
       $this->user->logout();
     }
@@ -51,7 +47,7 @@ class UserPresenter extends BasePresenter{
    * Akce pro přihlášení - pokud už je uživatel přihlášen, tak ho jen přesměrujeme na homepage
    * @throws Nette\Application\AbortException
    */
-  public function actionLogin(){
+  public function actionLogin():void {
     if ($this->user->isLoggedIn()){
       //obnovíme uložený požadavek - pokud se to nepovede, pokračujeme přesměrováním
       $this->restoreRequest($this->backlink);
@@ -63,7 +59,7 @@ class UserPresenter extends BasePresenter{
    * Akce pro registraci - pokud už je uživatel přihlášen, tak ho jen přesměrujeme na homepage
    * @throws Nette\Application\AbortException
    */
-  public function actionRegister(){
+  public function actionRegister():void {
     if ($this->user->isLoggedIn()){
       $this->redirect('Homepage:default');
     }
@@ -76,7 +72,7 @@ class UserPresenter extends BasePresenter{
    * @throws Nette\Application\UI\InvalidLinkException
    * @throws \Facebook\Exceptions\FacebookSDKException
    */
-  public function actionFacebookLogin(bool $callback=false){
+  public function actionFacebookLogin(bool $callback=false):void {
     if ($callback){
       #region návrat z Facebooku
       try{
@@ -113,7 +109,7 @@ class UserPresenter extends BasePresenter{
    * @throws BadRequestException
    * @throws Nette\Application\AbortException
    */
-  public function renderRenewPassword(int $user, string $code){
+  public function renderRenewPassword(int $user, string $code):void {
     if ($this->usersFacade->isValidForgottenPasswordCode($user, $code)){
       #region odkaz na obnovu hesla byl platný
       try{
@@ -137,7 +133,7 @@ class UserPresenter extends BasePresenter{
    * Formulář pro přihlášení existujícího uživatele
    * @return UserLoginForm
    */
-  protected function createComponentUserLoginForm():UserLoginForm{
+  protected function createComponentUserLoginForm():UserLoginForm {
     $form=$this->userLoginFormFactory->create();
     $form->onFinished[]=function()use($form){
       $values=$form->getValues('array');
@@ -164,7 +160,7 @@ class UserPresenter extends BasePresenter{
    * Formulář pro registraci nového uživatele
    * @return UserRegistrationForm
    */
-  protected function createComponentUserRegistrationForm():UserRegistrationForm{
+  protected function createComponentUserRegistrationForm():UserRegistrationForm {
     $form=$this->userRegistrationFormFactory->create();
     $form->onFinished[]=function()use($form){
       $values=$form->getValues('array');
@@ -187,7 +183,7 @@ class UserPresenter extends BasePresenter{
    * Formulář pro obnovu zapomenutého hesla
    * @return ForgottenPasswordForm
    */
-  protected function createComponentForgottenPasswordForm():ForgottenPasswordForm{
+  protected function createComponentForgottenPasswordForm():ForgottenPasswordForm {
     $form=$this->forgottenPasswordFormFactory->create();
     $form->onFinished[]=function($message=''){
       if (!empty($message)){
@@ -205,7 +201,7 @@ class UserPresenter extends BasePresenter{
    * Formulář pro zadání nového hesla
    * @return NewPasswordForm
    */
-  protected function createComponentNewPasswordForm():NewPasswordForm{
+  protected function createComponentNewPasswordForm():NewPasswordForm {
     $form=$this->newPasswordFormFactory->create();
     $form->onFinished[]=function($message=''){
       if (!empty($message)){
@@ -226,27 +222,27 @@ class UserPresenter extends BasePresenter{
   }
 
   #region injections
-  public function injectUsersFacade(UsersFacade $usersFacade){
+  public function injectUsersFacade(UsersFacade $usersFacade):void {
     $this->usersFacade=$usersFacade;
   }
 
-  public function injectUserLoginFormFactory(UserLoginFormFactory $userLoginFormFactory){
+  public function injectUserLoginFormFactory(UserLoginFormFactory $userLoginFormFactory):void {
     $this->userLoginFormFactory=$userLoginFormFactory;
   }
 
-  public function injectUserRegistrationFormFactory(UserRegistrationFormFactory $userRegistrationFormFactory){
+  public function injectUserRegistrationFormFactory(UserRegistrationFormFactory $userRegistrationFormFactory):void {
     $this->userRegistrationFormFactory=$userRegistrationFormFactory;
   }
 
-  public function injectForgottenPasswordFormFactory(ForgottenPasswordFormFactory $forgottenPasswordFormFactory){
+  public function injectForgottenPasswordFormFactory(ForgottenPasswordFormFactory $forgottenPasswordFormFactory):void {
     $this->forgottenPasswordFormFactory=$forgottenPasswordFormFactory;
   }
 
-  public function injectNewPasswordFormFactory(NewPasswordFormFactory $newPasswordFormFactory){
+  public function injectNewPasswordFormFactory(NewPasswordFormFactory $newPasswordFormFactory):void {
     $this->newPasswordFormFactory=$newPasswordFormFactory;
   }
 
-  public function injectFacebookApi( FacebookApi $facebookApi){
+  public function injectFacebookApi( FacebookApi $facebookApi):void {
     $this->facebookApi=$facebookApi;
   }
   #endregion injections

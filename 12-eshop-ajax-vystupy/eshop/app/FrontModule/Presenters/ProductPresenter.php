@@ -15,13 +15,11 @@ use Nette\Application\UI\Multiplier;
  * @property string $category
  */
 class ProductPresenter extends BasePresenter{
-  /** @var ProductsFacade $productsFacade */
-  private $productsFacade;
-  /** @var ProductCartFormFactory $productCartFormFactory */
-  private $productCartFormFactory;
+  private ProductsFacade $productsFacade;
+  private ProductCartFormFactory $productCartFormFactory;
 
   /** @persistent */
-  public $category;
+  public string $category;
 
   /**
    * Akce pro zobrazení jednoho produktu

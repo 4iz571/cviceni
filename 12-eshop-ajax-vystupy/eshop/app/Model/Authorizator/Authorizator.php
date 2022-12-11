@@ -30,7 +30,7 @@ class Authorizator extends \Nette\Security\Permission {
     return parent::isAllowed($role, $resource, $privilege);
   }
 
-  private function categoryResourceIsAllowed($role, Category $resource, $privilege){
+  private function categoryResourceIsAllowed($role, Category $resource, $privilege):bool {
     switch ($privilege){
       case 'delete':
         //TODO kontrola, jestli jsou v kategorii nějaké produkty - pokud ano, nesmažeme ji

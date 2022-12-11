@@ -25,20 +25,20 @@ class ProductEditForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onFailed */
-  public $onFailed = [];
+  public array $onFailed = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
-  /** @var CategoriesFacade */
-  private $categoriesFacade;
-  /** @var ProductsFacade $productsFacade */
-  private $productsFacade;
+  public array $onCancel = [];
+
+  private CategoriesFacade $categoriesFacade;
+  private ProductsFacade $productsFacade;
 
   /**
    * TagEditForm constructor.
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
+   * @param CategoriesFacade $categoriesFacade
    * @param ProductsFacade $productsFacade
    * @noinspection PhpOptionalBeforeRequiredParametersInspection
    */
@@ -50,7 +50,7 @@ class ProductEditForm extends Form{
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $productId=$this->addHidden('productId');
     $this->addText('title','Název produktu')
       ->setRequired('Musíte zadat název produktu')
@@ -86,7 +86,7 @@ class ProductEditForm extends Form{
 
     $this->addText('price', 'Cena')
       ->setHtmlType('number')
-      ->addRule(Form::NUMERIC)
+      ->addRule(Form::NUMERIC,'Musíte zadat číslo.')
       ->setRequired('Musíte zadat cenu produktu');//tady by mohly být další kontroly pro min, max atp.
 
     $this->addCheckbox('available', 'Nabízeno ke koupi')

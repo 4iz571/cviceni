@@ -11,10 +11,8 @@ use App\Model\Facades\CategoriesFacade;
  * @package App\AdminModule\Presenters
  */
 class CategoryPresenter extends BasePresenter{
-  /** @var CategoriesFacade $categoriesFacade */
-  private $categoriesFacade;
-  /** @var CategoryEditFormFactory $categoryEditFormFactory */
-  private $categoryEditFormFactory;
+  private CategoriesFacade $categoriesFacade;
+  private CategoryEditFormFactory $categoryEditFormFactory;
 
   /**
    * Akce pro vykreslení seznamu kategorií
@@ -92,10 +90,10 @@ class CategoryPresenter extends BasePresenter{
   }
 
   #region injections
-  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade){
+  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade):void {
     $this->categoriesFacade=$categoriesFacade;
   }
-  public function injectCategoryEditFormFactory(CategoryEditFormFactory $categoryEditFormFactory){
+  public function injectCategoryEditFormFactory(CategoryEditFormFactory $categoryEditFormFactory):void {
     $this->categoryEditFormFactory=$categoryEditFormFactory;
   }
   #endregion injections

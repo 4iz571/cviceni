@@ -10,10 +10,8 @@ use App\Model\Repositories\CartRepository;
 use Dibi\DateTime;
 
 class CartFacade{
-  /** @var CartRepository $cartRepository */
-  private $cartRepository;
-  /** @var CartItemRepository $cartItemRepository */
-  private $cartItemRepository;
+  private CartRepository $cartRepository;
+  private CartItemRepository $cartItemRepository;
 
   /**
    * Metoda vracející košík podle cartId
@@ -71,7 +69,7 @@ class CartFacade{
    * Metoda pro uložení položky v košíku
    * @param CartItem $cartItem
    */
-  public function saveCartItem(CartItem $cartItem){
+  public function saveCartItem(CartItem $cartItem):void {
     $this->cartItemRepository->persist($cartItem);
   }
 
@@ -80,7 +78,7 @@ class CartFacade{
    * @param CartItem $cartItem
    * @throws \LeanMapper\Exception\InvalidStateException
    */
-  public function deleteCartItem(CartItem $cartItem){
+  public function deleteCartItem(CartItem $cartItem):void {
     $this->cartItemRepository->delete($cartItem);
   }
 
@@ -88,7 +86,7 @@ class CartFacade{
    * Metoda pro uložení košíku, automaticky aktualizuje informaci o jeho poslední změně
    * @param Cart $cart
    */
-  public function saveCart(Cart $cart){
+  public function saveCart(Cart $cart):void {
     $cart->lastModified = new DateTime();
     $this->cartRepository->persist($cart);
   }

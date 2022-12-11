@@ -36,16 +36,10 @@ Jak už víte, vaším úkolem je vytvořit jednoduchý e-shop napsaný v Nette.
 
 ---
 
-## Termíny pro realizaci
-:point_right:
-- **5.12.2021** - odevzdání první části administračního rozhraní
-- na cvičení **10.12.2021** či **17.12.2021** odprezentovat první část e-shopu a cílový stav (doporučuji 17.12., délka prezentace max. 5 minut)
-- **termín ve zkouškovém** - odevzdání aplikace formou krátké obhajoby
-
 ## Co si ukážeme na cvičeních?
 :point_right:
 Některé funkce nemusíte vymýšlet sami - ukážeme si jejich tvorbu na cvičení či v rámci nápovědné prezentace. Určitě můžete počítat s:
-  - návrhem datového modelu a struktury aplikace (na cvičení 26.11.2021)
+  - návrhem datového modelu a struktury aplikace
   - editací položky v administraci - uložení fotky produktu
   - přidávání položek do košíku, odeslání objednávky
   - nastavení vlastní struktury URL adres (routing)
