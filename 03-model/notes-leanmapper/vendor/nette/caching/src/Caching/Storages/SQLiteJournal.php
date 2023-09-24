@@ -22,9 +22,7 @@ class SQLiteJournal implements Journal
 
 	/** @string */
 	private $path;
-
-	/** @var \PDO */
-	private $pdo;
+	private \PDO $pdo;
 
 
 	public function __construct(string $path)
@@ -60,13 +58,14 @@ class SQLiteJournal implements Journal
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_key_tag ON tags(key, tag);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_priorities_key ON priorities(key);
 			CREATE INDEX IF NOT EXISTS idx_priorities_priority ON priorities(priority);
+			PRAGMA synchronous = NORMAL;
 		');
 	}
 
 
 	public function write(string $key, array $dependencies): void
 	{
-		if (!$this->pdo) {
+		if (!isset($this->pdo)) {
 			$this->open();
 		}
 
@@ -95,7 +94,7 @@ class SQLiteJournal implements Journal
 
 	public function clean(array $conditions): ?array
 	{
-		if (!$this->pdo) {
+		if (!isset($this->pdo)) {
 			$this->open();
 		}
 

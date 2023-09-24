@@ -30,11 +30,14 @@ final class PhpNamespace
 		NameFunction = 'f',
 		NameConstant = 'c';
 
-	/** @deprecated */
-	public const
-		NAME_NORMAL = self::NameNormal,
-		NAME_FUNCTION = self::NameFunction,
-		NAME_CONSTANT = self::NameConstant;
+	/** @deprecated use PhpNamespace::NameNormal */
+	public const NAME_NORMAL = self::NameNormal;
+
+	/** @deprecated use PhpNamespace::NameFunction */
+	public const NAME_FUNCTION = self::NameFunction;
+
+	/** @deprecated use PhpNamespace::NameConstant */
+	public const NAME_CONSTANT = self::NameConstant;
 
 	private string $name;
 
@@ -47,7 +50,7 @@ final class PhpNamespace
 		self::NameConstant => [],
 	];
 
-	/** @var ClassLike[] */
+	/** @var (ClassType|InterfaceType|TraitType|EnumType)[] */
 	private array $classes = [];
 
 	/** @var GlobalFunction[] */
@@ -162,7 +165,7 @@ final class PhpNamespace
 	/** @return string[] */
 	public function getUses(string $of = self::NameNormal): array
 	{
-		asort($this->aliases[$of]);
+		uasort($this->aliases[$of], fn(string $a, string $b): int => strtr($a, '\\', ' ') <=> strtr($b, '\\', ' '));
 		return array_filter(
 			$this->aliases[$of],
 			fn($name, $alias) => strcasecmp(($this->name ? $this->name . '\\' : '') . $alias, $name),
@@ -250,7 +253,7 @@ final class PhpNamespace
 	}
 
 
-	public function add(ClassLike $class): static
+	public function add(ClassType|InterfaceType|TraitType|EnumType $class): static
 	{
 		$name = $class->getName();
 		if ($name === null) {
@@ -324,7 +327,7 @@ final class PhpNamespace
 	}
 
 
-	/** @return ClassLike[] */
+	/** @return (ClassType|InterfaceType|TraitType|EnumType)[] */
 	public function getClasses(): array
 	{
 		$res = [];

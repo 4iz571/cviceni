@@ -20,22 +20,13 @@ use Tracy;
  */
 class Panel implements Tracy\IBarPanel
 {
-	use Dibi\Strict;
-
-	/** @var int maximum SQL length */
-	public static $maxLength = 1000;
-
-	/** @var bool|string  explain queries? */
-	public $explain;
-
-	/** @var int */
-	public $filter;
-
-	/** @var array */
-	private $events = [];
+	public static int $maxLength = 1000;
+	public bool|string $explain;
+	public int $filter;
+	private array $events = [];
 
 
-	public function __construct($explain = true, ?int $filter = null)
+	public function __construct(bool $explain = true, ?int $filter = null)
 	{
 		$this->filter = $filter ?: Event::QUERY;
 		$this->explain = $explain;
@@ -159,7 +150,7 @@ class Panel implements Tracy\IBarPanel
 		return '<style> #tracy-debug td.tracy-DibiProfiler-sql { background: white !important }
 			#tracy-debug .tracy-DibiProfiler-source { color: #999 !important }
 			#tracy-debug tracy-DibiProfiler tr table { margin: 8px 0; max-height: 150px; overflow:auto } </style>
-			<h1>Queries:\u{a0}' . count($this->events)
+			<h1>Queries:' . "\u{a0}" . count($this->events)
 				. ($totalTime === null ? '' : ", time:\u{a0}" . number_format($totalTime * 1000, 1, '.', "\u{202f}") . "\u{202f}ms") . ', '
 				. htmlspecialchars($this->getConnectionName($singleConnection)) . '</h1>
 			<div class="tracy-inner tracy-DibiProfiler">
@@ -174,7 +165,7 @@ class Panel implements Tracy\IBarPanel
 	private function getConnectionName(Dibi\Connection $connection): string
 	{
 		$driver = $connection->getConfig('driver');
-		return (is_object($driver) ? get_class($driver) : $driver)
+		return get_debug_type($driver)
 			. ($connection->getConfig('name') ? '/' . $connection->getConfig('name') : '')
 			. ($connection->getConfig('host') ? "\u{202f}@\u{202f}" . $connection->getConfig('host') : '');
 	}

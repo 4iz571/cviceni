@@ -25,7 +25,7 @@ final class Helpers
 		// built-in types
 		'string' => 1, 'int' => 1, 'float' => 1, 'bool' => 1, 'array' => 1, 'object' => 1,
 		'callable' => 1, 'iterable' => 1, 'void' => 1, 'null' => 1, 'mixed' => 1, 'false' => 1,
-		'never' => 1,
+		'never' => 1, 'true' => 1,
 
 		// class keywords
 		'self' => 1, 'parent' => 1, 'static' => 1,
@@ -42,9 +42,6 @@ final class Helpers
 		'__TRAIT__' => 1, '__FUNCTION__' => 1, '__METHOD__' => 1, '__LINE__' => 1, '__FILE__' => 1, '__DIR__' => 1,
 		'__NAMESPACE__' => 1, 'fn' => 1, 'match' => 1, 'enum' => 1, 'abstract' => 1, 'final' => 1,
 		'private' => 1, 'protected' => 1, 'public' => 1, 'readonly' => 1,
-
-		// additional reserved class names
-		'true' => 1,
 	];
 
 	/** @deprecated  */
@@ -77,13 +74,13 @@ final class Helpers
 	}
 
 
-	public static function formatDocComment(string $content): string
+	public static function formatDocComment(string $content, bool $forceMultiLine = false): string
 	{
 		$s = trim($content);
 		$s = str_replace('*/', '* /', $s);
 		if ($s === '') {
 			return '';
-		} elseif (str_contains($content, "\n")) {
+		} elseif ($forceMultiLine || str_contains($content, "\n")) {
 			$s = str_replace("\n", "\n * ", "/**\n$s") . "\n */";
 			return Nette\Utils\Strings::normalize($s) . "\n";
 		} else {
@@ -168,16 +165,11 @@ final class Helpers
 	}
 
 
-	public static function validateType(?string $type, bool &$nullable): ?string
+	public static function validateType(?string $type, bool &$nullable = false): ?string
 	{
 		if ($type === '' || $type === null) {
 			return null;
-		}
-
-		if (!preg_match('#(?:
-			\?[\w\\\\]+|
-			[\w\\\\]+ (?: (&[\w\\\\]+)* | (\|[\w\\\\]+)* )
-		)()$#xAD', $type)) {
+		} elseif (!Nette\Utils\Validators::isTypeDeclaration($type)) {
 			throw new Nette\InvalidArgumentException("Value '$type' is not valid type.");
 		}
 

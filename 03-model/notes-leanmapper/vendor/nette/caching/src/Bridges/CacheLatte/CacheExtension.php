@@ -13,7 +13,6 @@ use Latte;
 use Latte\Compiler\Nodes\AuxiliaryNode;
 use Latte\Compiler\Nodes\TemplateNode;
 use Latte\Compiler\Tag;
-use Latte\Engine;
 use Nette\Caching\Storage;
 
 
@@ -43,7 +42,7 @@ final class CacheExtension extends Latte\Extension
 		return [
 			'cache' => function (Tag $tag): \Generator {
 				$this->used = true;
-				return Nodes\CacheNode::create($tag);
+				return yield from Nodes\CacheNode::create($tag);
 			},
 		];
 	}
@@ -54,15 +53,23 @@ final class CacheExtension extends Latte\Extension
 		return [
 			'cacheInitialization' => function (TemplateNode $node): void {
 				if ($this->used) {
-					$node->head->append(new AuxiliaryNode(fn() => Nodes\CacheNode::class . '::initRuntime($this);'));
+					$node->head->append(new AuxiliaryNode(fn() => '$this->global->cache->initialize($this);'));
 				}
 			},
 		];
 	}
 
 
-	public function beforeRender(Engine $engine): void
+	public function getProviders(): array
 	{
-		$engine->addProvider('cacheStorage', $this->storage);
+		return [
+			'cache' => new Runtime($this->storage),
+		];
+	}
+
+
+	public function getCacheKey(Latte\Engine $engine): array
+	{
+		return ['version' => 2];
 	}
 }
