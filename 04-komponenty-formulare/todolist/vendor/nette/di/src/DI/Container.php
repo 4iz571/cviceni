@@ -19,7 +19,10 @@ class Container
 {
 	use Nette\SmartObject;
 
-	/** @var array  user parameters */
+	/**
+	 * @var mixed[]
+	 * @deprecated use Container::getParameter() or getParameters()
+	 */
 	public $parameters = [];
 
 	/** @var string[]  services name => type (complete list of available services) */
@@ -37,16 +40,16 @@ class Container
 	/** @var object[]  service name => instance */
 	private $instances = [];
 
-	/** @var array circular reference detector */
+	/** @var array<string, true> circular reference detector */
 	private $creating;
 
-	/** @var array */
+	/** @var array<string, string|\Closure> */
 	private $methods;
 
 
 	public function __construct(array $params = [])
 	{
-		$this->parameters = $params;
+		$this->parameters = $params + $this->getStaticParameters();
 		$this->methods = array_flip(array_filter(
 			get_class_methods($this),
 			function ($s) { return preg_match('#^createService.#', $s); }
@@ -60,19 +63,39 @@ class Container
 	}
 
 
+	public function getParameter($key)
+	{
+		if (!array_key_exists($key, $this->parameters)) {
+			$this->parameters[$key] = $this->preventDeadLock("%$key%", function () use ($key) {
+				return $this->getDynamicParameter($key);
+			});
+		}
+		return $this->parameters[$key];
+	}
+
+
+	protected function getStaticParameters(): array
+	{
+		return [];
+	}
+
+
+	protected function getDynamicParameter($key)
+	{
+		throw new Nette\InvalidStateException(sprintf("Parameter '%s' not found. Check if 'di › export › parameters' is enabled.", $key));
+	}
+
+
 	/**
 	 * Adds the service to the container.
 	 * @param  object  $service  service or its factory
 	 * @return static
 	 */
-	public function addService(string $name, $service)
+	public function addService(string $name, object $service)
 	{
 		$name = $this->aliases[$name] ?? $name;
 		if (isset($this->instances[$name])) {
 			throw new Nette\InvalidStateException(sprintf("Service '%s' already exists.", $name));
-
-		} elseif (!is_object($service)) {
-			throw new Nette\InvalidArgumentException(sprintf("Service '%s' must be a object, %s given.", $name, gettype($service)));
 		}
 
 		if ($service instanceof \Closure) {
@@ -117,10 +140,9 @@ class Container
 
 	/**
 	 * Gets the service object by name.
-	 * @return object
 	 * @throws MissingServiceException
 	 */
-	public function getService(string $name)
+	public function getService(string $name): object
 	{
 		if (!isset($this->instances[$name])) {
 			if (isset($this->aliases[$name])) {
@@ -136,10 +158,9 @@ class Container
 
 	/**
 	 * Gets the service object by name.
-	 * @return object
 	 * @throws MissingServiceException
 	 */
-	public function getByName(string $name)
+	public function getByName(string $name): object
 	{
 		return $this->getService($name);
 	}
@@ -194,35 +215,27 @@ class Container
 
 	/**
 	 * Creates new instance of the service.
-	 * @return object
 	 * @throws MissingServiceException
 	 */
-	public function createService(string $name, array $args = [])
+	public function createService(string $name, array $args = []): object
 	{
 		$name = $this->aliases[$name] ?? $name;
 		$method = self::getMethodName($name);
-		$cb = $this->methods[$method] ?? null;
-		if (isset($this->creating[$name])) {
-			throw new Nette\InvalidStateException(sprintf('Circular reference detected for services: %s.', implode(', ', array_keys($this->creating))));
-
-		} elseif ($cb === null) {
+		$callback = $this->methods[$method] ?? null;
+		if ($callback === null) {
 			throw new MissingServiceException(sprintf("Service '%s' not found.", $name));
 		}
 
-		try {
-			$this->creating[$name] = true;
-			$service = $cb instanceof \Closure
-				? $cb(...$args)
+		$service = $this->preventDeadLock($name, function () use ($callback, $args, $method) {
+			return $callback instanceof \Closure
+				? $callback(...$args)
 				: $this->$method(...$args);
-
-		} finally {
-			unset($this->creating[$name]);
-		}
+		});
 
 		if (!is_object($service)) {
 			throw new Nette\UnexpectedValueException(sprintf(
 				"Unable to create service '$name', value returned by %s is not object.",
-				$cb instanceof \Closure ? 'closure' : "method $method()"
+				$callback instanceof \Closure ? 'closure' : "method $method()"
 			));
 		}
 
@@ -232,12 +245,12 @@ class Container
 
 	/**
 	 * Resolves service by type.
-	 * @template T
+	 * @template T of object
 	 * @param  class-string<T>  $type
 	 * @return ?T
 	 * @throws MissingServiceException
 	 */
-	public function getByType(string $type, bool $throw = true)
+	public function getByType(string $type, bool $throw = true): ?object
 	{
 		$type = Helpers::normalizeClass($type);
 		if (!empty($this->wiring[$type][0])) {
@@ -308,15 +321,28 @@ class Container
 	}
 
 
+	private function preventDeadLock(string $key, \Closure $callback)
+	{
+		if (isset($this->creating[$key])) {
+			throw new Nette\InvalidStateException(sprintf('Circular reference detected for: %s.', implode(', ', array_keys($this->creating))));
+		}
+		try {
+			$this->creating[$key] = true;
+			return $callback();
+		} finally {
+			unset($this->creating[$key]);
+		}
+	}
+
+
 	/********************* autowiring ****************d*g**/
 
 
 	/**
 	 * Creates new instance using autowiring.
-	 * @return object
 	 * @throws Nette\InvalidArgumentException
 	 */
-	public function createInstance(string $class, array $args = [])
+	public function createInstance(string $class, array $args = []): object
 	{
 		$rc = new \ReflectionClass($class);
 		if (!$rc->isInstantiable()) {
@@ -335,9 +361,8 @@ class Container
 
 	/**
 	 * Calls all methods starting with with "inject" using autowiring.
-	 * @param  object  $service
 	 */
-	public function callInjects($service): void
+	public function callInjects(object $service): void
 	{
 		Extensions\InjectExtension::callInjects($this, $service);
 	}
@@ -370,5 +395,10 @@ class Container
 		}
 
 		return 'createService' . str_replace('.', '__', ucfirst($name));
+	}
+
+
+	public function initialize(): void
+	{
 	}
 }

@@ -10,7 +10,6 @@ use Nette\Application\UI\Control;
  */
 class DemoControl extends Control{
 
-  /** @var string $text */
   public string $text = 'DEMO';
 
   public function render():void {

@@ -32,11 +32,11 @@ class TagEditForm extends Form{
 
   /**
    * TagEditForm constructor.
+   * @param TagsFacade $tagsFacade
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
-   * @param TagsFacade $tagsFacade
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, TagsFacade $tagsFacade){
+  public function __construct(TagsFacade $tagsFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
     $this->tagsFacade = $tagsFacade;
     $this->createSubcomponents();

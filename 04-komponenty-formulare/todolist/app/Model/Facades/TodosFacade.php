@@ -10,8 +10,7 @@ use App\Model\Repositories\TodoRepository;
  * @package App\Model\Facades
  */
 class TodosFacade{
-  /** @var TodoRepository $todoRepository */
-  private $todoRepository;
+  private TodoRepository $todoRepository;
 
   public function __construct(TodoRepository $todoRepository){
     $this->todoRepository=$todoRepository;
