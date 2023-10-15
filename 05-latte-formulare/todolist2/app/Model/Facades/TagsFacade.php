@@ -11,8 +11,7 @@ use LeanMapper\Exception\InvalidStateException;
  * @package App\Model\Facades
  */
 class TagsFacade{
-  /** @var TagRepository $tagRepository */
-  private $tagRepository;
+  private TagRepository $tagRepository;
 
   public function __construct(TagRepository $tagRepository){
     $this->tagRepository=$tagRepository;
