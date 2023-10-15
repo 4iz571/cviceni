@@ -7,9 +7,10 @@
 
 declare(strict_types=1);
 
-namespace Nette\DI\Config;
+namespace Nette\DI\Extensions;
 
 use Nette;
+use Nette\DI\Config\Helpers;
 use Nette\DI\Definitions;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Context;
@@ -87,7 +88,7 @@ class DefinitionSchema implements Schema
 			if (array_keys($def->arguments) === ['tagged']) {
 				$res += $def->arguments;
 			} elseif (array_keys($def->arguments) === [0]) {
-				$res['factory'] = $def->arguments[0];
+				$res['create'] = $def->arguments[0];
 			} elseif ($def->arguments) {
 				$res['references'] = $def->arguments;
 			}
@@ -95,24 +96,23 @@ class DefinitionSchema implements Schema
 			return $res;
 
 		} elseif (!is_array($def) || isset($def[0], $def[1])) {
-			return ['factory' => $def];
+			return ['create' => $def];
 
 		} elseif (is_array($def)) {
-			if (isset($def['create']) && !isset($def['factory'])) {
-				$def['factory'] = $def['create'];
-				unset($def['create']);
+			// back compatibility
+			if (isset($def['factory']) && !isset($def['create'])) {
+				$def['create'] = $def['factory'];
+				unset($def['factory']);
 			}
 
-			if (isset($def['class']) && !isset($def['type'])) {
-				if ($def['class'] instanceof Statement) {
-					$key = end($context->path);
-					trigger_error(sprintf("Service '%s': option 'class' should be changed to 'factory'.", $key), E_USER_DEPRECATED);
-					$def['factory'] = $def['class'];
-					unset($def['class']);
-				} elseif (!isset($def['factory']) && !isset($def['dynamic']) && !isset($def['imported'])) {
-					$def['factory'] = $def['class'];
-					unset($def['class']);
-				}
+			if (
+				isset($def['class'])
+				&& !isset($def['type'])
+				&& !isset($def['dynamic'])
+				&& !isset($def['imported'])
+			) {
+				$def[isset($def['create']) ? 'type' : 'create'] = $def['class'];
+				unset($def['class']);
 			}
 
 			foreach (['class' => 'type', 'dynamic' => 'imported'] as $alias => $original) {
@@ -126,6 +126,7 @@ class DefinitionSchema implements Schema
 						));
 					}
 
+					trigger_error(sprintf("Service '%s': option '$alias' should be changed to '$original'.", end($context->path)), E_USER_DEPRECATED);
 					$def[$original] = $def[$alias];
 					unset($def[$alias]);
 				}
@@ -208,7 +209,7 @@ class DefinitionSchema implements Schema
 	{
 		return Expect::structure([
 			'type' => Expect::type('string'),
-			'factory' => Expect::type('callable|Nette\DI\Definitions\Statement'),
+			'create' => Expect::type('callable|Nette\DI\Definitions\Statement'),
 			'arguments' => Expect::array(),
 			'setup' => Expect::listOf('callable|Nette\DI\Definitions\Statement|array:1'),
 			'inject' => Expect::bool(),
@@ -225,7 +226,7 @@ class DefinitionSchema implements Schema
 		return Expect::structure([
 			'type' => Expect::string(),
 			'implement' => Expect::string(),
-			'factory' => Expect::type('callable|Nette\DI\Definitions\Statement'),
+			'create' => Expect::type('callable|Nette\DI\Definitions\Statement'),
 			'autowired' => Expect::type('bool|string|array'),
 			'tags' => Expect::array(),
 		]);
@@ -236,7 +237,7 @@ class DefinitionSchema implements Schema
 	{
 		return Expect::structure([
 			'type' => Expect::string(),
-			'factory' => Expect::type('callable|Nette\DI\Definitions\Statement'),
+			'create' => Expect::type('callable|Nette\DI\Definitions\Statement'),
 			'implement' => Expect::string(),
 			'arguments' => Expect::array(),
 			'setup' => Expect::listOf('callable|Nette\DI\Definitions\Statement|array:1'),

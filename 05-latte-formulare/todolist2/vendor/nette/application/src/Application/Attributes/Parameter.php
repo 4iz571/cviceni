@@ -12,10 +12,7 @@ namespace Nette\Application\Attributes;
 use Attribute;
 
 
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
-class Persistent
+#[Attribute(Attribute::TARGET_PROPERTY)]
+class Parameter
 {
-	public function __construct(string ...$names)
-	{
-	}
 }
