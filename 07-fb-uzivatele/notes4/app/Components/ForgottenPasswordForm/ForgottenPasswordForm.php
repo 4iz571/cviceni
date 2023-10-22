@@ -32,7 +32,7 @@ class ForgottenPasswordForm extends Form{
    * @param string|null $name
    * @param UsersFacade $usersFacade
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade){
+  public function __construct(UsersFacade $usersFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->createSubcomponents();

@@ -32,12 +32,11 @@ class CategoryEditForm extends Form{
 
   /**
    * TagEditForm constructor.
+   * @param CategoriesFacade $categoriesFacade
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
-   * @param CategoriesFacade $categoriesFacade
-   * @noinspection PhpOptionalBeforeRequiredParametersInspection
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, CategoriesFacade $categoriesFacade){
+  public function __construct(CategoriesFacade $categoriesFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
     $this->categoriesFacade=$categoriesFacade;
     $this->createSubcomponents();

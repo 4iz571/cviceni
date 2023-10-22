@@ -135,7 +135,7 @@ class UsersFacade{
    * Metoda pro jednoduché smazání kódů pro obnovu hesla pro konkrétního uživatele
    * @param User|int $user
    */
-  public function deleteForgottenPasswordsByUser($user){
+  public function deleteForgottenPasswordsByUser($user):void {
     try{
       if ($user instanceof User){
         $user=$user->userId;

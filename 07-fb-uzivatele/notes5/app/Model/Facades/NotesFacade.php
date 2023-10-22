@@ -62,7 +62,7 @@ class NotesFacade{
    * @param Note &$note
    * @return bool
    */
-  public function saveNote(Note &$note) {
+  public function saveNote(Note &$note):bool {
     return (bool)$this->noteRepository->persist($note);
   }
 
@@ -72,8 +72,8 @@ class NotesFacade{
    * @return bool
    * @throws \LeanMapper\Exception\InvalidStateException
    */
-  public function deleteNote(Note $note){
-    return $this->noteRepository->delete($note);
+  public function deleteNote(Note $note):bool {
+    return (bool)$this->noteRepository->delete($note);
   }
 
 }
