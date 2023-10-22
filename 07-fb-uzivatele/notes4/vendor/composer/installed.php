@@ -3,7 +3,7 @@
         'name' => '4iz571/notes-leanmapper',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '380b4328dd2ffd62c55988244a24a45709bc684c',
+        'reference' => 'c73d2a0ff1bcf553dc1c89c5302bb396431b27ab',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         '4iz571/notes-leanmapper' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '380b4328dd2ffd62c55988244a24a45709bc684c',
+            'reference' => 'c73d2a0ff1bcf553dc1c89c5302bb396431b27ab',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
