@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace Dibi\Reflection;
 
-use Dibi;
 
 
 /**
@@ -22,10 +21,8 @@ use Dibi;
  */
 class Index
 {
-	use Dibi\Strict;
-
 	/** @var array (name, columns, [unique], [primary]) */
-	private $info;
+	private array $info;
 
 
 	public function __construct(array $info)

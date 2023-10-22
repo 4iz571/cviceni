@@ -62,11 +62,12 @@ class PhpGenerator
 			$class->addMember($this->generateMethod($def));
 		}
 
-		$class->getMethod(Container::getMethodName(ContainerBuilder::THIS_CONTAINER))
+		$class->getMethod(Container::getMethodName(ContainerBuilder::ThisContainer))
 			->setReturnType($className)
 			->setBody('return $this;');
 
-		$class->addMethod('initialize');
+		$class->addMethod('initialize')
+			->setReturnType('void');
 
 		return $class;
 	}
@@ -170,6 +171,12 @@ declare(strict_types=1);
 	 */
 	public function formatPhp(string $statement, array $args): string
 	{
+		return (new Php\Dumper)->format($statement, ...$this->convertArguments($args));
+	}
+
+
+	public function convertArguments(array $args): array
+	{
 		array_walk_recursive($args, function (&$val): void {
 			if ($val instanceof Statement) {
 				$val = new Php\Literal($this->formatStatement($val));
@@ -178,14 +185,14 @@ declare(strict_types=1);
 				$name = $val->getValue();
 				if ($val->isSelf()) {
 					$val = new Php\Literal('$service');
-				} elseif ($name === ContainerBuilder::THIS_CONTAINER) {
+				} elseif ($name === ContainerBuilder::ThisContainer) {
 					$val = new Php\Literal('$this');
 				} else {
 					$val = ContainerBuilder::literal('$this->getService(?)', [$name]);
 				}
 			}
 		});
-		return (new Php\Dumper)->format($statement, ...$args);
+		return $args;
 	}
 
 

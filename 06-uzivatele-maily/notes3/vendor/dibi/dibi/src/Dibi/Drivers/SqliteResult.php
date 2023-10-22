@@ -18,29 +18,12 @@ use Dibi\Helpers;
  */
 class SqliteResult implements Dibi\ResultDriver
 {
-	use Dibi\Strict;
-
-	/** @var \SQLite3Result */
-	private $resultSet;
-
-	/** @var bool */
-	private $autoFree = true;
+	private \SQLite3Result $resultSet;
 
 
 	public function __construct(\SQLite3Result $resultSet)
 	{
 		$this->resultSet = $resultSet;
-	}
-
-
-	/**
-	 * Automatically frees the resources allocated for this result set.
-	 */
-	public function __destruct()
-	{
-		if ($this->autoFree && $this->getResultResource()) {
-			@$this->free();
-		}
 	}
 
 
@@ -90,7 +73,7 @@ class SqliteResult implements Dibi\ResultDriver
 	{
 		$count = $this->resultSet->numColumns();
 		$columns = [];
-		static $types = [SQLITE3_INTEGER => 'int', SQLITE3_FLOAT => 'float', SQLITE3_TEXT => 'text', SQLITE3_BLOB => 'blob', SQLITE3_NULL => 'null'];
+		$types = [SQLITE3_INTEGER => 'int', SQLITE3_FLOAT => 'float', SQLITE3_TEXT => 'text', SQLITE3_BLOB => 'blob', SQLITE3_NULL => 'null'];
 		for ($i = 0; $i < $count; $i++) {
 			$columns[] = [
 				'name' => $this->resultSet->columnName($i),
@@ -109,7 +92,6 @@ class SqliteResult implements Dibi\ResultDriver
 	 */
 	public function getResultResource(): \SQLite3Result
 	{
-		$this->autoFree = false;
 		return $this->resultSet;
 	}
 

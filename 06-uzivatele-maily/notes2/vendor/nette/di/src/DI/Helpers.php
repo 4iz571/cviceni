@@ -38,21 +38,34 @@ final class Helpers
 			foreach ($var as $key => $val) {
 				$res[self::expand($key, $params, $recursive)] = self::expand($val, $params, $recursive);
 			}
-
 			return $res;
 
 		} elseif ($var instanceof Statement) {
-			return new Statement(self::expand($var->getEntity(), $params, $recursive), self::expand($var->arguments, $params, $recursive));
+			return new Statement(
+				self::expand($var->getEntity(), $params, $recursive),
+				self::expand($var->arguments, $params, $recursive)
+			);
 
 		} elseif ($var === '%parameters%' && !array_key_exists('parameters', $params)) {
 			return $recursive
 				? self::expand($params, $params, (is_array($recursive) ? $recursive : []))
 				: $params;
 
-		} elseif (!is_string($var)) {
+		} elseif (is_string($var)) {
+			return self::expandString($var, $params, $recursive);
+
+		} else {
 			return $var;
 		}
+	}
 
+
+	/**
+	 * Expands %placeholders% in string
+	 * @throws Nette\InvalidArgumentException
+	 */
+	private static function expandString(string $var, array $params, $recursive = false)
+	{
 		$parts = preg_split('#%([\w.-]*)%#i', $var, -1, PREG_SPLIT_DELIM_CAPTURE);
 		$res = [];
 		$php = false;
@@ -74,6 +87,9 @@ final class Helpers
 				foreach (explode('.', $part) as $key) {
 					if (is_array($val) && array_key_exists($key, $val)) {
 						$val = $val[$key];
+						if ($recursive) {
+							$val = self::expand($val, $params, (is_array($recursive) ? $recursive : []) + [$part => 1]);
+						}
 					} elseif ($val instanceof DynamicParameter) {
 						$val = new DynamicParameter($val . '[' . var_export($key, true) . ']');
 					} else {
@@ -81,15 +97,11 @@ final class Helpers
 					}
 				}
 
-				if ($recursive) {
-					$val = self::expand($val, $params, (is_array($recursive) ? $recursive : []) + [$part => 1]);
-				}
-
 				if (strlen($part) + 2 === strlen($var)) {
 					return $val;
 				}
 
-				if ($val instanceof DynamicParameter) {
+				if ($val instanceof DynamicParameter || $val instanceof Statement) {
 					$php = true;
 				} elseif (!is_scalar($val)) {
 					throw new Nette\InvalidArgumentException(sprintf("Unable to concatenate non-scalar parameter '%s' into '%s'.", $part, $var));
@@ -99,17 +111,9 @@ final class Helpers
 			}
 		}
 
-		if ($php) {
-			$res = array_filter($res, function ($val): bool { return $val !== ''; });
-			$res = array_map(function ($val): string {
-				return $val instanceof DynamicParameter
-					? "($val)"
-					: var_export((string) $val, true);
-			}, $res);
-			return new DynamicParameter(implode(' . ', $res));
-		}
-
-		return implode('', $res);
+		return $php
+			? new Statement('::implode', ['', $res])
+			: implode($res);
 	}
 
 
@@ -137,22 +141,20 @@ final class Helpers
 
 
 	/**
-	 * Removes ... and process constants recursively.
+	 * Process constants recursively.
 	 */
 	public static function filterArguments(array $args): array
 	{
 		foreach ($args as $k => $v) {
-			if ($v === '...') {
-				unset($args[$k]);
-			} elseif (
+			if (
 				PHP_VERSION_ID >= 80100
 				&& is_string($v)
 				&& preg_match('#^([\w\\\\]+)::\w+$#D', $v, $m)
 				&& enum_exists($m[1])
 			) {
 				$args[$k] = new Nette\PhpGenerator\PhpLiteral($v);
-			} elseif (is_string($v) && preg_match('#^[\w\\\\]*::[A-Z][A-Z0-9_]*$#D', $v)) {
-				$args[$k] = constant(ltrim($v, ':'));
+			} elseif (is_string($v) && preg_match('#^[\w\\\\]*::[A-Z][a-zA-Z0-9_]*$#D', $v)) {
+				$args[$k] = new Nette\PhpGenerator\PhpLiteral(ltrim($v, ':'));
 			} elseif (is_string($v) && preg_match('#^@[\w\\\\]+$#D', $v)) {
 				$args[$k] = new Reference(substr($v, 1));
 			} elseif (is_array($v)) {
@@ -230,12 +232,12 @@ final class Helpers
 	}
 
 
-	public static function ensureClassType(?Type $type, string $hint): string
+	public static function ensureClassType(?Type $type, string $hint, bool $allowNullable = false): string
 	{
 		if (!$type) {
 			throw new ServiceCreationException(sprintf('%s is not declared.', ucfirst($hint)));
-		} elseif (!$type->isClass() || $type->isUnion()) {
-			throw new ServiceCreationException(sprintf("%s is not expected to be nullable/union/intersection/built-in, '%s' given.", ucfirst($hint), $type));
+		} elseif (!$type->isClass() || (!$allowNullable && $type->allows('null'))) {
+			throw new ServiceCreationException(sprintf("%s is expected to not be %sbuilt-in/complex, '%s' given.", ucfirst($hint), $allowNullable ? '' : 'nullable/', $type));
 		}
 
 		$class = $type->getSingleName();
