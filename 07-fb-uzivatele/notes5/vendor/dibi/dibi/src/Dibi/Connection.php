@@ -20,27 +20,20 @@ use Traversable;
  */
 class Connection implements IConnection
 {
-	use Strict;
-
-	/** @var array of function (Event $event); Occurs after query is executed */
-	public $onEvent = [];
-
-	/** @var array  Current connection configuration */
-	private $config;
+	/** function (Event $event); Occurs after query is executed */
+	public ?array $onEvent = [];
+	private array $config;
 
 	/** @var string[]  resultset formats */
-	private $formats;
+	private array $formats;
+	private ?Driver $driver = null;
+	private ?Translator $translator = null;
 
-	/** @var Driver|null */
-	private $driver;
-
-	/** @var Translator|null */
-	private $translator;
-
-	/** @var HashMap Substitutes for identifiers */
-	private $substitutes;
-
-	private $transactionDepth = 0;
+	/** @var array<string, callable(object): Expression | null> */
+	private array $translators = [];
+	private bool $sortTranslators = false;
+	private HashMap $substitutes;
+	private int $transactionDepth = 0;
 
 
 	/**
@@ -75,7 +68,7 @@ class Connection implements IConnection
 		Helpers::alias($config, 'host', 'hostname');
 		Helpers::alias($config, 'result|formatDate', 'resultDate');
 		Helpers::alias($config, 'result|formatDateTime', 'resultDateTime');
-		$config['driver'] = $config['driver'] ?? 'mysqli';
+		$config['driver'] ??= 'mysqli';
 		$config['name'] = $name;
 		$this->config = $config;
 
@@ -93,7 +86,7 @@ class Connection implements IConnection
 			$this->onEvent[] = [new Loggers\FileLogger($config['profiler']['file'], $filter, $errorsOnly), 'logEvent'];
 		}
 
-		$this->substitutes = new HashMap(function (string $expr) { return ":$expr:"; });
+		$this->substitutes = new HashMap(fn(string $expr) => ":$expr:");
 		if (!empty($config['substitutes'])) {
 			foreach ($config['substitutes'] as $key => $value) {
 				$this->substitutes->$key = $value;
@@ -190,9 +183,8 @@ class Connection implements IConnection
 	/**
 	 * Returns configuration variable. If no $key is passed, returns the entire array.
 	 * @see self::__construct
-	 * @return mixed
 	 */
-	final public function getConfig(?string $key = null, $default = null)
+	final public function getConfig(?string $key = null, $default = null): mixed
 	{
 		return $key === null
 			? $this->config
@@ -215,10 +207,9 @@ class Connection implements IConnection
 
 	/**
 	 * Generates (translates) and executes SQL query.
-	 * @param  mixed  ...$args
 	 * @throws Exception
 	 */
-	final public function query(...$args): Result
+	final public function query(mixed ...$args): Result
 	{
 		return $this->nativeQuery($this->translate(...$args));
 	}
@@ -226,10 +217,9 @@ class Connection implements IConnection
 
 	/**
 	 * Generates SQL query.
-	 * @param  mixed  ...$args
 	 * @throws Exception
 	 */
-	final public function translate(...$args): string
+	final public function translate(mixed ...$args): string
 	{
 		if (!$this->driver) {
 			$this->connect();
@@ -241,9 +231,8 @@ class Connection implements IConnection
 
 	/**
 	 * Generates and prints SQL query.
-	 * @param  mixed  ...$args
 	 */
-	final public function test(...$args): bool
+	final public function test(mixed ...$args): bool
 	{
 		try {
 			Helpers::dump($this->translate(...$args));
@@ -253,7 +242,7 @@ class Connection implements IConnection
 			if ($e->getSql()) {
 				Helpers::dump($e->getSql());
 			} else {
-				echo get_class($e) . ': ' . $e->getMessage() . (PHP_SAPI === 'cli' ? "\n" : '<br>');
+				echo $e::class . ': ' . $e->getMessage() . (PHP_SAPI === 'cli' ? "\n" : '<br>');
 			}
 
 			return false;
@@ -263,10 +252,9 @@ class Connection implements IConnection
 
 	/**
 	 * Generates (translates) and returns SQL query as DataSource.
-	 * @param  mixed  ...$args
 	 * @throws Exception
 	 */
-	final public function dataSource(...$args): DataSource
+	final public function dataSource(mixed ...$args): DataSource
 	{
 		return new DataSource($this->translate(...$args), $this);
 	}
@@ -429,10 +417,7 @@ class Connection implements IConnection
 	}
 
 
-	/**
-	 * @return mixed
-	 */
-	public function transaction(callable $callback)
+	public function transaction(callable $callback): mixed
 	{
 		if ($this->transactionDepth === 0) {
 			$this->begin();
@@ -527,9 +512,77 @@ class Connection implements IConnection
 	 */
 	public function substitute(string $value): string
 	{
-		return strpos($value, ':') === false
-			? $value
-			: preg_replace_callback('#:([^:\s]*):#', function (array $m) { return $this->substitutes->{$m[1]}; }, $value);
+		return str_contains($value, ':')
+			? preg_replace_callback('#:([^:\s]*):#', fn(array $m) => $this->substitutes->{$m[1]}, $value)
+			: $value;
+	}
+
+
+	/********************* value objects translation ****************d*g**/
+
+
+	/**
+	 * @param  callable(object): Expression  $translator
+	 */
+	public function setObjectTranslator(callable $translator): void
+	{
+		if (!$translator instanceof \Closure) {
+			$translator = \Closure::fromCallable($translator);
+		}
+
+		$param = (new \ReflectionFunction($translator))->getParameters()[0] ?? null;
+		$type = $param?->getType();
+		$types = match (true) {
+			$type instanceof \ReflectionNamedType => [$type],
+			$type instanceof \ReflectionUnionType => $type->getTypes(),
+			default => throw new Exception('Object translator must have exactly one parameter with class typehint.'),
+		};
+
+		foreach ($types as $type) {
+			if ($type->isBuiltin() || $type->allowsNull()) {
+				throw new Exception("Object translator must have exactly one parameter with non-nullable class typehint, got '$type'.");
+			}
+			$this->translators[$type->getName()] = $translator;
+		}
+		$this->sortTranslators = true;
+	}
+
+
+	public function translateObject(object $object): ?Expression
+	{
+		if ($this->sortTranslators) {
+			$this->translators = array_filter($this->translators);
+			uksort($this->translators, fn($a, $b) => is_subclass_of($a, $b) ? -1 : 1);
+			$this->sortTranslators = false;
+		}
+
+		if (!array_key_exists($object::class, $this->translators)) {
+			$translator = null;
+			foreach ($this->translators as $class => $t) {
+				if ($object instanceof $class) {
+					$translator = $t;
+					break;
+				}
+			}
+			$this->translators[$object::class] = $translator;
+		}
+
+		$translator = $this->translators[$object::class];
+		if ($translator === null) {
+			return null;
+		}
+
+		$result = $translator($object);
+		if (!$result instanceof Expression) {
+			throw new Exception(sprintf(
+				"Object translator for class '%s' returned '%s' but %s expected.",
+				$object::class,
+				get_debug_type($result),
+				Expression::class,
+			));
+		}
+
+		return $result;
 	}
 
 
@@ -538,10 +591,9 @@ class Connection implements IConnection
 
 	/**
 	 * Executes SQL query and fetch result - shortcut for query() & fetch().
-	 * @param  mixed  ...$args
 	 * @throws Exception
 	 */
-	public function fetch(...$args): ?Row
+	public function fetch(mixed ...$args): ?Row
 	{
 		return $this->query($args)->fetch();
 	}
@@ -549,11 +601,10 @@ class Connection implements IConnection
 
 	/**
 	 * Executes SQL query and fetch results - shortcut for query() & fetchAll().
-	 * @param  mixed  ...$args
 	 * @return Row[]|array[]
 	 * @throws Exception
 	 */
-	public function fetchAll(...$args): array
+	public function fetchAll(mixed ...$args): array
 	{
 		return $this->query($args)->fetchAll();
 	}
@@ -561,11 +612,9 @@ class Connection implements IConnection
 
 	/**
 	 * Executes SQL query and fetch first column - shortcut for query() & fetchSingle().
-	 * @param  mixed  ...$args
-	 * @return mixed
 	 * @throws Exception
 	 */
-	public function fetchSingle(...$args)
+	public function fetchSingle(mixed ...$args): mixed
 	{
 		return $this->query($args)->fetchSingle();
 	}
@@ -573,10 +622,9 @@ class Connection implements IConnection
 
 	/**
 	 * Executes SQL query and fetch pairs - shortcut for query() & fetchPairs().
-	 * @param  mixed  ...$args
 	 * @throws Exception
 	 */
-	public function fetchPairs(...$args): array
+	public function fetchPairs(mixed ...$args): array
 	{
 		return $this->query($args)->fetchPairs();
 	}

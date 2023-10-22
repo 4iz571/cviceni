@@ -14,15 +14,15 @@ use Latte\Compiler\Block;
 use Latte\Compiler\Nodes\AreaNode;
 use Latte\Compiler\Nodes\AuxiliaryNode;
 use Latte\Compiler\Nodes\Html\ElementNode;
-use Latte\Compiler\Nodes\Php\Expression\AssignNode;
-use Latte\Compiler\Nodes\Php\Expression\VariableNode;
+use Latte\Compiler\Nodes\Php;
+use Latte\Compiler\Nodes\Php\Expression;
 use Latte\Compiler\Nodes\Php\Scalar;
 use Latte\Compiler\Nodes\StatementNode;
 use Latte\Compiler\PrintContext;
 use Latte\Compiler\Tag;
 use Latte\Compiler\TemplateParser;
 use Latte\Runtime\Template;
-use Nette\Bridges\ApplicationLatte\SnippetDriver;
+use Nette\Bridges\ApplicationLatte\SnippetRuntime;
 
 
 /**
@@ -49,6 +49,13 @@ class SnippetNode extends StatementNode
 			$node->block = new Block(new Scalar\StringNode(''), Template::LayerSnippet, $tag);
 		} else {
 			$name = $tag->parser->parseUnquotedStringOrExpression();
+			if (
+				$name instanceof Expression\ClassConstantFetchNode
+				&& $name->class instanceof Php\NameNode
+				&& $name->name instanceof Php\IdentifierNode
+			) {
+				$name = new Scalar\StringNode(constant($name->class . '::' . $name->name), $name->position);
+			}
 			$node->block = new Block($name, Template::LayerSnippet, $tag);
 			if (!$node->block->isDynamic()) {
 				$parser->checkBlockIsUnique($node->block);
@@ -85,12 +92,32 @@ class SnippetNode extends StatementNode
 
 	public function print(PrintContext $context): string
 	{
-		$dynamic = $this->block->isDynamic();
-		if (!$dynamic) {
+		if (!$this->block->isDynamic()) {
 			$context->addBlock($this->block);
 		}
 
-		$snippetContent = $context->format(
+		if ($this->htmlElement) {
+			try {
+				$inner = $this->htmlElement->content;
+				$this->htmlElement->content = new AuxiliaryNode(fn() => $this->printContent($context, $inner));
+				return $this->content->print($context);
+			} finally {
+				$this->htmlElement->content = $inner;
+			}
+		} else {
+			return <<<XX
+				echo '<div {$this->printAttribute($context)}>';
+				{$this->printContent($context, $this->content)}
+				echo '</div>';
+				XX;
+		}
+	}
+
+
+	private function printContent(PrintContext $context, AreaNode $inner): string
+	{
+		$dynamic = $this->block->isDynamic();
+		$res = $context->format(
 			<<<'XX'
 				$this->global->snippetDriver->enter(%node, %dump) %line;
 				try {
@@ -101,36 +128,22 @@ class SnippetNode extends StatementNode
 
 				XX,
 			$dynamic ? new AuxiliaryNode(fn() => '$ʟ_nm') : $this->block->name,
-			$dynamic ? SnippetDriver::TypeDynamic : SnippetDriver::TypeStatic,
+			$dynamic ? SnippetRuntime::TypeDynamic : SnippetRuntime::TypeStatic,
 			$this->position,
-			$this->htmlElement->content ?? $this->content,
+			$inner,
 		);
 
-		if (!$dynamic) {
-			$this->block->content = $snippetContent;
-			$snippetContent = $context->format(
-				'$this->renderBlock(%node, [], null, %dump) %line;',
-				$this->block->name,
-				Template::LayerSnippet,
-				$this->position,
-			);
+		if ($dynamic) {
+			return $res;
 		}
 
-		if ($this->htmlElement) {
-			try {
-				$saved = $this->htmlElement->content;
-				$this->htmlElement->content = new AuxiliaryNode(fn() => $snippetContent);
-				return $this->content->print($context);
-			} finally {
-				$this->htmlElement->content = $saved;
-			}
-		} else {
-			return <<<XX
-				echo '<div {$this->printAttribute($context)}>';
-				{$snippetContent}
-				echo '</div>';
-				XX;
-		}
+		$this->block->content = $res;
+		return $context->format(
+			'$this->renderBlock(%node, [], null, %dump) %line;',
+			$this->block->name,
+			Template::LayerSnippet,
+			$this->position,
+		);
 	}
 
 
@@ -142,7 +155,7 @@ class SnippetNode extends StatementNode
 				XX,
 			self::$snippetAttribute,
 			$this->block->isDynamic()
-				? new AssignNode(new VariableNode('ʟ_nm'), $this->block->name)
+				? new Expression\AssignNode(new Expression\VariableNode('ʟ_nm'), $this->block->name)
 				: $this->block->name,
 		);
 	}

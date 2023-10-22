@@ -67,11 +67,13 @@ final class FormMacros extends MacroSet
 		$node->replaced = true;
 		$node->tokenizer->reset();
 		return $writer->write(
-			'echo Nette\Bridges\FormsLatte\Runtime::renderFormBegin($form = $this->global->formsStack[] = '
+			'$form = $this->global->formsStack[] = '
 			. ($name[0] === '$'
 				? 'is_object($ʟ_tmp = %node.word) ? $ʟ_tmp : $this->global->uiControl[$ʟ_tmp]'
 				: '$this->global->uiControl[%node.word]')
-			. ', %node.array)'
+			. ';'
+			. 'Nette\Bridges\FormsLatte\Runtime::initializeForm($form);'
+			. 'echo Nette\Bridges\FormsLatte\Runtime::renderFormBegin($form, %node.array)'
 			. " /* line $node->startLine */;"
 		);
 	}
@@ -226,7 +228,8 @@ final class FormMacros extends MacroSet
 				. ($name[0] === '$'
 					? 'is_object($ʟ_tmp = %0.word) ? $ʟ_tmp : $this->global->uiControl[$ʟ_tmp]'
 					: '$this->global->uiControl[%0.word]')
-				. " /* line $node->startLine */; ?>",
+				. " /* line $node->startLine */;"
+				. 'Nette\Bridges\FormsLatte\Runtime::initializeForm($form); ?>',
 				$name
 			);
 			return $writer->write(
@@ -273,7 +276,7 @@ final class FormMacros extends MacroSet
 			}
 		} elseif ($tagName === 'button') {
 			if ($node->htmlNode->empty) {
-				$node->innerContent = "<?php echo htmlspecialchars(\$ʟ_input->getCaption()) /* line $node->startLine */; ?>";
+				$node->innerContent = $writer->write("<?php echo %escape(\$ʟ_input->getCaption()) /* line $node->startLine */; ?>");
 			}
 		} else { // select, textarea
 			$node->innerContent = "<?php echo \$ʟ_input->getControl()->getHtml() /* line $node->startLine */; ?>";

@@ -28,13 +28,9 @@ use PgSql;
  */
 class PostgreDriver implements Dibi\Driver
 {
-	use Dibi\Strict;
-
 	/** @var resource|PgSql\Connection */
 	private $connection;
-
-	/** @var int|null  Affected rows */
-	private $affectedRows;
+	private ?int $affectedRows;
 
 
 	/** @throws Dibi\NotSupportedException */
@@ -140,7 +136,7 @@ class PostgreDriver implements Dibi\Driver
 			$message = substr($message, strlen($m[0]));
 		}
 
-		if ($code === '0A000' && strpos($message, 'truncate') !== false) {
+		if ($code === '0A000' && str_contains($message, 'truncate')) {
 			return new Dibi\ForeignKeyConstraintViolationException($message, $code, $sql);
 
 		} elseif ($code === '23502') {
@@ -228,7 +224,7 @@ class PostgreDriver implements Dibi\Driver
 	 * Returns the connection resource.
 	 * @return resource|null
 	 */
-	public function getResource()
+	public function getResource(): mixed
 	{
 		return is_resource($this->connection) || $this->connection instanceof PgSql\Connection
 			? $this->connection

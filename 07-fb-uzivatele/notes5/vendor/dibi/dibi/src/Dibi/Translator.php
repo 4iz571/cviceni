@@ -15,40 +15,19 @@ namespace Dibi;
  */
 final class Translator
 {
-	use Strict;
-
-	/** @var Connection */
-	private $connection;
-
-	/** @var Driver */
-	private $driver;
-
-	/** @var int */
-	private $cursor = 0;
-
-	/** @var array */
-	private $args;
+	private Connection $connection;
+	private Driver $driver;
+	private int $cursor = 0;
+	private array $args;
 
 	/** @var string[] */
-	private $errors;
-
-	/** @var bool */
-	private $comment = false;
-
-	/** @var int */
-	private $ifLevel = 0;
-
-	/** @var int */
-	private $ifLevelStart = 0;
-
-	/** @var int|null */
-	private $limit;
-
-	/** @var int|null */
-	private $offset;
-
-	/** @var HashMap */
-	private $identifiers;
+	private array $errors;
+	private bool $comment = false;
+	private int $ifLevel = 0;
+	private int $ifLevelStart = 0;
+	private ?int $limit = null;
+	private ?int $offset = null;
+	private HashMap $identifiers;
 
 
 	public function __construct(Connection $connection)
@@ -96,22 +75,21 @@ final class Translator
 						// note: this can change $this->args & $this->cursor & ...
 						. preg_replace_callback(
 							<<<'XX'
-							/
-							(?=[`['":%?])                       ## speed-up
-							(?:
-								`(.+?)`|                        ## 1) `identifier`
-								\[(.+?)\]|                      ## 2) [identifier]
-								(')((?:''|[^'])*)'|             ## 3,4) string
-								(")((?:""|[^"])*)"|             ## 5,6) "string"
-								('|")|                          ## 7) lone quote
-								:(\S*?:)([a-zA-Z0-9._]?)|       ## 8,9) :substitution:
-								%([a-zA-Z~][a-zA-Z0-9~]{0,5})|  ## 10) modifier
-								(\?)                            ## 11) placeholder
-							)/xs
-XX
-,
+								/
+								(?=[`['":%?])                       ## speed-up
+								(?:
+									`(.+?)`|                        ## 1) `identifier`
+									\[(.+?)\]|                      ## 2) [identifier]
+									(')((?:''|[^'])*)'|             ## 3,4) string
+									(")((?:""|[^"])*)"|             ## 5,6) "string"
+									('|")|                          ## 7) lone quote
+									:(\S*?:)([a-zA-Z0-9._]?)|       ## 8,9) :substitution:
+									%([a-zA-Z~][a-zA-Z0-9~]{0,5})|  ## 10) modifier
+									(\?)                            ## 11) placeholder
+								)/xs
+								XX,
 							[$this, 'cb'],
-							substr($arg, $toSkip)
+							substr($arg, $toSkip),
 						);
 					if (preg_last_error()) {
 						throw new PcreException;
@@ -173,9 +151,8 @@ XX
 
 	/**
 	 * Apply modifier to single value.
-	 * @param  mixed  $value
 	 */
-	public function formatValue($value, ?string $modifier): string
+	public function formatValue(mixed $value, ?string $modifier): string
 	{
 		if ($this->comment) {
 			return '...';
@@ -210,7 +187,7 @@ XX
 								$v = $this->formatValue($v, $pair[1]);
 								if ($pair[1] === 'l' || $pair[1] === 'in') {
 									$op = 'IN ';
-								} elseif (strpos($pair[1], 'like') !== false) {
+								} elseif (str_contains($pair[1], 'like')) {
 									$op = 'LIKE ';
 								} elseif ($v === 'NULL') {
 									$op = 'IS ';
@@ -280,7 +257,7 @@ XX
 								$proto = array_keys($v);
 							}
 						} else {
-							return $this->errors[] = '**Unexpected type ' . (is_object($v) ? get_class($v) : gettype($v)) . '**';
+							return $this->errors[] = '**Unexpected type ' . get_debug_type($v) . '**';
 						}
 
 						$pair = explode('%', $k, 2); // split into identifier & modifier
@@ -326,6 +303,15 @@ XX
 			}
 		}
 
+		if (is_object($value)
+			&& $modifier === null
+			&& !$value instanceof Literal
+			&& !$value instanceof Expression
+			&& $result = $this->connection->translateObject($value)
+		) {
+			return $this->connection->translate(...$result->getValues());
+		}
+
 		// object-to-scalar procession
 		if ($value instanceof \BackedEnum && is_scalar($value->value)) {
 			$value = $value->value;
@@ -349,7 +335,7 @@ XX
 				) {
 					// continue
 				} else {
-					$type = is_object($value) ? get_class($value) : gettype($value);
+					$type = get_debug_type($value);
 					return $this->errors[] = "**Invalid combination of type $type and modifier %$modifier**";
 				}
 			}
@@ -437,20 +423,19 @@ XX
 						$value = substr($value, 0, $toSkip)
 							. preg_replace_callback(
 								<<<'XX'
-								/
-								(?=[`['":])
-								(?:
-									`(.+?)`|
-									\[(.+?)\]|
-									(')((?:''|[^'])*)'|
-									(")((?:""|[^"])*)"|
-									('|")|
-									:(\S*?:)([a-zA-Z0-9._]?)
-								)/sx
-XX
-,
+									/
+									(?=[`['":])
+									(?:
+										`(.+?)`|
+										\[(.+?)]|
+										(')((?:''|[^'])*)'|
+										(")((?:""|[^"])*)"|
+										(['"])|
+										:(\S*?:)([a-zA-Z0-9._]?)
+									)/sx
+									XX,
 								[$this, 'cb'],
-								substr($value, $toSkip)
+								substr($value, $toSkip),
 							);
 						if (preg_last_error()) {
 							throw new PcreException;
@@ -516,7 +501,7 @@ XX
 			return $this->connection->translate(...$value->getValues());
 
 		} else {
-			$type = is_object($value) ? get_class($value) : gettype($value);
+			$type = get_debug_type($value);
 			return $this->errors[] = "**Unexpected $type**";
 		}
 	}
