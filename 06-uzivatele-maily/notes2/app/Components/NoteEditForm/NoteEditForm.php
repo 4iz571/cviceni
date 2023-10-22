@@ -43,7 +43,7 @@ class NoteEditForm extends Form{
    * @param string|null $name
    * @param CategoriesFacade $categoriesFacade
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade){
+  public function __construct(Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
     $this->categoriesFacade=$categoriesFacade;
     $this->notesFacade=$notesFacade;
