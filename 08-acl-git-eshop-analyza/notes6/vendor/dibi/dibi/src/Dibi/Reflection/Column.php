@@ -27,13 +27,11 @@ use Dibi;
  */
 class Column
 {
-	use Dibi\Strict;
-
-	/** @var Dibi\Reflector|null when created by Result */
-	private $reflector;
+	/** when created by Result */
+	private ?Dibi\Reflector $reflector;
 
 	/** @var array (name, nativetype, [table], [fullname], [size], [nullable], [default], [autoincrement], [vendor]) */
-	private $info;
+	private array $info;
 
 
 	public function __construct(?Dibi\Reflector $reflector, array $info)
@@ -109,15 +107,13 @@ class Column
 	}
 
 
-	/** @return mixed */
-	public function getDefault()
+	public function getDefault(): mixed
 	{
 		return $this->info['default'] ?? null;
 	}
 
 
-	/** @return mixed */
-	public function getVendorInfo(string $key)
+	public function getVendorInfo(string $key): mixed
 	{
 		return $this->info['vendor'][$key] ?? null;
 	}

@@ -14,7 +14,7 @@ Ukázkový příklad vychází z aplikace **notes5**, se kterou jsme pracovali n
     1. stáhněte si soubor s exportem databáze z verze *notes5* ([tady](../07-fb-uzivatele/notes5-db.sql) a naimportujte jeho obsah do MariaDB
     2. stáhněte si složku **[notes6](./notes6)** s celým kódem projektu, nahrajte jej na server (nezapomeňte na úpravu práv k adresářům *log* a *temp*)
     3. v souboru **config/local.neon** přístupy k databázi a k FB aplikaci (i když bez těch to půjde také)
-- **pokud máte aplikaci hotovou** z domácího úkolu (či jste absolvovali předchozí body):
+- **pokud máte aplikaci hotovou** z dřívějška (či jste absolvovali předchozí body):
     1. stáhněte si jen **[změněné soubory](./notes6-diff)** a nahrajte je na server
     2. nahrajte do databáze nově doplněná oprávnění ([SQL export](./notes6-diff-db.sql))    
           

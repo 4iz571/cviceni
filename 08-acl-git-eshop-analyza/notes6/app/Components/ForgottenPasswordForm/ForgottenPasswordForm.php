@@ -29,11 +29,12 @@ class ForgottenPasswordForm extends Form{
 
   /**
    * ForgottenPasswordForm constructor.
+   * @param UsersFacade $usersFacade
+   * @param Nette\Application\LinkGenerator $linkGenerator
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
-   * @param UsersFacade $usersFacade
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade, Nette\Application\LinkGenerator $linkGenerator){
+  public function __construct(UsersFacade $usersFacade, Nette\Application\LinkGenerator $linkGenerator, Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->createSubcomponents();
@@ -61,7 +62,7 @@ class ForgottenPasswordForm extends Form{
 
         //vygenerování odkaz na změnu hesla
         $forgottenPassword = $this->usersFacade->saveNewForgottenPasswordCode($user);
-        $mailLink = $this->linkGenerator->link('//User:renewPassword', ['user'=>$user->userId, 'code'=>$forgottenPassword->code]);
+        $mailLink = $this->linkGenerator->link('User:renewPassword', ['user'=>$user->userId, 'code'=>$forgottenPassword->code]);
 
         #region příprava textu mailu
         $mail = new Nette\Mail\Message();

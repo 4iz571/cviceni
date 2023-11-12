@@ -7,12 +7,9 @@ namespace App\Model\Api\Facebook;
  * @package App\Model\Api\Facebook
  */
 class FacebookUser{
-  /** @var string $facebookUserId */
-  public $facebookUserId;
-  /** @var string $name */
-  public $name;
-  /** @var string $email */
-  public $email;
+  public string $facebookUserId;
+  public string $name;
+  public string $email;
 
   /**
    * FacebookUser constructor.
@@ -22,6 +19,8 @@ class FacebookUser{
    */
   public function __construct(string $facebookUserId='',string $name='',string $email=''){
     $this->facebookUserId=$facebookUserId;
+    $this->name=$name;
+    $this->email=$email;
   }
 
 }

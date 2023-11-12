@@ -36,16 +36,17 @@ class NoteEditForm extends Form{
   private NotesFacade $notesFacade;
   private UsersFacade $usersFacade;
   private User $user;
-  private Nette\Security\User $currentUser;
 
   /**
    * TagEditForm constructor.
+   * @param Nette\Security\User $currentUser
+   * @param CategoriesFacade $categoriesFacade
+   * @param NotesFacade $notesFacade
+   * @param UsersFacade $usersFacade
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
-   * @param CategoriesFacade $categoriesFacade
-   * @noinspection PhpOptionalBeforeRequiredParametersInspection
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade){
+  public function __construct(Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
     $this->categoriesFacade=$categoriesFacade;
     $this->notesFacade=$notesFacade;

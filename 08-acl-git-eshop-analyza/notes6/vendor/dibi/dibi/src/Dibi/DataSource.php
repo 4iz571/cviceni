@@ -15,37 +15,16 @@ namespace Dibi;
  */
 class DataSource implements IDataSource
 {
-	use Strict;
-
-	/** @var Connection */
-	private $connection;
-
-	/** @var string */
-	private $sql;
-
-	/** @var Result|null */
-	private $result;
-
-	/** @var int|null */
-	private $count;
-
-	/** @var int|null */
-	private $totalCount;
-
-	/** @var array */
-	private $cols = [];
-
-	/** @var array */
-	private $sorting = [];
-
-	/** @var array */
-	private $conds = [];
-
-	/** @var int|null */
-	private $offset;
-
-	/** @var int|null */
-	private $limit;
+	private Connection $connection;
+	private string $sql;
+	private ?Result $result = null;
+	private ?int $count = null;
+	private ?int $totalCount = null;
+	private array $cols = [];
+	private array $sorting = [];
+	private array $conds = [];
+	private ?int $offset = null;
+	private ?int $limit = null;
 
 
 	/**
@@ -65,7 +44,7 @@ class DataSource implements IDataSource
 	 * @param  string|array  $col  column name or array of column names
 	 * @param  string  $as        column alias
 	 */
-	public function select($col, ?string $as = null): self
+	public function select(string|array $col, ?string $as = null): static
 	{
 		if (is_array($col)) {
 			$this->cols = $col;
@@ -81,7 +60,7 @@ class DataSource implements IDataSource
 	/**
 	 * Adds conditions to query.
 	 */
-	public function where($cond): self
+	public function where($cond): static
 	{
 		$this->conds[] = is_array($cond)
 			? $cond // TODO: not consistent with select and orderBy
@@ -95,7 +74,7 @@ class DataSource implements IDataSource
 	 * Selects columns to order by.
 	 * @param  string|array  $row  column name or array of column names
 	 */
-	public function orderBy($row, string $direction = 'ASC'): self
+	public function orderBy(string|array $row, string $direction = 'ASC'): static
 	{
 		if (is_array($row)) {
 			$this->sorting = $row;
@@ -111,7 +90,7 @@ class DataSource implements IDataSource
 	/**
 	 * Limits number of rows.
 	 */
-	public function applyLimit(int $limit, ?int $offset = null): self
+	public function applyLimit(int $limit, ?int $offset = null): static
 	{
 		$this->limit = $limit;
 		$this->offset = $offset;
@@ -161,7 +140,7 @@ class DataSource implements IDataSource
 	 * Like fetch(), but returns only first field.
 	 * @return mixed  value on success, null if no next record
 	 */
-	public function fetchSingle()
+	public function fetchSingle(): mixed
 	{
 		return $this->getResult()->fetchSingle();
 	}
@@ -229,24 +208,19 @@ class DataSource implements IDataSource
 	 */
 	public function __toString(): string
 	{
-		try {
-			return $this->connection->translate(
-				"\nSELECT %n",
-				(empty($this->cols) ? '*' : $this->cols),
-				"\nFROM %SQL",
-				$this->sql,
-				"\n%ex",
-				$this->conds ? ['WHERE %and', $this->conds] : null,
-				"\n%ex",
-				$this->sorting ? ['ORDER BY %by', $this->sorting] : null,
-				"\n%ofs %lmt",
-				$this->offset,
-				$this->limit
-			);
-		} catch (\Throwable $e) {
-			trigger_error($e->getMessage(), E_USER_ERROR);
-			return '';
-		}
+		return $this->connection->translate(
+			"\nSELECT %n",
+			(empty($this->cols) ? '*' : $this->cols),
+			"\nFROM %SQL",
+			$this->sql,
+			"\n%ex",
+			$this->conds ? ['WHERE %and', $this->conds] : null,
+			"\n%ex",
+			$this->sorting ? ['ORDER BY %by', $this->sorting] : null,
+			"\n%ofs %lmt",
+			$this->offset,
+			$this->limit,
+		);
 	}
 
 
@@ -261,7 +235,7 @@ class DataSource implements IDataSource
 		if ($this->count === null) {
 			$this->count = $this->conds || $this->offset || $this->limit
 				? Helpers::intVal($this->connection->nativeQuery(
-					'SELECT COUNT(*) FROM (' . $this->__toString() . ') t'
+					'SELECT COUNT(*) FROM (' . $this->__toString() . ') t',
 				)->fetchSingle())
 				: $this->getTotalCount();
 		}
@@ -277,7 +251,7 @@ class DataSource implements IDataSource
 	{
 		if ($this->totalCount === null) {
 			$this->totalCount = Helpers::intVal($this->connection->nativeQuery(
-				'SELECT COUNT(*) FROM ' . $this->sql
+				'SELECT COUNT(*) FROM ' . $this->sql,
 			)->fetchSingle());
 		}
 

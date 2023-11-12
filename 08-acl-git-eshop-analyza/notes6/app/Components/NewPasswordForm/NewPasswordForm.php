@@ -35,19 +35,19 @@ class NewPasswordForm extends Form{
 
   /**
    * ForgottenPasswordForm constructor.
-   * @param Nette\ComponentModel\IContainer|null $parent
-   * @param string|null $name
    * @param UsersFacade $usersFacade
    * @param Nette\Security\Passwords $passwords
+   * @param Nette\ComponentModel\IContainer|null $parent
+   * @param string|null $name
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, UsersFacade $usersFacade, Nette\Security\Passwords $passwords){
+  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords,Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->passwords=$passwords;
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents(){
+  private function createSubcomponents():void {
     $this->addHidden('userId');
 
     $password=$this->addPassword('password','Heslo');
@@ -89,7 +89,7 @@ class NewPasswordForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false){
+  public function setDefaults($values, bool $erase = false):self {
     if ($values instanceof User){
       $this->setDefaults(['userId'=>$values->userId]);
     }

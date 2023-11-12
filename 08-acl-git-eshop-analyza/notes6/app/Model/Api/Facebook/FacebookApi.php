@@ -9,13 +9,9 @@ use Facebook\Facebook;
  * @package App\Model\Api\Facebook
  */
 class FacebookApi{
-  /** @var string $appId */
-  private $appId;
-  /** @var string $appSecret */
-  private $appSecret;
-
-  /** @var \Facebook\Facebook $facebook */
-  private $facebook;
+  private string $appId;
+  private string $appSecret;
+  private \Facebook\Facebook $facebook;
 
 
   public function __construct(string $appId, string $appSecret){
@@ -29,7 +25,7 @@ class FacebookApi{
    * @throws \Facebook\Exceptions\FacebookSDKException
    */
   public function getFacebook():Facebook{
-    if ($this->facebook == null){
+    if (empty($this->facebook)){
       $this->facebook=new Facebook([
         'app_id'=>$this->appId,
         'app_secret'=>$this->appSecret
