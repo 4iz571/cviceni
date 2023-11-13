@@ -94,7 +94,7 @@ class NoteEditForm extends Form{
         $values=$this->getValues('array');
         if (!empty($values['noteId'])){
           try{
-            $note=$this->notesFacade->getNote($values['categoryId']);
+            $note=$this->notesFacade->getNote($values['noteId']);
 
             //kontrola oprávnění k vybrané poznámce
             if (!$this->currentUser->isAllowed($note, 'edit')){
