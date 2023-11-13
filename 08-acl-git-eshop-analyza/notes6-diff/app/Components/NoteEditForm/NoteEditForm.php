@@ -36,6 +36,7 @@ class NoteEditForm extends Form{
   private NotesFacade $notesFacade;
   private UsersFacade $usersFacade;
   private User $user;
+  private Nette\Security\User $currentUser;
 
   /**
    * TagEditForm constructor.
