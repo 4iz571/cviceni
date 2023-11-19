@@ -17,13 +17,8 @@ use Dibi;
  */
 class MySqliResult implements Dibi\ResultDriver
 {
-	use Dibi\Strict;
-
-	/** @var \mysqli_result */
-	private $resultSet;
-
-	/** @var bool  Is buffered (seekable and countable)? */
-	private $buffered;
+	private \mysqli_result $resultSet;
+	private bool $buffered;
 
 
 	public function __construct(\mysqli_result $resultSet, bool $buffered)

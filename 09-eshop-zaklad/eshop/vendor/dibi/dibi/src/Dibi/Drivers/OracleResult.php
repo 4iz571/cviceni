@@ -17,8 +17,6 @@ use Dibi;
  */
 class OracleResult implements Dibi\ResultDriver
 {
-	use Dibi\Strict;
-
 	/** @var resource */
 	private $resultSet;
 
@@ -95,7 +93,7 @@ class OracleResult implements Dibi\ResultDriver
 	 * Returns the result set resource.
 	 * @return resource|null
 	 */
-	public function getResultResource()
+	public function getResultResource(): mixed
 	{
 		return is_resource($this->resultSet) ? $this->resultSet : null;
 	}
