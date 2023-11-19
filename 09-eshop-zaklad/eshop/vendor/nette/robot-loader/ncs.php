@@ -8,6 +8,6 @@
 declare(strict_types=1);
 
 return [
-	// src/Tracy/Debugger/Debugger.php
-	'ordered_class_elements' => false,
+	// RobotLoader.php
+	'Nette/statement_indentation' => false,
 ];

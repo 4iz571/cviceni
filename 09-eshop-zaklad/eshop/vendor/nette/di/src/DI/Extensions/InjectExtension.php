@@ -20,7 +20,10 @@ use Nette\Utils\Reflection;
  */
 final class InjectExtension extends DI\CompilerExtension
 {
-	public const TAG_INJECT = 'nette.inject';
+	public const TagInject = 'nette.inject';
+
+	/** @deprecated use InjectExtension::TagInject */
+	public const TAG_INJECT = self::TagInject;
 
 
 	public function getConfigSchema(): Nette\Schema\Schema
@@ -32,7 +35,7 @@ final class InjectExtension extends DI\CompilerExtension
 	public function beforeCompile()
 	{
 		foreach ($this->getContainerBuilder()->getDefinitions() as $def) {
-			if ($def->getTag(self::TAG_INJECT)) {
+			if ($def->getTag(self::TagInject)) {
 				$def = $def instanceof Definitions\FactoryDefinition
 					? $def->getResultDefinition()
 					: $def;
@@ -46,7 +49,7 @@ final class InjectExtension extends DI\CompilerExtension
 
 	private function updateDefinition(Definitions\ServiceDefinition $def): void
 	{
-		$resolvedType = (new DI\Resolver($this->getContainerBuilder()))->resolveEntityType($def->getFactory());
+		$resolvedType = (new DI\Resolver($this->getContainerBuilder()))->resolveEntityType($def->getCreator());
 		$class = is_subclass_of($resolvedType, $def->getType())
 			? $resolvedType
 			: $def->getType();
@@ -54,9 +57,9 @@ final class InjectExtension extends DI\CompilerExtension
 
 		foreach (self::getInjectProperties($class) as $property => $type) {
 			$builder = $this->getContainerBuilder();
-			$inject = new Definitions\Statement('$' . $property, [Definitions\Reference::fromType((string) $type)]);
+			$inject = new Definitions\Statement(['@self', '$' . $property], [Definitions\Reference::fromType((string) $type)]);
 			foreach ($setups as $key => $setup) {
-				if ($setup->getEntity() === $inject->getEntity()) {
+				if ($setup->getEntity() == $inject->getEntity()) { // intentionally ==
 					$inject = $setup;
 					$builder = null;
 					unset($setups[$key]);
@@ -67,9 +70,9 @@ final class InjectExtension extends DI\CompilerExtension
 		}
 
 		foreach (array_reverse(self::getInjectMethods($class)) as $method) {
-			$inject = new Definitions\Statement($method);
+			$inject = new Definitions\Statement(['@self', $method]);
 			foreach ($setups as $key => $setup) {
-				if ($setup->getEntity() === $inject->getEntity()) {
+				if ($setup->getEntity() == $inject->getEntity()) { // intentionally ==
 					$inject = $setup;
 					unset($setups[$key]);
 				}

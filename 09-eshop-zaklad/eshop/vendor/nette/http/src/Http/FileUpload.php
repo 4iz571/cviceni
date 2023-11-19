@@ -17,6 +17,7 @@ use Nette;
  *
  * @property-read string $name
  * @property-read string $sanitizedName
+ * @property-read string $untrustedFullPath
  * @property-read string|null $contentType
  * @property-read int $size
  * @property-read string $temporaryFile
@@ -28,10 +29,14 @@ final class FileUpload
 {
 	use Nette\SmartObject;
 
+	/** @deprecated */
 	public const IMAGE_MIME_TYPES = ['image/gif', 'image/png', 'image/jpeg', 'image/webp'];
 
 	/** @var string */
 	private $name;
+
+	/** @var string|null */
+	private $fullPath;
 
 	/** @var string|false|null */
 	private $type;
@@ -56,6 +61,7 @@ final class FileUpload
 		}
 
 		$this->name = $value['name'];
+		$this->fullPath = $value['full_path'] ?? null;
 		$this->size = $value['size'];
 		$this->tmpName = $value['tmp_name'];
 		$this->error = $value['error'];
@@ -102,6 +108,19 @@ final class FileUpload
 
 
 	/**
+	 * Returns the original full path as submitted by the browser during directory upload. Do not trust the value
+	 * returned by this method. A client could send a malicious directory structure with the intention to corrupt
+	 * or hack your application.
+	 *
+	 * The full path is only available in PHP 8.1 and above. In previous versions, this method returns the file name.
+	 */
+	public function getUntrustedFullPath(): string
+	{
+		return $this->fullPath ?? $this->name;
+	}
+
+
+	/**
 	 * Detects the MIME content type of the uploaded file based on its signature. Requires PHP extension fileinfo.
 	 * If the upload was not successful or the detection failed, it returns null.
 	 */
@@ -116,7 +135,7 @@ final class FileUpload
 
 
 	/**
-	 * Returns the path of the temporary location of the uploaded file.
+	 * Returns the size of the uploaded file in bytes.
 	 */
 	public function getSize(): int
 	{
@@ -193,12 +212,20 @@ final class FileUpload
 
 
 	/**
-	 * Returns true if the uploaded file is a JPEG, PNG, GIF, or WebP image.
+	 * Returns true if the uploaded file is an image supported by PHP.
 	 * Detection is based on its signature, the integrity of the file is not checked. Requires PHP extension fileinfo.
 	 */
 	public function isImage(): bool
 	{
-		return in_array($this->getContentType(), self::IMAGE_MIME_TYPES, true);
+		$flag = imagetypes();
+		$types = array_filter([
+			$flag & IMG_GIF ? 'image/gif' : null,
+			$flag & IMG_JPG ? 'image/jpeg' : null,
+			$flag & IMG_PNG ? 'image/png' : null,
+			$flag & IMG_WEBP ? 'image/webp' : null,
+			$flag & 256 ? 'image/avif' : null, // IMG_AVIF
+		]);
+		return in_array($this->getContentType(), $types, true);
 	}
 
 
