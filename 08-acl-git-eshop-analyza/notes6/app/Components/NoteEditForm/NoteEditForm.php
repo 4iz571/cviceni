@@ -36,6 +36,7 @@ class NoteEditForm extends Form{
   private NotesFacade $notesFacade;
   private UsersFacade $usersFacade;
   private User $user;
+  private Nette\Security\User $currentUser;
 
   /**
    * TagEditForm constructor.
@@ -93,7 +94,7 @@ class NoteEditForm extends Form{
         $values=$this->getValues('array');
         if (!empty($values['noteId'])){
           try{
-            $note=$this->notesFacade->getNote($values['categoryId']);
+            $note=$this->notesFacade->getNote($values['noteId']);
 
             //kontrola oprávnění k vybrané poznámce
             if (!$this->currentUser->isAllowed($note, 'edit')){
