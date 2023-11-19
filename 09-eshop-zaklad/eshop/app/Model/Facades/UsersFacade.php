@@ -72,6 +72,7 @@ class UsersFacade{
    * Metoda pro nalezení či zaregistrování uživatele podle facebookId, která vrací SimpleIdentity použitelnou pro přihlášení uživatele
    * @param FacebookUser $facebookUser
    * @return SimpleIdentity
+   * @throws \LeanMapper\Exception\InvalidArgumentException
    */
   public function getFacebookUserIdentity(FacebookUser $facebookUser):SimpleIdentity {
     try{
