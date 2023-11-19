@@ -45,14 +45,14 @@ $info = [
 	'HTTP method / response code' => isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] . ' / ' . http_response_code() : null,
 	'PHP' => PHP_VERSION,
 	'Xdebug' => extension_loaded('xdebug') ? phpversion('xdebug') : null,
-	'Tracy' => Debugger::VERSION,
+	'Tracy' => Debugger::Version,
 	'Server' => $_SERVER['SERVER_SOFTWARE'] ?? null,
 ];
 
 $info = array_map('strval', array_filter($info + (array) $this->data));
 
 $packages = $devPackages = [];
-if (class_exists('Composer\Autoload\ClassLoader', false)) {
+if (class_exists('Composer\Autoload\ClassLoader', autoload: false)) {
 	$baseDir = (function () {
 		@include dirname((new \ReflectionClass('Composer\Autoload\ClassLoader'))->getFileName()) . '/autoload_psr4.php'; // @ may not exist
 		return $baseDir;
@@ -74,11 +74,12 @@ if (class_exists('Composer\Autoload\ClassLoader', false)) {
 	}
 	#tracy-debug .tracy-InfoPanel td:nth-child(2) {
 		font-weight: bold;
-		width: 30%;
+		width: 60%;
 	}
 	#tracy-debug .tracy-InfoPanel td[colspan='2'] b {
 		float: right;
 		margin-left: 2em;
+		white-space: normal;
 	}
 </style>
 

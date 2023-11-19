@@ -44,6 +44,8 @@ final class LatteExtension extends Nette\DI\CompilerExtension
 			'extensions' => Expect::arrayOf('string|Nette\DI\Definitions\Statement'),
 			'templateClass' => Expect::string(),
 			'strictTypes' => Expect::bool(false),
+			'strictParsing' => Expect::bool(false),
+			'phpLinter' => Expect::string(),
 		]);
 	}
 
@@ -66,13 +68,17 @@ final class LatteExtension extends Nette\DI\CompilerExtension
 				->addSetup('setStrictTypes', [$config->strictTypes]);
 
 		if (version_compare(Latte\Engine::VERSION, '3', '<')) {
-			$latteFactory
-				->addSetup('setContentType', [$config->xhtml ? Latte\Compiler::CONTENT_XHTML : Latte\Compiler::CONTENT_HTML])
-				->addSetup('Nette\Utils\Html::$xhtml = ?', [$config->xhtml]);
+			$latteFactory->addSetup('setContentType', [$config->xhtml ? Latte\Compiler::CONTENT_XHTML : Latte\Compiler::CONTENT_HTML]);
+			if ($config->xhtml) {
+				$latteFactory->addSetup('Nette\Utils\Html::$xhtml = ?', [true]);
+			}
 			foreach ($config->macros as $macro) {
 				$this->addMacro($macro);
 			}
 		} else {
+			$latteFactory->addSetup('setStrictParsing', [$config->strictParsing])
+				->addSetup('enablePhpLinter', [$config->phpLinter]);
+
 			foreach ($config->extensions as $extension) {
 				$this->addExtension($extension);
 			}
@@ -116,10 +122,12 @@ final class LatteExtension extends Nette\DI\CompilerExtension
 		$factory->onCreate[] = function (ApplicationLatte\Template $template) use ($bar, $all) {
 			$control = $template->getLatte()->getProviders()['uiControl'] ?? null;
 			if ($all || $control instanceof Nette\Application\UI\Presenter) {
-				$bar->addPanel(new Latte\Bridges\Tracy\LattePanel(
-					$template->getLatte(),
-					$all && $control ? (new \ReflectionObject($control))->getShortName() : ''
-				));
+				$name = $all && $control ? (new \ReflectionObject($control))->getShortName() : '';
+				if (version_compare(Latte\Engine::VERSION, '3', '<')) {
+					$bar->addPanel(new Latte\Bridges\Tracy\LattePanel($template->getLatte(), $name));
+				} else {
+					$template->getLatte()->addExtension(new Latte\Bridges\Tracy\TracyExtension($name));
+				}
 			}
 		};
 	}

@@ -15,16 +15,9 @@ namespace Dibi;
  */
 class ResultIterator implements \Iterator, \Countable
 {
-	use Strict;
-
-	/** @var Result */
-	private $result;
-
-	/** @var mixed */
-	private $row;
-
-	/** @var int */
-	private $pointer = 0;
+	private Result $result;
+	private mixed $row;
+	private int $pointer = 0;
 
 
 	public function __construct(Result $result)
@@ -44,23 +37,21 @@ class ResultIterator implements \Iterator, \Countable
 	}
 
 
-	#[\ReturnTypeWillChange]
 	/**
 	 * Returns the key of the current element.
-	 * @return mixed
 	 */
-	public function key()
+	#[\ReturnTypeWillChange]
+	public function key(): mixed
 	{
 		return $this->pointer;
 	}
 
 
-	#[\ReturnTypeWillChange]
 	/**
 	 * Returns the current element.
-	 * @return mixed
 	 */
-	public function current()
+	#[\ReturnTypeWillChange]
+	public function current(): mixed
 	{
 		return $this->row;
 	}

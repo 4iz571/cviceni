@@ -14,10 +14,8 @@ use Nette\Application\ForbiddenRequestException;
  * @package App\FrontModule\Presenters
  */
 abstract class BasePresenter extends \Nette\Application\UI\Presenter {
-  /** @var UserLoginControlFactory $userLoginControlFactory */
-  private $userLoginControlFactory;
-  /** @var CartControlFactory $cartControlFactory*/
-  private $cartControlFactory;
+  private UserLoginControlFactory $userLoginControlFactory;
+  private CartControlFactory $cartControlFactory;
 
   /**
    * @throws ForbiddenRequestException

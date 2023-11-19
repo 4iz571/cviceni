@@ -19,11 +19,8 @@ use Tracy;
  */
 class DibiExtension22 extends Nette\DI\CompilerExtension
 {
-	/** @var bool|null */
-	private $debugMode;
-
-	/** @var bool|null */
-	private $cliMode;
+	private ?bool $debugMode;
+	private ?bool $cliMode;
 
 
 	public function __construct(?bool $debugMode = null, ?bool $cliMode = null)
@@ -66,7 +63,7 @@ class DibiExtension22 extends Nette\DI\CompilerExtension
 		if (class_exists(Tracy\Debugger::class)) {
 			$connection->addSetup(
 				[new Nette\DI\Statement('Tracy\Debugger::getBlueScreen'), 'addPanel'],
-				[[Dibi\Bridges\Tracy\Panel::class, 'renderException']]
+				[[Dibi\Bridges\Tracy\Panel::class, 'renderException']],
 			);
 		}
 

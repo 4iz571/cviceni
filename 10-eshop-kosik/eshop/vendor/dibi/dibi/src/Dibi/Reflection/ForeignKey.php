@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace Dibi\Reflection;
 
-use Dibi;
 
 
 /**
@@ -20,13 +19,10 @@ use Dibi;
  */
 class ForeignKey
 {
-	use Dibi\Strict;
-
-	/** @var string */
-	private $name;
+	private string $name;
 
 	/** @var array of [local, foreign, onDelete, onUpdate] */
-	private $references;
+	private array $references;
 
 
 	public function __construct(string $name, array $references)

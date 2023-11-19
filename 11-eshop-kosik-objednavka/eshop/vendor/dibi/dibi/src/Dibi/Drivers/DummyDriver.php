@@ -17,8 +17,6 @@ use Dibi;
  */
 class DummyDriver implements Dibi\Driver, Dibi\ResultDriver, Dibi\Reflector
 {
-	use Dibi\Strict;
-
 	public function disconnect(): void
 	{
 	}
@@ -57,7 +55,7 @@ class DummyDriver implements Dibi\Driver, Dibi\ResultDriver, Dibi\Reflector
 	}
 
 
-	public function getResource()
+	public function getResource(): mixed
 	{
 		return null;
 	}
@@ -171,8 +169,9 @@ class DummyDriver implements Dibi\Driver, Dibi\ResultDriver, Dibi\Reflector
 	}
 
 
-	public function getResultResource()
+	public function getResultResource(): mixed
 	{
+		return null;
 	}
 
 

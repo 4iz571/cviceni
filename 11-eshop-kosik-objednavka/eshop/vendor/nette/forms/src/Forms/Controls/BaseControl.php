@@ -126,7 +126,7 @@ abstract class BaseControl extends Nette\ComponentModel\Component implements Con
 	 */
 	public function loadHttpData(): void
 	{
-		$this->setValue($this->getHttpData(Form::DATA_TEXT));
+		$this->setValue($this->getHttpData(Form::DataText));
 	}
 
 
@@ -456,7 +456,7 @@ abstract class BaseControl extends Nette\ComponentModel\Component implements Con
 
 
 	/**
-	 * Adds a input filter callback.
+	 * Adds an input filter callback.
 	 * @return static
 	 */
 	public function addFilter(callable $filter)

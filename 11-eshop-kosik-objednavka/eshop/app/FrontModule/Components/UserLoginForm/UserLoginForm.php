@@ -20,9 +20,7 @@ class UserLoginForm extends Form{
 
   use SmartObject;
 
-  /** @var callable[] $onFinished */
   public array $onFinished = [];
-  /** @var callable[] $onCancel */
   public array $onCancel = [];
 
   /**

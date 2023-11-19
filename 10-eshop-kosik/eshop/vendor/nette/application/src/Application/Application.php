@@ -112,7 +112,7 @@ class Application
 	public function createInitialRequest(): Request
 	{
 		$params = $this->router->match($this->httpRequest);
-		$presenter = $params[UI\Presenter::PRESENTER_KEY] ?? null;
+		$presenter = $params[UI\Presenter::PresenterKey] ?? null;
 
 		if ($params === null) {
 			throw new BadRequestException('No route for HTTP request.');
@@ -122,7 +122,7 @@ class Application
 			throw new BadRequestException('Invalid request. Presenter is not achievable.');
 		}
 
-		unset($params[UI\Presenter::PRESENTER_KEY]);
+		unset($params[UI\Presenter::PresenterKey]);
 		return new Request(
 			$presenter,
 			$this->httpRequest->getMethod(),
@@ -182,7 +182,7 @@ class Application
 			$this->httpResponse->setCode($e instanceof BadRequestException ? ($e->getHttpCode() ?: 404) : 500);
 		}
 
-		$args = ['exception' => $e, 'request' => Arrays::last($this->requests) ?: null];
+		$args = ['exception' => $e, 'previousPresenter' => $this->presenter, 'request' => Arrays::last($this->requests) ?: null];
 		if ($this->presenter instanceof UI\Presenter) {
 			try {
 				$this->presenter->forward(":$this->errorPresenter:", $args);

@@ -35,14 +35,13 @@ class ProductEditForm extends Form{
   private ProductsFacade $productsFacade;
 
   /**
-   * TagEditForm constructor.
-   * @param Nette\ComponentModel\IContainer|null $parent
-   * @param string|null $name
+   * ProductEditForm constructor.
    * @param CategoriesFacade $categoriesFacade
    * @param ProductsFacade $productsFacade
-   * @noinspection PhpOptionalBeforeRequiredParametersInspection
+   * @param Nette\ComponentModel\IContainer|null $parent
+   * @param string|null $name
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null, CategoriesFacade $categoriesFacade, ProductsFacade $productsFacade){
+  public function __construct(CategoriesFacade $categoriesFacade, ProductsFacade $productsFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
     parent::__construct($parent, $name);
     $this->setRenderer(new Bs4FormRenderer(FormLayout::VERTICAL));
     $this->categoriesFacade=$categoriesFacade;
