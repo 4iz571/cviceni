@@ -27,16 +27,10 @@ use Dibi\Helpers;
  */
 class SqlsrvDriver implements Dibi\Driver
 {
-	use Dibi\Strict;
-
 	/** @var resource */
 	private $connection;
-
-	/** @var int|null  Affected rows */
-	private $affectedRows;
-
-	/** @var string */
-	private $version = '';
+	private ?int $affectedRows;
+	private string $version = '';
 
 
 	/** @throws Dibi\NotSupportedException */
@@ -60,7 +54,7 @@ class SqlsrvDriver implements Dibi\Driver
 			$options = $config['options'];
 
 			// Default values
-			$options['CharacterSet'] = $options['CharacterSet'] ?? 'UTF-8';
+			$options['CharacterSet'] ??= 'UTF-8';
 			$options['PWD'] = (string) $options['PWD'];
 			$options['UID'] = (string) $options['UID'];
 			$options['Database'] = (string) $options['Database'];
@@ -170,7 +164,7 @@ class SqlsrvDriver implements Dibi\Driver
 	 * Returns the connection resource.
 	 * @return resource|null
 	 */
-	public function getResource()
+	public function getResource(): mixed
 	{
 		return is_resource($this->connection) ? $this->connection : null;
 	}

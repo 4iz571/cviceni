@@ -91,7 +91,11 @@ class CartFacade{
     $this->cartRepository->persist($cart);
   }
 
-
+  /**
+   * CartFacade constructor.
+   * @param CartRepository $cartRepository
+   * @param CartItemRepository $cartItemRepository
+   */
   public function __construct(CartRepository $cartRepository, CartItemRepository $cartItemRepository){
     $this->cartRepository=$cartRepository;
     $this->cartItemRepository=$cartItemRepository;

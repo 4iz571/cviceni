@@ -2,6 +2,7 @@
   
 namespace App\Model\Api\Facebook;
 
+use Facebook\Exceptions\FacebookSDKException;
 use Facebook\Facebook;
 
 /**
@@ -11,8 +12,7 @@ use Facebook\Facebook;
 class FacebookApi{
   private string $appId;
   private string $appSecret;
-
-  private \Facebook\Facebook $facebook;
+  private Facebook $facebook;
 
 
   public function __construct(string $appId, string $appSecret){
@@ -23,10 +23,10 @@ class FacebookApi{
   /**
    * Metoda vracející instanci Facebook SDK
    * @return Facebook
-   * @throws \Facebook\Exceptions\FacebookSDKException
+   * @throws FacebookSDKException
    */
-  public function getFacebook():Facebook {
-    if ($this->facebook == null){
+  public function getFacebook():Facebook{
+    if (empty($this->facebook)){
       $this->facebook=new Facebook([
         'app_id'=>$this->appId,
         'app_secret'=>$this->appSecret
@@ -39,7 +39,7 @@ class FacebookApi{
    * Metoda pro získání adresy pro přihlášení na Facebook - vrátí nás na redirectUrl
    * @param string $redirectUrl
    * @return string
-   * @throws \Facebook\Exceptions\FacebookSDKException
+   * @throws FacebookSDKException
    */
   public function getLoginUrl(string $redirectUrl):string {
     //inicializujeme helper pro vytvoření odkazu
@@ -51,7 +51,7 @@ class FacebookApi{
   /**
    * Metoda pro získání aktuálního uživatele z Facebooku
    * @return FacebookUser
-   * @throws \Facebook\Exceptions\FacebookSDKException
+   * @throws FacebookSDKException
    * @throws \Exception
    */
   public function getFacebookUser():FacebookUser {

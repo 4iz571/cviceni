@@ -17,28 +17,21 @@ namespace Dibi;
  */
 class Result implements IDataSource
 {
-	use Strict;
+	private ?ResultDriver $driver;
 
-	/** @var ResultDriver|null */
-	private $driver;
+	/** Translate table */
+	private array $types = [];
+	private ?Reflection\Result $meta;
 
-	/** @var array  Translate table */
-	private $types = [];
+	/** Already fetched? Used for allowance for first seek(0) */
+	private bool $fetched = false;
 
-	/** @var Reflection\Result|null */
-	private $meta;
-
-	/** @var bool  Already fetched? Used for allowance for first seek(0) */
-	private $fetched = false;
-
-	/** @var string|null  returned object class */
-	private $rowClass = Row::class;
+	/** returned object class */
+	private ?string $rowClass = Row::class;
 
 	/** @var callable|null  returned object factory */
 	private $rowFactory;
-
-	/** @var array  format */
-	private $formats = [];
+	private array $formats = [];
 
 
 	public function __construct(ResultDriver $driver, bool $normalize = true)
@@ -133,7 +126,7 @@ class Result implements IDataSource
 	/**
 	 * Set fetched object class. This class should extend the Row class.
 	 */
-	public function setRowClass(?string $class): self
+	public function setRowClass(?string $class): static
 	{
 		$this->rowClass = $class;
 		return $this;
@@ -152,7 +145,7 @@ class Result implements IDataSource
 	/**
 	 * Set a factory to create fetched object instances. These should extend the Row class.
 	 */
-	public function setRowFactory(callable $callback): self
+	public function setRowFactory(callable $callback): static
 	{
 		$this->rowFactory = $callback;
 		return $this;
@@ -162,9 +155,8 @@ class Result implements IDataSource
 	/**
 	 * Fetches the row at current position, process optional type conversion.
 	 * and moves the internal cursor to the next position
-	 * @return Row|array|null
 	 */
-	final public function fetch()
+	final public function fetch(): mixed
 	{
 		$row = $this->getResultDriver()->fetch(true);
 		if ($row === null) {
@@ -185,9 +177,9 @@ class Result implements IDataSource
 
 	/**
 	 * Like fetch(), but returns only first field.
-	 * @return mixed value on success, null if no next record
+	 * Returns value on success, null if no next record
 	 */
-	final public function fetchSingle()
+	final public function fetchSingle(): mixed
 	{
 		$row = $this->getResultDriver()->fetch(true);
 		if ($row === null) {
@@ -206,7 +198,7 @@ class Result implements IDataSource
 	 */
 	final public function fetchAll(?int $offset = null, ?int $limit = null): array
 	{
-		$limit = $limit ?? -1;
+		$limit ??= -1;
 		$this->seek($offset ?: 0);
 		$row = $this->fetch();
 		if (!$row) {
@@ -238,7 +230,7 @@ class Result implements IDataSource
 	 */
 	final public function fetchAssoc(string $assoc): array
 	{
-		if (strpos($assoc, ',') !== false) {
+		if (str_contains($assoc, ',')) {
 			return $this->oldFetchAssoc($assoc);
 		}
 
@@ -495,7 +487,7 @@ class Result implements IDataSource
 				$row[$key] = ((bool) $value) && $value !== 'f' && $value !== 'F';
 
 			} elseif ($type === Type::DATETIME || $type === Type::DATE || $type === Type::TIME) {
-				if ($value && substr((string) $value, 0, 7) !== '0000-00') { // '', null, false, '0000-00-00', ...
+				if ($value && !str_starts_with((string) $value, '0000-00')) { // '', null, false, '0000-00-00', ...
 					$value = new DateTime($value);
 					$row[$key] = $format ? $value->format($format) : $value;
 				} else {
@@ -529,7 +521,7 @@ class Result implements IDataSource
 	 * Define column type.
 	 * @param  string|null  $type  use constant Type::*
 	 */
-	final public function setType(string $column, ?string $type): self
+	final public function setType(string $column, ?string $type): static
 	{
 		$this->types[$column] = $type;
 		return $this;
@@ -557,7 +549,7 @@ class Result implements IDataSource
 	/**
 	 * Sets type format.
 	 */
-	final public function setFormat(string $type, ?string $format): self
+	final public function setFormat(string $type, ?string $format): static
 	{
 		$this->formats[$type] = $format;
 		return $this;
@@ -567,7 +559,7 @@ class Result implements IDataSource
 	/**
 	 * Sets type formats.
 	 */
-	final public function setFormats(array $formats): self
+	final public function setFormats(array $formats): static
 	{
 		$this->formats = $formats;
 		return $this;
@@ -591,7 +583,7 @@ class Result implements IDataSource
 	 */
 	public function getInfo(): Reflection\Result
 	{
-		if ($this->meta === null) {
+		if (!isset($this->meta)) {
 			$this->meta = new Reflection\Result($this->getResultDriver());
 		}
 

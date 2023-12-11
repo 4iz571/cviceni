@@ -17,33 +17,14 @@ use Dibi;
  */
 class MySqliResult implements Dibi\ResultDriver
 {
-	use Dibi\Strict;
-
-	/** @var \mysqli_result */
-	private $resultSet;
-
-	/** @var bool */
-	private $autoFree = true;
-
-	/** @var bool  Is buffered (seekable and countable)? */
-	private $buffered;
+	private \mysqli_result $resultSet;
+	private bool $buffered;
 
 
 	public function __construct(\mysqli_result $resultSet, bool $buffered)
 	{
 		$this->resultSet = $resultSet;
 		$this->buffered = $buffered;
-	}
-
-
-	/**
-	 * Automatically frees the resources allocated for this result set.
-	 */
-	public function __destruct()
-	{
-		if ($this->autoFree && $this->getResultResource()) {
-			@$this->free();
-		}
 	}
 
 
@@ -136,7 +117,6 @@ class MySqliResult implements Dibi\ResultDriver
 	 */
 	public function getResultResource(): \mysqli_result
 	{
-		$this->autoFree = false;
 		return $this->resultSet;
 	}
 
