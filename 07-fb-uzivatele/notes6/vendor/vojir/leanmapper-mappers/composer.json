@@ -1,0 +1,23 @@
+{
+    "name": "vojir/leanmapper-mappers",
+    "type": "library",
+    "description": "Basic camelCase to underdash mappers for LeanMapper",
+    "homepage": "https://github.com/vojir/LeanMapper-Mappers.git",
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Stanislav Vojíř",
+            "email": "stanislav.vojir@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+        "tharos/leanmapper": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Vojir\\LeanMapper\\Mappers\\": "src/"
+        }
+    }
+}

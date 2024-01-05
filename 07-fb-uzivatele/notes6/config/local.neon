@@ -1,0 +1,15 @@
+parameters:
+    database:
+        driver: mysqli
+        host: localhost
+        username: xname
+        password: heslokdatabazi
+        database: xname
+        charset: utf8mb4
+    facebook:
+        appId: 'TODO'
+        secret: 'TODO'
+
+php:
+	date.timezone: Europe/Prague
+	error_reporting: E_ALL &~E_USER_WARNING
