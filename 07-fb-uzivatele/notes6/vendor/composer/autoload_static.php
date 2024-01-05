@@ -15,9 +15,22 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         array (
             'Vojir\\LeanMapper\\Mappers\\' => 25,
         ),
+        'P' => 
+        array (
+            'PragmaRX\\Google2FA\\' => 19,
+            'ParagonIE\\ConstantTime\\' => 23,
+        ),
         'F' => 
         array (
             'Facebook\\' => 9,
+        ),
+        'D' => 
+        array (
+            'DASPRiD\\Enum\\' => 13,
+        ),
+        'B' => 
+        array (
+            'BaconQrCode\\' => 12,
         ),
         'A' => 
         array (
@@ -30,9 +43,25 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         array (
             0 => __DIR__ . '/..' . '/vojir/leanmapper-mappers/src',
         ),
+        'PragmaRX\\Google2FA\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/pragmarx/google2fa/src',
+        ),
+        'ParagonIE\\ConstantTime\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/paragonie/constant_time_encoding/src',
+        ),
         'Facebook\\' => 
         array (
             0 => __DIR__ . '/..' . '/nickdnk/graph-sdk/src/Facebook',
+        ),
+        'DASPRiD\\Enum\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/dasprid/enum/src',
+        ),
+        'BaconQrCode\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/bacon/bacon-qr-code/src',
         ),
         'App\\' => 
         array (

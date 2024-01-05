@@ -7,6 +7,10 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Vojir\\LeanMapper\\Mappers\\' => array($vendorDir . '/vojir/leanmapper-mappers/src'),
+    'PragmaRX\\Google2FA\\' => array($vendorDir . '/pragmarx/google2fa/src'),
+    'ParagonIE\\ConstantTime\\' => array($vendorDir . '/paragonie/constant_time_encoding/src'),
     'Facebook\\' => array($vendorDir . '/nickdnk/graph-sdk/src/Facebook'),
+    'DASPRiD\\Enum\\' => array($vendorDir . '/dasprid/enum/src'),
+    'BaconQrCode\\' => array($vendorDir . '/bacon/bacon-qr-code/src'),
     'App\\' => array($baseDir . '/app'),
 );
