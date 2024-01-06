@@ -10,10 +10,15 @@ use App\Components\UserLoginForm\UserLoginForm;
 use App\Components\UserLoginForm\UserLoginFormFactory;
 use App\Components\UserRegistrationForm\UserRegistrationForm;
 use App\Components\UserRegistrationForm\UserRegistrationFormFactory;
+use App\Components\UserSecretCodeForm\UserSecretCodeForm;
+use App\Components\UserSecretCodeForm\UserSecretCodeFormFactory;
 use App\Model\Api\Facebook\FacebookApi;
 use App\Model\Facades\UsersFacade;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
 use Nette;
 use Nette\Application\BadRequestException;
+use PragmaRX\Google2FA\Google2FA;
 
 /**
  * Class UserPresenter - presenter pro akce týkající se uživatelů
@@ -25,7 +30,71 @@ class UserPresenter extends BasePresenter{
   private UserRegistrationFormFactory $userRegistrationFormFactory;
   private ForgottenPasswordFormFactory $forgottenPasswordFormFactory;
   private NewPasswordFormFactory $newPasswordFormFactory;
+  private UserSecretCodeFormFactory $userSecretCodeFormFactory;
   private FacebookApi $facebookApi;
+
+  /**
+   * Akce pro nastavení 2FA
+   * @throws \Exception
+   */
+  public function renderConfig2fa():void{
+    $currentUser=$this->usersFacade->getUser($this->user->id);
+    $this->template->currentUser=$currentUser;
+
+    if (empty($currentUser->secretCode)){
+      #region dáme uživateli možnost nastavit si 2FA
+      $form = $this->getComponent('newUserSecretCodeForm');
+
+      //vygenerujeme nový secret kód
+      $google2FA = new Google2FA();
+
+      if ($form->isSubmitted()){
+        $newSecretCode=$form->getValues('array')['new_secret_code'];
+      }else{
+        $newSecretCode=$google2FA->generateSecretKey();
+        $form->setDefaults([
+          'new_secret_code'=>$newSecretCode
+        ]);
+      }
+
+      #region sestavení URL a vygenerování QR kódu
+      $qrCodeUrl=$google2FA->getQRCodeUrl(
+        'NOTES6',//TODO tohle by bylo vhodnější mít v configu
+        $currentUser->email,
+        $newSecretCode
+      );
+
+      $qrCode = new QrCode($qrCodeUrl);
+      $qrCodeImage = (new PngWriter())->write($qrCode)->getDataUri();
+      #endregion sestavení URL a vygenerování QR kódu
+
+      $this->template->qrCodeImage = $qrCodeImage;
+      #endregion dáme uživateli možnost nastavit si 2FA
+    }
+  }
+
+  /**
+   * Akce pro smazání 2FA
+   * @throws Nette\Application\AbortException
+   */
+  public function actionUnset2fa():void {
+    $currentUser=$this->usersFacade->getUser($this->user->id);
+    $currentUser->secretCode=null;
+    $this->usersFacade->saveUser($currentUser);
+    $this->flashMessage('Váš účet není aktuálně chráněn jednorázovým kódem v rámci 2FA.');
+
+    $this->redirect('config2fa');
+  }
+
+  /**
+   * Akce pro ověření 2FA - kontrola, jestli je pro daného uživatele vyžadována
+   * @throws Nette\Application\AbortException
+   */
+  public function actionLogin2fa():void {
+    if (!$this->user->isInRole('require2fa')){
+      $this->redirect('Homepage:default');
+    }
+  }
   
   /**
    * Akce pro odhlášení uživatele
@@ -206,6 +275,44 @@ class UserPresenter extends BasePresenter{
     return $form;
   }
 
+  /**
+   * Formulář pro nastavení 2FA secret code pro uživatele
+   * @return UserSecretCodeForm
+   */
+  protected function createComponentNewUserSecretCodeForm():UserSecretCodeForm {
+    $form = $this->userSecretCodeFormFactory->create();
+    $form->createSubcomponents(true);
+
+    $form->onFinished[]=function(string $message = ''){
+      if (!empty($message)){
+        $this->flashMessage($message);
+      }
+
+      $this->redirect('Homepage:default');
+    };
+
+    return $form;
+  }
+
+  /**
+   * Formulář pro ověření 2FA secret code pro uživatele
+   * @return UserSecretCodeForm
+   */
+  protected function createComponentValidateUserSecretCodeForm():UserSecretCodeForm {
+    $form = $this->userSecretCodeFormFactory->create();
+    $form->createSubcomponents(false);
+
+    $form->onFinished[]=function(string $message = ''){
+      if (!empty($message)){
+        $this->flashMessage($message);
+      }
+
+      $this->redirect('Homepage:default');
+    };
+
+    return $form;
+  }
+
   #region injections
   public function injectUsersFacade(UsersFacade $usersFacade):void{
     $this->usersFacade=$usersFacade;
@@ -225,6 +332,10 @@ class UserPresenter extends BasePresenter{
 
   public function injectNewPasswordFormFactory(NewPasswordFormFactory $newPasswordFormFactory):void{
     $this->newPasswordFormFactory=$newPasswordFormFactory;
+  }
+
+  public function injectUserSecretCodeFormFactory(UserSecretCodeFormFactory $userSecretCodeFormFactory):void {
+    $this->userSecretCodeFormFactory=$userSecretCodeFormFactory;
   }
 
   public function injectFacebookApi( FacebookApi $facebookApi):void{

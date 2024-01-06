@@ -23,6 +23,10 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter {
 
     if (!$this->user->isAllowed($presenterName,$action)){
       if ($this->user->isLoggedIn()){
+        if ($this->user->isInRole('require2fa')){
+          //u tohoto uživatele vyžadujeme ověření 2FA
+          $this->redirect('User:login2fa');
+        }
         throw new ForbiddenRequestException();
       }else{
         $this->flashMessage('Pro zobrazení požadovaného obsahu se musíte přihlásit!','warn');

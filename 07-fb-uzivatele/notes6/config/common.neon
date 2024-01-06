@@ -31,6 +31,7 @@ services:
 	- App\Components\UserRegistrationForm\UserRegistrationFormFactory
 	- App\Components\ForgottenPasswordForm\ForgottenPasswordFormFactory
 	- App\Components\NewPasswordForm\NewPasswordFormFactory
+	- App\Components\UserSecretCodeForm\UserSecretCodeFormFactory
 
 	- App\Model\Facades\CategoriesFacade
 	- App\Model\Facades\NotesFacade
