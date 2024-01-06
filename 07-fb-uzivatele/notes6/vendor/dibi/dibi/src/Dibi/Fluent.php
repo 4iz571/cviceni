@@ -279,19 +279,17 @@ class Fluent implements IDataSource
 	/**
 	 * Generates and executes SQL query.
 	 * Returns result set or number of affected rows
+	 * @return ($return is \dibi::IDENTIFIER|\dibi::AFFECTED_ROWS ? int : Result)
 	 * @throws Exception
 	 */
 	public function execute(?string $return = null): Result|int|null
 	{
 		$res = $this->query($this->_export());
-		switch ($return) {
-			case \dibi::IDENTIFIER:
-				return $this->connection->getInsertId();
-			case \dibi::AFFECTED_ROWS:
-				return $this->connection->getAffectedRows();
-			default:
-				return $res;
-		}
+		return match ($return) {
+			\dibi::IDENTIFIER => $this->connection->getInsertId(),
+			\dibi::AFFECTED_ROWS => $this->connection->getAffectedRows(),
+			default => $res,
+		};
 	}
 
 

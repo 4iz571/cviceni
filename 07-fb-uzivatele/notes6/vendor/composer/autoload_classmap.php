@@ -8,6 +8,7 @@ $baseDir = dirname($vendorDir);
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'Dibi\\Bridges\\Nette\\DibiExtension22' => $vendorDir . '/dibi/dibi/src/Dibi/Bridges/Nette/DibiExtension22.php',
+    'Dibi\\Bridges\\Nette\\DibiExtension3' => $vendorDir . '/dibi/dibi/src/Dibi/Bridges/Nette/DibiExtension3.php',
     'Dibi\\Bridges\\Tracy\\Panel' => $vendorDir . '/dibi/dibi/src/Dibi/Bridges/Tracy/Panel.php',
     'Dibi\\Connection' => $vendorDir . '/dibi/dibi/src/Dibi/Connection.php',
     'Dibi\\ConstraintViolationException' => $vendorDir . '/dibi/dibi/src/Dibi/exceptions.php',
@@ -301,7 +302,9 @@ return array(
     'Nette\\Forms\\Controls\\Checkbox' => $vendorDir . '/nette/forms/src/Forms/Controls/Checkbox.php',
     'Nette\\Forms\\Controls\\CheckboxList' => $vendorDir . '/nette/forms/src/Forms/Controls/CheckboxList.php',
     'Nette\\Forms\\Controls\\ChoiceControl' => $vendorDir . '/nette/forms/src/Forms/Controls/ChoiceControl.php',
+    'Nette\\Forms\\Controls\\ColorPicker' => $vendorDir . '/nette/forms/src/Forms/Controls/ColorPicker.php',
     'Nette\\Forms\\Controls\\CsrfProtection' => $vendorDir . '/nette/forms/src/Forms/Controls/CsrfProtection.php',
+    'Nette\\Forms\\Controls\\DateTimeControl' => $vendorDir . '/nette/forms/src/Forms/Controls/DateTimeControl.php',
     'Nette\\Forms\\Controls\\HiddenField' => $vendorDir . '/nette/forms/src/Forms/Controls/HiddenField.php',
     'Nette\\Forms\\Controls\\ImageButton' => $vendorDir . '/nette/forms/src/Forms/Controls/ImageButton.php',
     'Nette\\Forms\\Controls\\MultiChoiceControl' => $vendorDir . '/nette/forms/src/Forms/Controls/MultiChoiceControl.php',

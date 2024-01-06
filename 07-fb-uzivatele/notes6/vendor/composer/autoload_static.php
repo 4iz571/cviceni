@@ -24,6 +24,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         array (
             'Facebook\\' => 9,
         ),
+        'E' => 
+        array (
+            'Endroid\\QrCode\\' => 15,
+        ),
         'D' => 
         array (
             'DASPRiD\\Enum\\' => 13,
@@ -55,6 +59,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         array (
             0 => __DIR__ . '/..' . '/nickdnk/graph-sdk/src/Facebook',
         ),
+        'Endroid\\QrCode\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/endroid/qr-code/src',
+        ),
         'DASPRiD\\Enum\\' => 
         array (
             0 => __DIR__ . '/..' . '/dasprid/enum/src',
@@ -82,6 +90,7 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Dibi\\Bridges\\Nette\\DibiExtension22' => __DIR__ . '/..' . '/dibi/dibi/src/Dibi/Bridges/Nette/DibiExtension22.php',
+        'Dibi\\Bridges\\Nette\\DibiExtension3' => __DIR__ . '/..' . '/dibi/dibi/src/Dibi/Bridges/Nette/DibiExtension3.php',
         'Dibi\\Bridges\\Tracy\\Panel' => __DIR__ . '/..' . '/dibi/dibi/src/Dibi/Bridges/Tracy/Panel.php',
         'Dibi\\Connection' => __DIR__ . '/..' . '/dibi/dibi/src/Dibi/Connection.php',
         'Dibi\\ConstraintViolationException' => __DIR__ . '/..' . '/dibi/dibi/src/Dibi/exceptions.php',
@@ -375,7 +384,9 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         'Nette\\Forms\\Controls\\Checkbox' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/Checkbox.php',
         'Nette\\Forms\\Controls\\CheckboxList' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/CheckboxList.php',
         'Nette\\Forms\\Controls\\ChoiceControl' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/ChoiceControl.php',
+        'Nette\\Forms\\Controls\\ColorPicker' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/ColorPicker.php',
         'Nette\\Forms\\Controls\\CsrfProtection' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/CsrfProtection.php',
+        'Nette\\Forms\\Controls\\DateTimeControl' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/DateTimeControl.php',
         'Nette\\Forms\\Controls\\HiddenField' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/HiddenField.php',
         'Nette\\Forms\\Controls\\ImageButton' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/ImageButton.php',
         'Nette\\Forms\\Controls\\MultiChoiceControl' => __DIR__ . '/..' . '/nette/forms/src/Forms/Controls/MultiChoiceControl.php',
