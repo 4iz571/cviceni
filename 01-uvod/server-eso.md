@@ -13,7 +13,7 @@
 ### Přístupové údaje
  * protokol: **SFTP**
  * port: **22**
- * server: **esotemp.vse.cz**
+ * server: **eso.vse.cz**
  * login: **xname**
  * heslo: **jako do školní sítě**
 

@@ -39,9 +39,9 @@ namespace App\Model;
 class JmenoTridy extends NadrazenaTrida implements Rozhrani1,Rozhrani2 {
   const KONSTANTA = "hodnota"; //definice konstanty
   private string $x = 'a'; //definice private property s výchozí hodnotou
-  public $y;        //veřejně dostupná property
+  public $y;        //veřejně dostupná property bez datového typu
   protected $z;     //property chráněná proti překrytí v dědičné třídě
-  static $a; //statická proměnná třídy
+  static string $a; //statická proměnná třídy
 
   /**
    *  Konstruktor
@@ -169,6 +169,38 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
     ```
 - pro serializaci objektů je potřeba využívat magické metody *__serialize* a *__unserialize*  
 
+## Pojďme si to ověřit na kousku kódu
+```php
+class Test {
+  private string|int $hodnota;
+  public States $state;
+
+  public function __construct(
+    public int $a = 1,
+    private int $b = 2,
+    private int $c = 2,
+  ){
+    $this->hodnota=$a+$b+$c;
+  }
+
+  public function vypis():void {
+    echo $this->a.' '.$this->b;
+    echo $this->hodnota;
+  }
+}
+
+enum States{
+  case new;
+  case edited;
+  case submitted;
+}
+
+$test1 = new Test(b: 0);
+$test1->state=States::new;
+
+var_dump($test1);
+```
+
 ## Vývojové prostředí
 :point_right:
 - vývoj lokálně vs. na serveru
@@ -180,7 +212,7 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
     - [PhpStorm](https://www.jetbrains.com/phpstorm/)
     - VSCode
     - Netbeans    
-- [vhodná rozšíření pro Nette](https://doc.nette.org/cs/3.1/editors-and-tools)
+- [vhodná rozšíření pro Nette](https://doc.nette.org/cs/best-practices/editors-and-tools)
 
 :house:
 - **připravte si na svém vlastním počítači vhodné vývojové prostředí pro programování během tohoto semestru**
