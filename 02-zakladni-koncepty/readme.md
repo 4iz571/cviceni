@@ -46,7 +46,7 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
     ```
 4. stáhneme composer
     ```shell script
-    wget https://getcomposer.org/download/2.6.3/composer.phar
+    wget https://getcomposer.org/download/2.7.9/composer.phar
     ```
 5. pomocí composeru vygenerujeme ukázkovou aplikaci, se kterou budeme dále pracovat
     ```shell script
@@ -82,7 +82,7 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
 - tj. například presenter bude mít jako závislosti definované třídy z modelu, ale také factory třídy komponent, které používá (např. formulářů)
 
 :blue_book:
-- [Dependency Injection na webu Nette](https://doc.nette.org/cs/3.0/dependency-injection)    
+- [Dependency Injection na webu Nette](https://doc.nette.org/cs/dependency-injection)    
     
 ### Průchod aplikací
 :point_right:
@@ -99,13 +99,25 @@ Nejprve bude nutné stáhnout composer. Na vlastním počítači jej doporučuji
    
 ### Adresářová struktura projektu
 :point_right:
-Základní adresářová struktura:
+Základní adresářová struktura - varianta členění kódu podle typu:
 - *app* - tady najdeme celý "výkonný" kód aplikace
     - *Presenters*
         - *templates*
     - *Model*
     - *Router* - definice "cest" v aplikaci
-    - bootstrap.php - vstupní soubor aplikace, který iniciuje aplikaci a spustí vhodný presenter
+    - Bootstrap.php - vstupní soubor aplikace, který iniciuje aplikaci a spustí vhodný presenter
+- *config* - tady najdeme neon soubory s konfigurací
+- *log* - výpisy chyb a další logy
+- *temp* - adresář pro dočasné soubory, např. v podadresáři *cache*
+- *vendor* - složka vygenerovaná composerem
+- *www* - jediná složka, která by měla být volně dostupná přes web; *index.php*, styly, js...
+
+Základní adresářová struktura - varianta členění kódu podle jednotlivých presenterů:
+- *app* - tady najdeme celý "výkonný" kód aplikace
+    - *Core* - router pro definice "cest" v aplikaci a další "centrální" třídy
+    - *UI* - složky podle jednotlivých presenterů, v každé z nich presenter a šablony
+    - *Model*    
+    - Bootstrap.php - vstupní soubor aplikace, který iniciuje aplikaci a spustí vhodný presenter
 - *config* - tady najdeme neon soubory s konfigurací
 - *log* - výpisy chyb a další logy
 - *temp* - adresář pro dočasné soubory, např. v podadresáři *cache*
@@ -196,7 +208,7 @@ public function actionData(): void {
 ```    
 
 :blue_book:
-- [Manuál k presenterům na webu Nette](https://doc.nette.org/cs/3.1/presenters)
+- [Manuál k presenterům na webu Nette](https://doc.nette.org/cs/application/presenters)
 
 ### Šablony
 :point_right:

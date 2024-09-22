@@ -121,8 +121,9 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
 - definice properties v konstruktoru třídy
     ```php
     class DemoProp {
-      public function __construct(){
+      public function __construct(
         public int $a = 1;
+      ){        
       }
     }
     ```
