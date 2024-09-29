@@ -42,7 +42,7 @@ class CategoriesRepository{
    * @param int $limit = 1000
    * @return array
    */
-  public function findCategories(array $params=null,int $offset=0,int $limit=1000):array {
+  public function findCategories(?array $params=null,int $offset=0,int $limit=1000):array {
     if (isset($params['order'])){
       $order=$params['order'];
       unset($params['order']);
@@ -62,7 +62,7 @@ class CategoriesRepository{
    * @param array|null $params
    * @return int
    */
-  public function findCategoriesCount(array $params=null):int {
+  public function findCategoriesCount(?array $params=null):int {
     if (!empty($params)){
       return $this->database->fetchField('SELECT count(*) FROM category WHERE ',$params);
     }else{

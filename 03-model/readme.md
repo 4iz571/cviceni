@@ -1,4 +1,4 @@
-# 2. Model aplikace
+# 3. Model aplikace
 
 ## Opakování
 :point_right:

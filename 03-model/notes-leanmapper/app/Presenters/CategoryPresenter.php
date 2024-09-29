@@ -10,14 +10,14 @@ use Nette\Forms\Controls\SubmitButton;
 class CategoryPresenter extends \Nette\Application\UI\Presenter {
   private CategoriesFacade $categoriesFacade;
 
-  public function actionDefault(){
+  public function actionDefault():void {
     $this->redirect('list');
   }
 
   /**
    * Akce pro zobrazení seznamu dostupných kategorií
    */
-  public function renderList(){
+  public function renderList():void {
     $this->template->categories=$this->categoriesFacade->findCategories(['order'=>'title']);
   }
 
@@ -90,7 +90,7 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
     return $form;
   }
 
-  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade){
+  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade):void {
     $this->categoriesFacade=$categoriesFacade;
   }
 }
