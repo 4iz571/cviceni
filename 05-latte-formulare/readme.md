@@ -58,7 +58,7 @@
 
 ### Další poznámky k Latte
 :point_right: :blue_book:
-- podle zvoleného vývojového prostředí doporučuji nainstalovat odpovídající pluginy ([návod zde](https://latte.nette.org/cs/integrations))
+- podle zvoleného vývojového prostředí doporučuji nainstalovat odpovídající pluginy ([návod zde](https://latte.nette.org/cs/recipes))
 - volitelně se podívejte na možnosti [definice datových typů pro šablony](https://latte.nette.org/cs/type-system)
     - na cvičeních si vystačíme s ```{varType string $text}```
 
@@ -107,11 +107,11 @@
 - je v tom trošku "magie", ale v presenteru či komponentách můžeme mít proměnné, které chceme automaticky přidávat ve všech požadavcích
     - např. zvolený tag, podle kterého filtrujeme, chceme mít k dispozici i při návratu z editace úkolu
     - obdobně můžeme chtít předávat např. aktuálně zvolený jazyk ve vícejazyčné aplikaci
-- takovouto proměnnou označíme dokumentačním komentářem:
+- takovouto proměnnou označíme atributem:
     ```php
     class MujPresenter extends Nette\Application\UI\Presenter {
-      /** @persistent */
-      public int $page; //pozor, nastavení typu funguje až od PHP 7.4
+      #[Persistent]
+      public int $page; //persistentní parametr předávaný mezi jednotlivými requesty
     }    
     ```
 - z hlediska Nette bude proměnná automaticky přidána jako parametr ke všem požadavkům
@@ -122,7 +122,21 @@
         <a href="{link default page=>2}">další strana</a>
         ```   
 - pokud budeme chtít nastavení persistentní proměnné smazat, nastavíme jí hodnotu ```null```
-- **POZOR:** nezapomeňte, že jde o data získaná od uživatele (může je podstrčit do URL) => musíme zkontrolovat, že např. daná stránka vůbec je k dispozici 
+- **POZOR:** nezapomeňte, že jde o data získaná od uživatele (může je podstrčit do URL) => musíme zkontrolovat, že např. daná stránka vůbec je k dispozici
+- volitelně lze napsat vlastní validaci persistentních parametrů, např.
+    ```php
+    class MujPresenter extends Nette\Application\UI\Presenter {
+      #[Persistent]
+      public int $page = 1; //persistentní parametr předávaný mezi jednotlivými requesty
+  
+      public function loadState(array $params):void {
+        parent::loadState($params);
+        if ($this->page<1){
+          $this->error();//vygenerujeme chybu
+        } 
+      }
+    }    
+    ```
 
 ### Paginator
 :point_right:
@@ -179,15 +193,7 @@ protected function createComponentCartItemForm(): Multiplier {
 ```
 
 :blue_book:
-- [návod k použití multiplieru](https://doc.nette.org/cs/3.1/cookbook/multiplier)
-
----
-
-## Smazání adresáře cache
-:point_right:
-- pár z vás narazilo na potřebu smazat adresář *temp/cache*, ale smazání přes sftp připojení k serveru eso.vse.cz nefunguje. Problém je v uživatelských právech, neboť dané soubory byly vytvořeny z PHP, které běží na serveru pod vlastním uživatelem
-    - => smazat daný obsah může zase PHP
-- nahrajte do složky *www* soubor [deleteCacheDir.php](./deleteCacheDir.php) a načtěte jej přes prohlížeč     
+- [návod k použití multiplieru](https://doc.nette.org/cs/application/multiplier) 
 
 ---
 

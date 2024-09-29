@@ -139,7 +139,7 @@ $id = $database->getInsertId();
 ```    
 
 :blue_book:
-- [Database Core na webu Nette](https://doc.nette.org/cs/3.1/database-core) - doporučuji se podívat na příklady
+- [Database Core na webu Nette](https://doc.nette.org/cs/database/core) - doporučuji se podívat na příklady
 - [Ukázkový příklad notes-nettedb](./notes-nettedb)
 
 :orange_book:
@@ -171,7 +171,7 @@ foreach ($books as $book) {
 ```
 
 :blue_book:
-- [Database Explorer na webu Nette](https://doc.nette.org/cs/3.1/database-explorer)
+- [Database Explorer na webu Nette](https://doc.nette.org/cs/database/explorer)
 
 ## Model využívající ORM pomocí LeanMapperu
 :point_right:
@@ -240,3 +240,11 @@ foreach ($books as $book) {
 
 :orange_book:
 - [Prezentace s postupem úprav notes-leanmapper](./notes-leanmapper-reseni.pptx)
+
+---
+
+## Smazání adresáře cache
+:point_right:
+- pár z vás narazilo na potřebu smazat adresář *temp/cache*, ale smazání přes sftp připojení k serveru eso.vse.cz nefunguje. Problém je v uživatelských právech, neboť dané soubory byly vytvořeny z PHP, které běží na serveru pod vlastním uživatelem
+    - => smazat daný obsah může zase PHP
+- nahrajte do složky *www* soubor [deleteCacheDir.php](./deleteCacheDir.php) a načtěte jej přes prohlížeč 

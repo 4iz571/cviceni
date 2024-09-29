@@ -82,7 +82,7 @@ $this->flashMessage('zpráva', 'error'); //2. parametr je volitelný, používá
   
 :blue_book:
 - [ukázkový příklad DemoControl](./DemoControl)
-- [Komponenty na webu Nette](https://doc.nette.org/cs/3.1/components)  
+- [Komponenty na webu Nette](https://doc.nette.org/cs/application/components)  
 
 ## Formuláře
 :point_right:  
@@ -92,7 +92,7 @@ $this->flashMessage('zpráva', 'error'); //2. parametr je volitelný, používá
 - když načteme do stránky patřičný javascriptový soubor, fungují kontroly jak v javascriptu, tak v PHP
 
 :blue_book:
-- [Formuláře na webu Nette](https://doc.nette.org/cs/3.1/forms)
+- [Formuláře na webu Nette](https://doc.nette.org/cs/forms)
 
 ### Vytvoření jednoduchého formuláře
 :point_right:
@@ -104,8 +104,8 @@ $this->flashMessage('zpráva', 'error'); //2. parametr je volitelný, používá
 3. přidáme reakci na odesílací tlačítka
 
 :blue_book:
-- [Formulářové prvky](https://doc.nette.org/cs/3.1/form-controls)
-- [Validace](https://doc.nette.org/cs/3.1/form-validation)
+- [Formulářové prvky](https://doc.nette.org/cs/forms/controls)
+- [Validace](https://doc.nette.org/cs/forms/validation)
 
 :point_right:
 ```php

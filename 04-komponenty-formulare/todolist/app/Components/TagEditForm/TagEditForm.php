@@ -22,11 +22,11 @@ class TagEditForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onFailed */
-  public $onFailed = [];
+  public array $onFailed = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
   /** @var TagsFacade $tagsFacade */
   private TagsFacade $tagsFacade;
 
