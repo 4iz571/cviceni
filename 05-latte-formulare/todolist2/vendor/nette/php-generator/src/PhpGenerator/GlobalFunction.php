@@ -14,40 +14,28 @@ use Nette;
 
 /**
  * Global function.
- *
- * @property string $body
  */
 final class GlobalFunction
 {
-	use Nette\SmartObject;
 	use Traits\FunctionLike;
 	use Traits\NameAware;
 	use Traits\CommentAware;
 	use Traits\AttributeAware;
 
-	public static function from(string $function, bool $withBody = false): self
+	public static function from(string|\Closure $function, bool $withBody = false): self
 	{
-		return (new Factory)->fromFunctionReflection(new \ReflectionFunction($function), $withBody);
-	}
-
-
-	public static function withBodyFrom(string $function): self
-	{
-		return (new Factory)->fromFunctionReflection(new \ReflectionFunction($function), true);
+		return (new Factory)->fromFunctionReflection(Nette\Utils\Callback::toReflection($function), $withBody);
 	}
 
 
 	public function __toString(): string
 	{
-		try {
-			return (new Printer)->printFunction($this);
-		} catch (\Throwable $e) {
-			if (PHP_VERSION_ID >= 70400) {
-				throw $e;
-			}
+		return (new Printer)->printFunction($this);
+	}
 
-			trigger_error('Exception in ' . __METHOD__ . "(): {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}", E_USER_ERROR);
-			return '';
-		}
+
+	public function __clone(): void
+	{
+		$this->parameters = array_map(fn($param) => clone $param, $this->parameters);
 	}
 }

@@ -17,7 +17,7 @@ use ErrorException;
  */
 class Debugger
 {
-	public const VERSION = '2.10.3';
+	public const Version = '2.10.8';
 
 	/** server modes for Debugger::enable() */
 	public const
@@ -25,16 +25,25 @@ class Debugger
 		Production = true,
 		Detect = null;
 
-	public const
-		DEVELOPMENT = self::Development,
-		PRODUCTION = self::Production,
-		DETECT = self::Detect;
-
 	public const CookieSecret = 'tracy-debug';
+
+	/** @deprecated use Debugger::Version */
+	public const VERSION = self::Version;
+
+	/** @deprecated use Debugger::Development */
+	public const DEVELOPMENT = self::Development;
+
+	/** @deprecated use Debugger::Production */
+	public const PRODUCTION = self::Production;
+
+	/** @deprecated use Debugger::Detect */
+	public const DETECT = self::Detect;
+
+	/** @deprecated use Debugger::CookieSecret */
 	public const COOKIE_SECRET = self::CookieSecret;
 
 	/** in production mode is suppressed any debugging output */
-	public static ?bool $productionMode = self::DETECT;
+	public static ?bool $productionMode = self::Detect;
 
 	/** whether to display debug bar in development mode */
 	public static bool $showBar = true;
@@ -173,19 +182,14 @@ class Debugger
 				: !self::detectDebugMode($mode);
 		}
 
-		self::$reserved = str_repeat('t', self::$reservedMemorySize);
-		self::$time = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
-		self::$obLevel = ob_get_level();
-		self::$cpuUsage = !self::$productionMode && function_exists('getrusage') ? getrusage() : null;
+		self::$reserved ??= str_repeat('t', self::$reservedMemorySize);
+		self::$time ??= $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+		self::$obLevel ??= ob_get_level();
+		self::$cpuUsage ??= !self::$productionMode && function_exists('getrusage') ? getrusage() : null;
 
 		// logging configuration
-		if ($email !== null) {
-			self::$email = $email;
-		}
-
-		if ($logDirectory !== null) {
-			self::$logDirectory = $logDirectory;
-		}
+		self::$email = $email ?? self::$email;
+		self::$logDirectory = $logDirectory ?? self::$logDirectory;
 
 		if (self::$logDirectory) {
 			if (!preg_match('#([a-z]+:)?[/\\\\]#Ai', self::$logDirectory)) {
@@ -200,7 +204,7 @@ class Debugger
 		// php configuration
 		if (function_exists('ini_set')) {
 			ini_set('display_errors', '0'); // or 'stderr'
-			ini_set('html_errors', '0');
+			ini_set('html_errors', '0'); // additionally turns off stack trace displaing by xdebug
 			ini_set('log_errors', '0');
 			ini_set('zend.exception_ignore_args', '0');
 		}
@@ -226,6 +230,7 @@ class Debugger
 			'Bar/Bar',
 			'Bar/DefaultBarPanel',
 			'BlueScreen/BlueScreen',
+			'BlueScreen/CodeHighlighter',
 			'Dumper/Describer',
 			'Dumper/Dumper',
 			'Dumper/Exposer',
@@ -279,7 +284,7 @@ class Debugger
 	{
 		$error = error_get_last();
 		if (in_array($error['type'] ?? null, [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE, E_RECOVERABLE_ERROR, E_USER_ERROR], true)) {
-			self::exceptionHandler(Helpers::fixStack(new ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line'])));
+			self::exceptionHandler(new ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']));
 		} elseif (($error['type'] ?? null) === E_COMPILE_WARNING) {
 			error_clear_last();
 			self::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
@@ -321,10 +326,7 @@ class Debugger
 				$handler($exception);
 			}
 		} catch (\Throwable $e) {
-			try {
-				self::log($e, self::EXCEPTION);
-			} catch (\Throwable $e) {
-			}
+			self::tryLog($e, self::EXCEPTION);
 		}
 	}
 
@@ -344,6 +346,7 @@ class Debugger
 	{
 		$error = error_get_last();
 		if (($error['type'] ?? null) === E_COMPILE_WARNING) {
+			// compile-warning does not trigger the handler, so we are testing it now
 			error_clear_last();
 			self::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
 		}
@@ -391,7 +394,7 @@ class Debugger
 			self::$blueScreen->info = [
 				'PHP ' . PHP_VERSION,
 				$_SERVER['SERVER_SOFTWARE'] ?? null,
-				'Tracy ' . self::VERSION,
+				'Tracy ' . self::Version,
 			];
 		}
 
@@ -555,6 +558,17 @@ class Debugger
 	public static function log(mixed $message, string $level = ILogger::INFO): mixed
 	{
 		return self::getLogger()->log($message, $level);
+	}
+
+
+	/** @internal */
+	public static function tryLog(mixed $message, string $level = ILogger::INFO): ?\Throwable
+	{
+		try {
+			self::log($message, $level);
+		} catch (\Throwable $e) {
+		}
+		return $e ?? null;
 	}
 
 

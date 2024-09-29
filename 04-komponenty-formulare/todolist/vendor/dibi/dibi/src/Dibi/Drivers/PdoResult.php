@@ -19,13 +19,8 @@ use PDO;
  */
 class PdoResult implements Dibi\ResultDriver
 {
-	use Dibi\Strict;
-
-	/** @var \PDOStatement|null */
-	private $resultSet;
-
-	/** @var string */
-	private $driverName;
+	private ?\PDOStatement $resultSet;
+	private string $driverName;
 
 
 	public function __construct(\PDOStatement $resultSet, string $driverName)
@@ -95,7 +90,7 @@ class PdoResult implements Dibi\ResultDriver
 				'name' => $row['name'],
 				'table' => $row['table'],
 				'nativetype' => $row['native_type'],
-				'type' => $row['native_type'] === 'TIME' && $this->driverName === 'mysql' ? Dibi\Type::TIME_INTERVAL : null,
+				'type' => $row['native_type'] === 'TIME' && $this->driverName === 'mysql' ? Dibi\Type::TimeInterval : null,
 				'fullname' => $row['table'] ? $row['table'] . '.' . $row['name'] : $row['name'],
 				'vendor' => $row,
 			];

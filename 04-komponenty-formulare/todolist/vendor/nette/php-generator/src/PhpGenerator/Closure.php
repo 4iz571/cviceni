@@ -9,22 +9,17 @@ declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
-use Nette;
-
 
 /**
  * Closure.
- *
- * @property string $body
  */
 final class Closure
 {
-	use Nette\SmartObject;
 	use Traits\FunctionLike;
 	use Traits\AttributeAware;
 
 	/** @var Parameter[] */
-	private $uses = [];
+	private array $uses = [];
 
 
 	public static function from(\Closure $closure): self
@@ -35,24 +30,15 @@ final class Closure
 
 	public function __toString(): string
 	{
-		try {
-			return (new Printer)->printClosure($this);
-		} catch (\Throwable $e) {
-			if (PHP_VERSION_ID >= 70400) {
-				throw $e;
-			}
-
-			trigger_error('Exception in ' . __METHOD__ . "(): {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}", E_USER_ERROR);
-			return '';
-		}
+		return (new Printer)->printClosure($this);
 	}
 
 
 	/**
+	 * Replaces all uses.
 	 * @param  Parameter[]  $uses
-	 * @return static
 	 */
-	public function setUses(array $uses): self
+	public function setUses(array $uses): static
 	{
 		(function (Parameter ...$uses) {})(...$uses);
 		$this->uses = $uses;
@@ -60,6 +46,7 @@ final class Closure
 	}
 
 
+	/** @return Parameter[] */
 	public function getUses(): array
 	{
 		return $this->uses;
@@ -69,5 +56,11 @@ final class Closure
 	public function addUse(string $name): Parameter
 	{
 		return $this->uses[] = new Parameter($name);
+	}
+
+
+	public function __clone(): void
+	{
+		$this->parameters = array_map(fn($param) => clone $param, $this->parameters);
 	}
 }

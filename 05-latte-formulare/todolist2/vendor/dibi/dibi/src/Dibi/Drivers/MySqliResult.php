@@ -17,13 +17,8 @@ use Dibi;
  */
 class MySqliResult implements Dibi\ResultDriver
 {
-	use Dibi\Strict;
-
-	/** @var \mysqli_result */
-	private $resultSet;
-
-	/** @var bool  Is buffered (seekable and countable)? */
-	private $buffered;
+	private \mysqli_result $resultSet;
+	private bool $buffered;
 
 
 	public function __construct(\mysqli_result $resultSet, bool $buffered)
@@ -108,7 +103,7 @@ class MySqliResult implements Dibi\ResultDriver
 				'table' => $row['orgtable'],
 				'fullname' => $row['table'] ? $row['table'] . '.' . $row['name'] : $row['name'],
 				'nativetype' => $types[$row['type']] ?? $row['type'],
-				'type' => $row['type'] === MYSQLI_TYPE_TIME ? Dibi\Type::TIME_INTERVAL : null,
+				'type' => $row['type'] === MYSQLI_TYPE_TIME ? Dibi\Type::TimeInterval : null,
 				'vendor' => $row,
 			];
 		}

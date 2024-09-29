@@ -114,11 +114,17 @@ final class LogoImageData
     {
         $headers = get_headers($url, true);
 
-        if (!is_array($headers) || !isset($headers['Content-Type'])) {
+        if (!is_array($headers)) {
+            throw new \Exception(sprintf('Could not retrieve headers to determine content type for logo URL "%s"', $url));
+        }
+
+        $headers = array_combine(array_map('strtolower', array_keys($headers)), $headers);
+
+        if (!isset($headers['content-type'])) {
             throw new \Exception(sprintf('Content type could not be determined for logo URL "%s"', $url));
         }
 
-        return is_array($headers['Content-Type']) ? $headers['Content-Type'][1] : $headers['Content-Type'];
+        return is_array($headers['content-type']) ? $headers['content-type'][1] : $headers['content-type'];
     }
 
     private static function detectMimeTypeFromPath(string $path): string

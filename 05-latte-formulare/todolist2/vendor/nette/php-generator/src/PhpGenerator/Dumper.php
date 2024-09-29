@@ -13,32 +13,29 @@ use Nette;
 
 
 /**
- * PHP code generator utils.
+ * Generates a PHP representation of a variable.
  */
 final class Dumper
 {
 	private const IndentLength = 4;
 
-	/** @var int */
-	public $maxDepth = 50;
-
-	/** @var int */
-	public $wrapLength = 120;
-
-	/** @var string */
-	public $indentation = "\t";
+	public int $maxDepth = 50;
+	public int $wrapLength = 120;
+	public string $indentation = "\t";
+	public bool $customObjects = true;
 
 
 	/**
 	 * Returns a PHP representation of a variable.
 	 */
-	public function dump($var, int $column = 0): string
+	public function dump(mixed $var, int $column = 0): string
 	{
 		return $this->dumpVar($var, [], 0, $column);
 	}
 
 
-	private function dumpVar(&$var, array $parents = [], int $level = 0, int $column = 0): string
+	/** @param  array<mixed[]|object>  $parents */
+	private function dumpVar(mixed $var, array $parents = [], int $level = 0, int $column = 0): string
 	{
 		if ($var === null) {
 			return 'null';
@@ -53,20 +50,20 @@ final class Dumper
 			return $this->dumpLiteral($var, $level);
 
 		} elseif (is_object($var)) {
-			return $this->dumpObject($var, $parents, $level);
+			return $this->dumpObject($var, $parents, $level, $column);
 
 		} elseif (is_resource($var)) {
-			throw new Nette\InvalidArgumentException('Cannot dump resource.');
+			throw new Nette\InvalidStateException('Cannot dump value of type resource.');
 
 		} else {
-			return var_export($var, true);
+			return var_export($var, return: true);
 		}
 	}
 
 
 	private function dumpString(string $s): string
 	{
-		static $special = [
+		$special = [
 			"\r" => '\r',
 			"\n" => '\n',
 			"\t" => '\t',
@@ -77,12 +74,10 @@ final class Dumper
 		$utf8 = preg_match('##u', $s);
 		$escaped = preg_replace_callback(
 			$utf8 ? '#[\p{C}\\\\]#u' : '#[\x00-\x1F\x7F-\xFF\\\\]#',
-			function ($m) use ($special) {
-				return $special[$m[0]] ?? (strlen($m[0]) === 1
-					? '\x' . str_pad(strtoupper(dechex(ord($m[0]))), 2, '0', STR_PAD_LEFT) . ''
-					: '\u{' . strtoupper(ltrim(dechex(self::utf8Ord($m[0])), '0')) . '}');
-			},
-			$s
+			fn($m) => $special[$m[0]] ?? (strlen($m[0]) === 1
+					? '\x' . str_pad(strtoupper(dechex(ord($m[0]))), 2, '0', STR_PAD_LEFT)
+					: '\u{' . strtoupper(ltrim(dechex(self::utf8Ord($m[0])), '0')) . '}'),
+			$s,
 		);
 		return $s === str_replace('\\\\', '\\', $escaped)
 			? "'" . preg_replace('#\'|\\\\(?=[\'\\\\]|$)#D', '\\\\$0', $s) . "'"
@@ -93,60 +88,72 @@ final class Dumper
 	private static function utf8Ord(string $c): int
 	{
 		$ord0 = ord($c[0]);
-		if ($ord0 < 0x80) {
-			return $ord0;
-		} elseif ($ord0 < 0xE0) {
-			return ($ord0 << 6) + ord($c[1]) - 0x3080;
-		} elseif ($ord0 < 0xF0) {
-			return ($ord0 << 12) + (ord($c[1]) << 6) + ord($c[2]) - 0xE2080;
-		} else {
-			return ($ord0 << 18) + (ord($c[1]) << 12) + (ord($c[2]) << 6) + ord($c[3]) - 0x3C82080;
-		}
+		return match (true) {
+			$ord0 < 0x80 => $ord0,
+			$ord0 < 0xE0 => ($ord0 << 6) + ord($c[1]) - 0x3080,
+			$ord0 < 0xF0 => ($ord0 << 12) + (ord($c[1]) << 6) + ord($c[2]) - 0xE2080,
+			default => ($ord0 << 18) + (ord($c[1]) << 12) + (ord($c[2]) << 6) + ord($c[3]) - 0x3C82080,
+		};
 	}
 
 
-	private function dumpArray(array &$var, array $parents, int $level, int $column): string
+	/**
+	 * @param  mixed[]  $var
+	 * @param  array<mixed[]|object>  $parents
+	 */
+	private function dumpArray(array $var, array $parents, int $level, int $column): string
 	{
 		if (empty($var)) {
 			return '[]';
 
-		} elseif ($level > $this->maxDepth || in_array($var, $parents, true)) {
-			throw new Nette\InvalidArgumentException('Nesting level too deep or recursive dependency.');
+		} elseif ($level > $this->maxDepth || in_array($var, $parents, strict: true)) {
+			throw new Nette\InvalidStateException('Nesting level too deep or recursive dependency.');
 		}
 
-		$space = str_repeat($this->indentation, $level);
-		$outInline = '';
-		$outWrapped = "\n$space";
 		$parents[] = $var;
-		$counter = 0;
-		$hideKeys = is_int(($tmp = array_keys($var))[0]) && $tmp === range($tmp[0], $tmp[0] + count($var) - 1);
+		$hideKeys = is_int(($keys = array_keys($var))[0]) && $keys === range($keys[0], $keys[0] + count($var) - 1);
+		$pairs = [];
 
-		foreach ($var as $k => &$v) {
-			$keyPart = $hideKeys && $k === $counter
+		foreach ($var as $k => $v) {
+			$keyPart = $hideKeys && ($k !== $keys[0] || $k === 0)
 				? ''
 				: $this->dumpVar($k) . ' => ';
-			$counter = is_int($k) ? max($k + 1, $counter) : $counter;
-			$outInline .= ($outInline === '' ? '' : ', ') . $keyPart;
-			$outInline .= $this->dumpVar($v, $parents, 0, $column + strlen($outInline));
-			$outWrapped .= $this->indentation
-				. $keyPart
-				. $this->dumpVar($v, $parents, $level + 1, strlen($keyPart))
-				. ",\n$space";
+			$pairs[] = $keyPart . $this->dumpVar($v, $parents, $level + 1, strlen($keyPart) + 1); // 1 = comma after item
 		}
 
-		array_pop($parents);
-		$wrap = strpos($outInline, "\n") !== false || $level * self::IndentLength + $column + strlen($outInline) + 3 > $this->wrapLength; // 3 = [],
-		return '[' . ($wrap ? $outWrapped : $outInline) . ']';
+		$line = '[' . implode(', ', $pairs) . ']';
+		$space = str_repeat($this->indentation, $level);
+		return !str_contains($line, "\n") && $level * self::IndentLength + $column + strlen($line) <= $this->wrapLength
+			? $line
+			: "[\n$space" . $this->indentation . implode(",\n$space" . $this->indentation, $pairs) . ",\n$space]";
 	}
 
 
-	private function dumpObject($var, array $parents, int $level): string
+	/** @param  array<mixed[]|object>  $parents */
+	private function dumpObject(object $var, array $parents, int $level, int $column): string
 	{
-		if ($var instanceof \Serializable) {
-			return 'unserialize(' . $this->dumpString(serialize($var)) . ')';
+		if ($level > $this->maxDepth || in_array($var, $parents, strict: true)) {
+			throw new Nette\InvalidStateException('Nesting level too deep or recursive dependency.');
+		} elseif ((new \ReflectionObject($var))->isAnonymous()) {
+			throw new Nette\InvalidStateException('Cannot dump an instance of an anonymous class.');
+		}
+
+		$class = $var::class;
+		$parents[] = $var;
+
+		if ($class === \stdClass::class) {
+			$var = (array) $var;
+			return '(object) ' . $this->dumpArray($var, $parents, $level, $column + 10);
+
+		} elseif ($class === \DateTime::class || $class === \DateTimeImmutable::class) {
+			return $this->format(
+				"new \\$class(?, new \\DateTimeZone(?))",
+				$var->format('Y-m-d H:i:s.u'),
+				$var->getTimeZone()->getName(),
+			);
 
 		} elseif ($var instanceof \UnitEnum) {
-			return '\\' . get_class($var) . '::' . $var->name;
+			return '\\' . $var::class . '::' . $var->name;
 
 		} elseif ($var instanceof \Closure) {
 			$inner = Nette\Utils\Callback::unwrap($var);
@@ -156,33 +163,36 @@ final class Dumper
 					: implode('::', (array) $inner) . '(...)';
 			}
 
-			throw new Nette\InvalidArgumentException('Cannot dump closure.');
+			throw new Nette\InvalidStateException('Cannot dump object of type Closure.');
+
+		} elseif ($this->customObjects) {
+			return $this->dumpCustomObject($var, $parents, $level);
+
+		} else {
+			throw new Nette\InvalidStateException("Cannot dump object of type $class.");
 		}
+	}
 
-		$class = get_class($var);
-		if ((new \ReflectionObject($var))->isAnonymous()) {
-			throw new Nette\InvalidArgumentException('Cannot dump anonymous class.');
 
-		} elseif (in_array($class, [\DateTime::class, \DateTimeImmutable::class], true)) {
-			return $this->format("new \\$class(?, new \\DateTimeZone(?))", $var->format('Y-m-d H:i:s.u'), $var->getTimeZone()->getName());
-		}
-
-		$arr = (array) $var;
+	/** @param  array<mixed[]|object>  $parents */
+	private function dumpCustomObject(object $var, array $parents, int $level): string
+	{
+		$class = $var::class;
 		$space = str_repeat($this->indentation, $level);
-
-		if ($level > $this->maxDepth || in_array($var, $parents, true)) {
-			throw new Nette\InvalidArgumentException('Nesting level too deep or recursive dependency.');
-		}
-
 		$out = "\n";
-		$parents[] = $var;
-		if (method_exists($var, '__sleep')) {
-			foreach ($var->__sleep() as $v) {
-				$props[$v] = $props["\x00*\x00$v"] = $props["\x00$class\x00$v"] = true;
+
+		if (method_exists($var, '__serialize')) {
+			$arr = $var->__serialize();
+		} else {
+			$arr = (array) $var;
+			if (method_exists($var, '__sleep')) {
+				foreach ($var->__sleep() as $v) {
+					$props[$v] = $props["\x00*\x00$v"] = $props["\x00$class\x00$v"] = true;
+				}
 			}
 		}
 
-		foreach ($arr as $k => &$v) {
+		foreach ($arr as $k => $v) {
 			if (!isset($props) || isset($props[$k])) {
 				$out .= $space . $this->indentation
 					. ($keyPart = $this->dumpVar($k) . ' => ')
@@ -191,17 +201,14 @@ final class Dumper
 			}
 		}
 
-		array_pop($parents);
-		$out .= $space;
-		return $class === \stdClass::class
-			? "(object) [$out]"
-			: '\\' . self::class . "::createObject('$class', [$out])";
+		return '\\' . self::class . "::createObject(\\$class::class, [$out$space])";
 	}
 
 
 	private function dumpLiteral(Literal $var, int $level): string
 	{
 		$s = $var->formatWith($this);
+		$s = Nette\Utils\Strings::normalizeNewlines($s);
 		$s = Nette\Utils\Strings::indent(trim($s), $level, $this->indentation);
 		return ltrim($s, $this->indentation);
 	}
@@ -210,7 +217,7 @@ final class Dumper
 	/**
 	 * Generates PHP statement. Supports placeholders: ?  \?  $?  ->?  ::?  ...?  ...?:  ?*
 	 */
-	public function format(string $statement, ...$args): string
+	public function format(string $statement, mixed ...$args): string
 	{
 		$tokens = preg_split('#(\.\.\.\?:?|\$\?|->\?|::\?|\\\\\?|\?\*|\?(?!\w))#', $statement, -1, PREG_SPLIT_DELIM_CAPTURE);
 		$res = '';
@@ -249,29 +256,33 @@ final class Dumper
 	}
 
 
-	private function dumpArguments(array &$var, int $column, bool $named): string
+	/** @param  mixed[]  $args */
+	private function dumpArguments(array $args, int $column, bool $named): string
 	{
-		$outInline = $outWrapped = '';
-
-		foreach ($var as $k => &$v) {
-			$k = !$named || is_int($k) ? '' : $k . ': ';
-			$outInline .= $outInline === '' ? '' : ', ';
-			$outInline .= $k . $this->dumpVar($v, [$var], 0, $column + strlen($outInline));
-			$outWrapped .= ($outWrapped === '' ? '' : ',') . "\n"
-				. $this->indentation . $k . $this->dumpVar($v, [$var], 1);
+		$pairs = [];
+		foreach ($args as $k => $v) {
+			$name = $named && !is_int($k) ? $k . ': ' : '';
+			$pairs[] = $name . $this->dumpVar($v, [$args], 0, $column + strlen($name) + 1); // 1 = ) after args
 		}
 
-		return count($var) > 1 && (strpos($outInline, "\n") !== false || $column + strlen($outInline) > $this->wrapLength)
-			? $outWrapped . "\n"
-			: $outInline;
+		$line = implode(', ', $pairs);
+		return count($args) < 2 || (!str_contains($line, "\n") && $column + strlen($line) <= $this->wrapLength)
+			? $line
+			: "\n" . $this->indentation . implode(",\n" . $this->indentation, $pairs) . ",\n";
 	}
 
 
 	/**
+	 * @param  mixed[]  $props
 	 * @internal
 	 */
 	public static function createObject(string $class, array $props): object
 	{
+		if (method_exists($class, '__serialize')) {
+			$obj = (new \ReflectionClass($class))->newInstanceWithoutConstructor();
+			$obj->__unserialize($props);
+			return $obj;
+		}
 		return unserialize('O' . substr(serialize($class), 1, -1) . substr(serialize($props), 1));
 	}
 }

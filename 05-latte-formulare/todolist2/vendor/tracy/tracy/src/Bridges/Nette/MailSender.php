@@ -18,28 +18,26 @@ use Tracy;
  */
 class MailSender
 {
-	use Nette\SmartObject;
+	private Nette\Mail\Mailer $mailer;
 
-	/** @var Nette\Mail\IMailer */
-	private $mailer;
+	/** sender of email notifications */
+	private ?string $fromEmail = null;
 
-	/** @var string|null sender of email notifications */
-	private $fromEmail;
+	/** actual host on which notification occurred */
+	private ?string $host = null;
 
 
-	public function __construct(Nette\Mail\IMailer $mailer, ?string $fromEmail = null)
+	public function __construct(Nette\Mail\Mailer $mailer, ?string $fromEmail = null, ?string $host = null)
 	{
 		$this->mailer = $mailer;
 		$this->fromEmail = $fromEmail;
+		$this->host = $host;
 	}
 
 
-	/**
-	 * @param  mixed  $message
-	 */
-	public function send($message, string $email): void
+	public function send(mixed $message, string $email): void
 	{
-		$host = preg_replace('#[^\w.-]+#', '', $_SERVER['SERVER_NAME'] ?? php_uname('n'));
+		$host = preg_replace('#[^\w.-]+#', '', $this->host ?? $_SERVER['SERVER_NAME'] ?? php_uname('n'));
 
 		$mail = new Nette\Mail\Message;
 		$mail->setHeader('X-Mailer', 'Tracy');

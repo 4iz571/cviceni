@@ -4,32 +4,32 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bc4abeafca1e69ca0e052d34d778521f",
+    "content-hash": "520c5baf8bd3c2c9c5f8650a491987ed",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
-            "version": "2.0.8",
+            "version": "v3.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Bacon/BaconQrCode.git",
-                "reference": "8674e51bb65af933a5ffaf1c308a660387c35c22"
+                "reference": "510de6eca6248d77d31b339d62437cc995e2fb41"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Bacon/BaconQrCode/zipball/8674e51bb65af933a5ffaf1c308a660387c35c22",
-                "reference": "8674e51bb65af933a5ffaf1c308a660387c35c22",
+                "url": "https://api.github.com/repos/Bacon/BaconQrCode/zipball/510de6eca6248d77d31b339d62437cc995e2fb41",
+                "reference": "510de6eca6248d77d31b339d62437cc995e2fb41",
                 "shasum": ""
             },
             "require": {
                 "dasprid/enum": "^1.0.3",
                 "ext-iconv": "*",
-                "php": "^7.1 || ^8.0"
+                "php": "^8.1"
             },
             "require-dev": {
-                "phly/keep-a-changelog": "^2.1",
-                "phpunit/phpunit": "^7 | ^8 | ^9",
-                "spatie/phpunit-snapshot-assertions": "^4.2.9",
-                "squizlabs/php_codesniffer": "^3.4"
+                "phly/keep-a-changelog": "^2.12",
+                "phpunit/phpunit": "^10.5.11 || 11.0.4",
+                "spatie/phpunit-snapshot-assertions": "^5.1.5",
+                "squizlabs/php_codesniffer": "^3.9"
             },
             "suggest": {
                 "ext-imagick": "to generate QR code images"
@@ -56,29 +56,29 @@
             "homepage": "https://github.com/Bacon/BaconQrCode",
             "support": {
                 "issues": "https://github.com/Bacon/BaconQrCode/issues",
-                "source": "https://github.com/Bacon/BaconQrCode/tree/2.0.8"
+                "source": "https://github.com/Bacon/BaconQrCode/tree/v3.0.0"
             },
-            "time": "2022-12-07T17:46:57+00:00"
+            "time": "2024-04-18T11:16:25+00:00"
         },
         {
             "name": "dasprid/enum",
-            "version": "1.0.5",
+            "version": "1.0.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DASPRiD/Enum.git",
-                "reference": "6faf451159fb8ba4126b925ed2d78acfce0dc016"
+                "reference": "8dfd07c6d2cf31c8da90c53b83c026c7696dda90"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DASPRiD/Enum/zipball/6faf451159fb8ba4126b925ed2d78acfce0dc016",
-                "reference": "6faf451159fb8ba4126b925ed2d78acfce0dc016",
+                "url": "https://api.github.com/repos/DASPRiD/Enum/zipball/8dfd07c6d2cf31c8da90c53b83c026c7696dda90",
+                "reference": "8dfd07c6d2cf31c8da90c53b83c026c7696dda90",
                 "shasum": ""
             },
             "require": {
                 "php": ">=7.1 <9.0"
             },
             "require-dev": {
-                "phpunit/phpunit": "^7 | ^8 | ^9",
+                "phpunit/phpunit": "^7 || ^8 || ^9 || ^10 || ^11",
                 "squizlabs/php_codesniffer": "*"
             },
             "type": "library",
@@ -106,26 +106,26 @@
             ],
             "support": {
                 "issues": "https://github.com/DASPRiD/Enum/issues",
-                "source": "https://github.com/DASPRiD/Enum/tree/1.0.5"
+                "source": "https://github.com/DASPRiD/Enum/tree/1.0.6"
             },
-            "time": "2023-08-25T16:18:39+00:00"
+            "time": "2024-08-09T14:30:48+00:00"
         },
         {
             "name": "dibi/dibi",
-            "version": "v5.0.1",
+            "version": "v5.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dg/dibi.git",
-                "reference": "86a71dde28fd1c1b55e4c66a6f7ebfd4efb13e1d"
+                "reference": "97053089e05eadab4c368ad37619adf411b2847e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dg/dibi/zipball/86a71dde28fd1c1b55e4c66a6f7ebfd4efb13e1d",
-                "reference": "86a71dde28fd1c1b55e4c66a6f7ebfd4efb13e1d",
+                "url": "https://api.github.com/repos/dg/dibi/zipball/97053089e05eadab4c368ad37619adf411b2847e",
+                "reference": "97053089e05eadab4c368ad37619adf411b2847e",
                 "shasum": ""
             },
             "require": {
-                "php": "8.0 - 8.3"
+                "php": "8.0 - 8.4"
             },
             "replace": {
                 "dg/dibi": "*"
@@ -177,35 +177,32 @@
             ],
             "support": {
                 "issues": "https://github.com/dg/dibi/issues",
-                "source": "https://github.com/dg/dibi/tree/v5.0.1"
+                "source": "https://github.com/dg/dibi/tree/v5.0.2"
             },
-            "time": "2023-11-25T13:08:47+00:00"
+            "time": "2024-09-03T01:18:11+00:00"
         },
         {
             "name": "endroid/qr-code",
-            "version": "5.0.4",
+            "version": "5.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/endroid/qr-code.git",
-                "reference": "0efd071a3640af323e23c94122fe92cfd5199833"
+                "reference": "393fec6c4cbdc1bd65570ac9d245704428010122"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/endroid/qr-code/zipball/0efd071a3640af323e23c94122fe92cfd5199833",
-                "reference": "0efd071a3640af323e23c94122fe92cfd5199833",
+                "url": "https://api.github.com/repos/endroid/qr-code/zipball/393fec6c4cbdc1bd65570ac9d245704428010122",
+                "reference": "393fec6c4cbdc1bd65570ac9d245704428010122",
                 "shasum": ""
             },
             "require": {
-                "bacon/bacon-qr-code": "^2.0.5",
+                "bacon/bacon-qr-code": "^3.0",
                 "php": "^8.1"
-            },
-            "conflict": {
-                "khanamiryan/qrcode-detector-decoder": "^1.0.6"
             },
             "require-dev": {
                 "endroid/quality": "dev-main",
                 "ext-gd": "*",
-                "khanamiryan/qrcode-detector-decoder": "^1.0.4||^2.0.2",
+                "khanamiryan/qrcode-detector-decoder": "^2.0.2",
                 "setasign/fpdf": "^1.8.2"
             },
             "suggest": {
@@ -246,7 +243,7 @@
             ],
             "support": {
                 "issues": "https://github.com/endroid/qr-code/issues",
-                "source": "https://github.com/endroid/qr-code/tree/5.0.4"
+                "source": "https://github.com/endroid/qr-code/tree/5.1.0"
             },
             "funding": [
                 {
@@ -254,7 +251,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2023-12-24T13:47:07+00:00"
+            "time": "2024-09-08T08:52:55+00:00"
         },
         {
             "name": "latte/latte",
@@ -342,16 +339,16 @@
         },
         {
             "name": "nette/application",
-            "version": "v3.1.14",
+            "version": "v3.1.15",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/application.git",
-                "reference": "0729ede7e66fad642046a3eb670d368845272573"
+                "reference": "f50364147ca80d9fbcf4d6571cf216ced874d4f9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/application/zipball/0729ede7e66fad642046a3eb670d368845272573",
-                "reference": "0729ede7e66fad642046a3eb670d368845272573",
+                "url": "https://api.github.com/repos/nette/application/zipball/f50364147ca80d9fbcf4d6571cf216ced874d4f9",
+                "reference": "f50364147ca80d9fbcf4d6571cf216ced874d4f9",
                 "shasum": ""
             },
             "require": {
@@ -362,7 +359,7 @@
                 "php": ">=7.2"
             },
             "conflict": {
-                "latte/latte": "<2.7.1 || >=3.0.0 <3.0.8 || >=3.1",
+                "latte/latte": "<2.7.1 || >=3.0.0 <3.0.12 || >=3.1",
                 "nette/caching": "<3.1",
                 "nette/di": "<3.0.7",
                 "nette/forms": "<3.0",
@@ -371,11 +368,11 @@
             },
             "require-dev": {
                 "jetbrains/phpstorm-attributes": "dev-master",
-                "latte/latte": "^2.10.2 || ^3.0.3",
-                "mockery/mockery": "^1.0",
+                "latte/latte": "^2.10.2 || ^3.0.12",
+                "mockery/mockery": "^1.0 || ^2.0",
                 "nette/di": "^v3.0",
                 "nette/forms": "^3.0",
-                "nette/robot-loader": "^3.2",
+                "nette/robot-loader": "^3.2 || ^4.0",
                 "nette/security": "^3.0",
                 "nette/tester": "^2.3.1",
                 "phpstan/phpstan-nette": "^0.12",
@@ -428,28 +425,28 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/application/issues",
-                "source": "https://github.com/nette/application/tree/v3.1.14"
+                "source": "https://github.com/nette/application/tree/v3.1.15"
             },
-            "time": "2023-10-09T02:45:43+00:00"
+            "time": "2024-05-12T20:50:30+00:00"
         },
         {
             "name": "nette/bootstrap",
-            "version": "v3.2.1",
+            "version": "v3.2.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/bootstrap.git",
-                "reference": "eeb1c9dc9f1391bd03aeeb6cc0e456ec9b247f5c"
+                "reference": "4876d25955b4164d714bc17c265f664f6594685b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/bootstrap/zipball/eeb1c9dc9f1391bd03aeeb6cc0e456ec9b247f5c",
-                "reference": "eeb1c9dc9f1391bd03aeeb6cc0e456ec9b247f5c",
+                "url": "https://api.github.com/repos/nette/bootstrap/zipball/4876d25955b4164d714bc17c265f664f6594685b",
+                "reference": "4876d25955b4164d714bc17c265f664f6594685b",
                 "shasum": ""
             },
             "require": {
                 "nette/di": "^3.1",
                 "nette/utils": "^3.2.1 || ^4.0",
-                "php": "8.0 - 8.3"
+                "php": "8.0 - 8.4"
             },
             "conflict": {
                 "tracy/tracy": "<2.6"
@@ -509,9 +506,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/bootstrap/issues",
-                "source": "https://github.com/nette/bootstrap/tree/v3.2.1"
+                "source": "https://github.com/nette/bootstrap/tree/v3.2.4"
             },
-            "time": "2023-09-23T01:12:54+00:00"
+            "time": "2024-06-18T22:13:57+00:00"
         },
         {
             "name": "nette/caching",
@@ -648,16 +645,16 @@
         },
         {
             "name": "nette/di",
-            "version": "v3.1.8",
+            "version": "v3.1.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/di.git",
-                "reference": "adf475076dae08109dd0d57b1a48668d1d1bedf0"
+                "reference": "2645ec3eaa17fa2ab87c5eb4eaacb1fe6dd28284"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/di/zipball/adf475076dae08109dd0d57b1a48668d1d1bedf0",
-                "reference": "adf475076dae08109dd0d57b1a48668d1d1bedf0",
+                "url": "https://api.github.com/repos/nette/di/zipball/2645ec3eaa17fa2ab87c5eb4eaacb1fe6dd28284",
+                "reference": "2645ec3eaa17fa2ab87c5eb4eaacb1fe6dd28284",
                 "shasum": ""
             },
             "require": {
@@ -714,9 +711,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/di/issues",
-                "source": "https://github.com/nette/di/tree/v3.1.8"
+                "source": "https://github.com/nette/di/tree/v3.1.10"
             },
-            "time": "2023-11-03T00:12:52+00:00"
+            "time": "2024-02-06T01:19:44+00:00"
         },
         {
             "name": "nette/finder",
@@ -787,16 +784,16 @@
         },
         {
             "name": "nette/forms",
-            "version": "v3.1.14",
+            "version": "v3.1.15",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/forms.git",
-                "reference": "888aba2947e0878303b001827abe25ca86530a75"
+                "reference": "f373bcd5ea7a33672fa96035d4bf3110ab66ee44"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/forms/zipball/888aba2947e0878303b001827abe25ca86530a75",
-                "reference": "888aba2947e0878303b001827abe25ca86530a75",
+                "url": "https://api.github.com/repos/nette/forms/zipball/f373bcd5ea7a33672fa96035d4bf3110ab66ee44",
+                "reference": "f373bcd5ea7a33672fa96035d4bf3110ab66ee44",
                 "shasum": ""
             },
             "require": {
@@ -806,10 +803,10 @@
                 "php": "7.2 - 8.3"
             },
             "conflict": {
-                "latte/latte": ">=3.1"
+                "latte/latte": ">=3.0.0 <3.0.12 || >=3.1"
             },
             "require-dev": {
-                "latte/latte": "^2.10.2 || ^3.0.8",
+                "latte/latte": "^2.10.2 || ^3.0.12",
                 "nette/application": "^3.0",
                 "nette/di": "^3.0",
                 "nette/tester": "^2.4",
@@ -858,22 +855,22 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/forms/issues",
-                "source": "https://github.com/nette/forms/tree/v3.1.14"
+                "source": "https://github.com/nette/forms/tree/v3.1.15"
             },
-            "time": "2023-11-02T02:12:12+00:00"
+            "time": "2024-01-21T22:22:16+00:00"
         },
         {
             "name": "nette/http",
-            "version": "v3.2.3",
+            "version": "v3.2.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/http.git",
-                "reference": "54d79711ff3a8dfd86201e3bdbdd6972177ea20b"
+                "reference": "d7cc833ee186d5139cde5aab43b39ee7aedd6f22"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/http/zipball/54d79711ff3a8dfd86201e3bdbdd6972177ea20b",
-                "reference": "54d79711ff3a8dfd86201e3bdbdd6972177ea20b",
+                "url": "https://api.github.com/repos/nette/http/zipball/d7cc833ee186d5139cde5aab43b39ee7aedd6f22",
+                "reference": "d7cc833ee186d5139cde5aab43b39ee7aedd6f22",
                 "shasum": ""
             },
             "require": {
@@ -892,7 +889,10 @@
                 "tracy/tracy": "^2.8"
             },
             "suggest": {
-                "ext-fileinfo": "to detect type of uploaded files"
+                "ext-fileinfo": "to detect MIME type of uploaded files by Nette\\Http\\FileUpload",
+                "ext-gd": "to use image function in Nette\\Http\\FileUpload",
+                "ext-intl": "to support punycode by Nette\\Http\\Url",
+                "ext-session": "to use Nette\\Http\\Session"
             },
             "type": "library",
             "extra": {
@@ -936,9 +936,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/http/issues",
-                "source": "https://github.com/nette/http/tree/v3.2.3"
+                "source": "https://github.com/nette/http/tree/v3.2.4"
             },
-            "time": "2023-11-02T02:43:54+00:00"
+            "time": "2024-01-30T18:13:43+00:00"
         },
         {
             "name": "nette/mail",
@@ -1016,16 +1016,16 @@
         },
         {
             "name": "nette/neon",
-            "version": "v3.4.1",
+            "version": "v3.4.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/neon.git",
-                "reference": "457bfbf0560f600b30d9df4233af382a478bb44d"
+                "reference": "c8481c104431c8d94cc88424a1e21f47f8c93280"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/neon/zipball/457bfbf0560f600b30d9df4233af382a478bb44d",
-                "reference": "457bfbf0560f600b30d9df4233af382a478bb44d",
+                "url": "https://api.github.com/repos/nette/neon/zipball/c8481c104431c8d94cc88424a1e21f47f8c93280",
+                "reference": "c8481c104431c8d94cc88424a1e21f47f8c93280",
                 "shasum": ""
             },
             "require": {
@@ -1078,32 +1078,32 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/neon/issues",
-                "source": "https://github.com/nette/neon/tree/v3.4.1"
+                "source": "https://github.com/nette/neon/tree/v3.4.3"
             },
-            "time": "2023-09-27T08:59:11+00:00"
+            "time": "2024-06-26T14:53:59+00:00"
         },
         {
             "name": "nette/php-generator",
-            "version": "v4.1.2",
+            "version": "v4.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/php-generator.git",
-                "reference": "abc0e79b2d02d4b8aba5933765b90df3f610c143"
+                "reference": "c90961e782ae86e517fe5ed732eb2b512945565b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/php-generator/zipball/abc0e79b2d02d4b8aba5933765b90df3f610c143",
-                "reference": "abc0e79b2d02d4b8aba5933765b90df3f610c143",
+                "url": "https://api.github.com/repos/nette/php-generator/zipball/c90961e782ae86e517fe5ed732eb2b512945565b",
+                "reference": "c90961e782ae86e517fe5ed732eb2b512945565b",
                 "shasum": ""
             },
             "require": {
                 "nette/utils": "^3.2.9 || ^4.0",
-                "php": "8.0 - 8.3"
+                "php": "8.0 - 8.4"
             },
             "require-dev": {
                 "jetbrains/phpstorm-attributes": "dev-master",
                 "nette/tester": "^2.4",
-                "nikic/php-parser": "^4.15",
+                "nikic/php-parser": "^4.18 || ^5.0",
                 "phpstan/phpstan": "^1.0",
                 "tracy/tracy": "^2.8"
             },
@@ -1147,9 +1147,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/php-generator/issues",
-                "source": "https://github.com/nette/php-generator/tree/v4.1.2"
+                "source": "https://github.com/nette/php-generator/tree/v4.1.6"
             },
-            "time": "2023-10-29T22:57:32+00:00"
+            "time": "2024-09-10T09:31:55+00:00"
         },
         {
             "name": "nette/robot-loader",
@@ -1557,24 +1557,24 @@
         },
         {
             "name": "paragonie/constant_time_encoding",
-            "version": "v2.6.3",
+            "version": "v3.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/paragonie/constant_time_encoding.git",
-                "reference": "58c3f47f650c94ec05a151692652a868995d2938"
+                "reference": "df1e7fde177501eee2037dd159cf04f5f301a512"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/paragonie/constant_time_encoding/zipball/58c3f47f650c94ec05a151692652a868995d2938",
-                "reference": "58c3f47f650c94ec05a151692652a868995d2938",
+                "url": "https://api.github.com/repos/paragonie/constant_time_encoding/zipball/df1e7fde177501eee2037dd159cf04f5f301a512",
+                "reference": "df1e7fde177501eee2037dd159cf04f5f301a512",
                 "shasum": ""
             },
             "require": {
-                "php": "^7|^8"
+                "php": "^8"
             },
             "require-dev": {
-                "phpunit/phpunit": "^6|^7|^8|^9",
-                "vimeo/psalm": "^1|^2|^3|^4"
+                "phpunit/phpunit": "^9",
+                "vimeo/psalm": "^4|^5"
             },
             "type": "library",
             "autoload": {
@@ -1620,28 +1620,28 @@
                 "issues": "https://github.com/paragonie/constant_time_encoding/issues",
                 "source": "https://github.com/paragonie/constant_time_encoding"
             },
-            "time": "2022-06-14T06:56:20+00:00"
+            "time": "2024-05-08T12:36:18+00:00"
         },
         {
             "name": "pragmarx/google2fa",
-            "version": "v8.0.1",
+            "version": "v8.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/antonioribeiro/google2fa.git",
-                "reference": "80c3d801b31fe165f8fe99ea085e0a37834e1be3"
+                "reference": "6f8d87ebd5afbf7790bde1ffc7579c7c705e0fad"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/antonioribeiro/google2fa/zipball/80c3d801b31fe165f8fe99ea085e0a37834e1be3",
-                "reference": "80c3d801b31fe165f8fe99ea085e0a37834e1be3",
+                "url": "https://api.github.com/repos/antonioribeiro/google2fa/zipball/6f8d87ebd5afbf7790bde1ffc7579c7c705e0fad",
+                "reference": "6f8d87ebd5afbf7790bde1ffc7579c7c705e0fad",
                 "shasum": ""
             },
             "require": {
-                "paragonie/constant_time_encoding": "^1.0|^2.0",
+                "paragonie/constant_time_encoding": "^1.0|^2.0|^3.0",
                 "php": "^7.1|^8.0"
             },
             "require-dev": {
-                "phpstan/phpstan": "^0.12.18",
+                "phpstan/phpstan": "^1.9",
                 "phpunit/phpunit": "^7.5.15|^8.5|^9.0"
             },
             "type": "library",
@@ -1670,22 +1670,22 @@
             ],
             "support": {
                 "issues": "https://github.com/antonioribeiro/google2fa/issues",
-                "source": "https://github.com/antonioribeiro/google2fa/tree/v8.0.1"
+                "source": "https://github.com/antonioribeiro/google2fa/tree/v8.0.3"
             },
-            "time": "2022-06-13T21:57:56+00:00"
+            "time": "2024-09-05T11:56:40+00:00"
         },
         {
             "name": "tharos/leanmapper",
-            "version": "v4.0.5",
+            "version": "v4.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Tharos/LeanMapper.git",
-                "reference": "bc18e0ff8e3df476f1303a39df00d28abc090d39"
+                "reference": "643011be32f4e8c09b8645137ee403065b48888b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Tharos/LeanMapper/zipball/bc18e0ff8e3df476f1303a39df00d28abc090d39",
-                "reference": "bc18e0ff8e3df476f1303a39df00d28abc090d39",
+                "url": "https://api.github.com/repos/Tharos/LeanMapper/zipball/643011be32f4e8c09b8645137ee403065b48888b",
+                "reference": "643011be32f4e8c09b8645137ee403065b48888b",
                 "shasum": ""
             },
             "require": {
@@ -1704,7 +1704,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-develop": "4.0-dev"
+                    "dev-develop": "4.1-dev"
                 }
             },
             "autoload": {
@@ -1734,39 +1734,39 @@
             "homepage": "http://www.leanmapper.com",
             "support": {
                 "issues": "https://github.com/Tharos/LeanMapper/issues",
-                "source": "https://github.com/Tharos/LeanMapper/tree/v4.0.5"
+                "source": "https://github.com/Tharos/LeanMapper/tree/v4.1.0"
             },
-            "time": "2023-11-28T06:53:28+00:00"
+            "time": "2024-09-04T14:02:52+00:00"
         },
         {
             "name": "tracy/tracy",
-            "version": "v2.10.5",
+            "version": "v2.10.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/tracy.git",
-                "reference": "86bdba4aa0f707d3f125933931d3df6e5c7aad79"
+                "reference": "0e0f3312708fb9c179a92072ebacc24aeee7e2e8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/tracy/zipball/86bdba4aa0f707d3f125933931d3df6e5c7aad79",
-                "reference": "86bdba4aa0f707d3f125933931d3df6e5c7aad79",
+                "url": "https://api.github.com/repos/nette/tracy/zipball/0e0f3312708fb9c179a92072ebacc24aeee7e2e8",
+                "reference": "0e0f3312708fb9c179a92072ebacc24aeee7e2e8",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "ext-session": "*",
-                "php": ">=8.0 <8.4"
+                "php": "8.0 - 8.4"
             },
             "conflict": {
                 "nette/di": "<3.0"
             },
             "require-dev": {
-                "latte/latte": "^2.5",
+                "latte/latte": "^2.5 || ^3.0",
                 "nette/di": "^3.0",
                 "nette/http": "^3.0",
-                "nette/mail": "^3.0",
+                "nette/mail": "^3.0 || ^4.0",
                 "nette/tester": "^2.2",
-                "nette/utils": "^3.0",
+                "nette/utils": "^3.0 || ^4.0",
                 "phpstan/phpstan": "^1.0",
                 "psr/log": "^1.0 || ^2.0 || ^3.0"
             },
@@ -1809,9 +1809,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/tracy/issues",
-                "source": "https://github.com/nette/tracy/tree/v2.10.5"
+                "source": "https://github.com/nette/tracy/tree/v2.10.8"
             },
-            "time": "2023-10-16T21:54:18+00:00"
+            "time": "2024-08-07T02:04:53+00:00"
         },
         {
             "name": "vojir/leanmapper-mappers",
@@ -1864,7 +1864,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=7.4"
+        "php": ">=8.1"
     },
     "platform-dev": [],
     "platform-overrides": {

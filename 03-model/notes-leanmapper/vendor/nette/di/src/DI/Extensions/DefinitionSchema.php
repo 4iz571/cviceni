@@ -98,7 +98,7 @@ class DefinitionSchema implements Schema
 		} elseif (!is_array($def) || isset($def[0], $def[1])) {
 			return ['create' => $def];
 
-		} elseif (is_array($def)) {
+		} else {
 			// back compatibility
 			if (isset($def['factory']) && !isset($def['create'])) {
 				$def['create'] = $def['factory'];
@@ -108,11 +108,10 @@ class DefinitionSchema implements Schema
 			if (
 				isset($def['class'])
 				&& !isset($def['type'])
-				&& !isset($def['create'])
 				&& !isset($def['dynamic'])
 				&& !isset($def['imported'])
 			) {
-				$def['create'] = $def['class'];
+				$def[isset($def['create']) ? 'type' : 'create'] = $def['class'];
 				unset($def['class']);
 			}
 
@@ -134,9 +133,6 @@ class DefinitionSchema implements Schema
 			}
 
 			return $def;
-
-		} else {
-			throw new Nette\DI\InvalidConfigurationException('Unexpected format of service definition');
 		}
 	}
 
@@ -150,7 +146,7 @@ class DefinitionSchema implements Schema
 	{
 		if (is_string($key)) {
 			$name = preg_match('#^@[\w\\\\]+$#D', $key)
-				? $this->builder->getByType(substr($key, 1), false)
+				? $this->builder->getByType(substr($key, 1))
 				: $key;
 
 			if ($name && $this->builder->hasDefinition($name)) {

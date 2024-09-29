@@ -9,18 +9,14 @@ declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
-use Nette;
 use Nette\Utils\Type;
 
 
 /**
  * Function/Method parameter description.
- *
- * @property-deprecated mixed $defaultValue
  */
 class Parameter
 {
-	use Nette\SmartObject;
 	use Traits\NameAware;
 	use Traits\AttributeAware;
 	use Traits\CommentAware;
@@ -61,22 +57,6 @@ class Parameter
 	}
 
 
-	/** @deprecated  use setType() */
-	public function setTypeHint(?string $type): static
-	{
-		trigger_error(__METHOD__ . '() is deprecated, use setType().', E_USER_DEPRECATED);
-		return $this->setType($type);
-	}
-
-
-	/** @deprecated  use getType() */
-	public function getTypeHint(): ?string
-	{
-		trigger_error(__METHOD__ . '() is deprecated, use getType().', E_USER_DEPRECATED);
-		return $this->getType();
-	}
-
-
 	public function setNullable(bool $state = true): static
 	{
 		$this->nullable = $state;
@@ -86,7 +66,7 @@ class Parameter
 
 	public function isNullable(): bool
 	{
-		return $this->nullable;
+		return $this->nullable || ($this->hasDefaultValue && $this->defaultValue === null);
 	}
 
 

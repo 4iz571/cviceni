@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
+use Nette;
+
 
 /**
  * PHP return, property and parameter types.
@@ -83,9 +85,27 @@ class Type
 	public const STATIC = self::Static;
 
 
-	public static function nullable(string $type, bool $state = true): string
+	public static function nullable(string $type, bool $nullable = true): string
 	{
-		return ($state ? '?' : '') . ltrim($type, '?');
+		if (str_contains($type, '&')) {
+			return $nullable
+				? throw new Nette\InvalidArgumentException('Intersection types cannot be nullable.')
+				: $type;
+		}
+
+		$nnType = preg_replace('#^\?|^null\||\|null(?=\||$)#i', '', $type);
+		$always = (bool) preg_match('#^(null|mixed)$#i', $nnType);
+		if ($nullable) {
+			return match (true) {
+				$always, $type !== $nnType => $type,
+				str_contains($type, '|') => $type . '|null',
+				default => '?' . $type,
+			};
+		} else {
+			return $always
+				? throw new Nette\InvalidArgumentException("Type $type cannot be not nullable.")
+				: $nnType;
+		}
 	}
 
 
@@ -98,13 +118,5 @@ class Type
 	public static function intersection(string ...$types): string
 	{
 		return implode('&', $types);
-	}
-
-
-	/** @deprecated  use get_debug_type() */
-	public static function getType(mixed $value): ?string
-	{
-		trigger_error(__METHOD__ . '() is deprecated, use PHP function get_debug_type()', E_USER_DEPRECATED);
-		return is_resource($value) ? null : get_debug_type($value);
 	}
 }

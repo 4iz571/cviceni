@@ -25,16 +25,10 @@ use Dibi;
  */
 class OdbcDriver implements Dibi\Driver
 {
-	use Dibi\Strict;
-
 	/** @var resource */
 	private $connection;
-
-	/** @var int|null  Affected rows */
-	private $affectedRows;
-
-	/** @var bool */
-	private $microseconds = true;
+	private ?int $affectedRows;
+	private bool $microseconds = true;
 
 
 	/** @throws Dibi\NotSupportedException */
@@ -125,7 +119,7 @@ class OdbcDriver implements Dibi\Driver
 	 */
 	public function begin(?string $savepoint = null): void
 	{
-		if (!odbc_autocommit($this->connection, PHP_VERSION_ID < 80000 ? 0 : false)) {
+		if (!odbc_autocommit($this->connection)) {
 			throw new Dibi\DriverException(odbc_errormsg($this->connection) . ' ' . odbc_error($this->connection));
 		}
 	}
@@ -141,7 +135,7 @@ class OdbcDriver implements Dibi\Driver
 			throw new Dibi\DriverException(odbc_errormsg($this->connection) . ' ' . odbc_error($this->connection));
 		}
 
-		odbc_autocommit($this->connection, PHP_VERSION_ID < 80000 ? 1 : true);
+		odbc_autocommit($this->connection, true);
 	}
 
 
@@ -155,7 +149,7 @@ class OdbcDriver implements Dibi\Driver
 			throw new Dibi\DriverException(odbc_errormsg($this->connection) . ' ' . odbc_error($this->connection));
 		}
 
-		odbc_autocommit($this->connection, PHP_VERSION_ID < 80000 ? 1 : true);
+		odbc_autocommit($this->connection, true);
 	}
 
 
@@ -172,7 +166,7 @@ class OdbcDriver implements Dibi\Driver
 	 * Returns the connection resource.
 	 * @return resource|null
 	 */
-	public function getResource()
+	public function getResource(): mixed
 	{
 		return is_resource($this->connection) ? $this->connection : null;
 	}

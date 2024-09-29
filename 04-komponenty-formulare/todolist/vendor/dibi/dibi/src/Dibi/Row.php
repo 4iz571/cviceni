@@ -32,13 +32,12 @@ class Row implements \ArrayAccess, \IteratorAggregate, \Countable
 
 	/**
 	 * Converts value to DateTime object.
-	 * @return DateTime|string|null
 	 */
-	public function asDateTime(string $key, ?string $format = null)
+	public function asDateTime(string $key, ?string $format = null): DateTime|string|null
 	{
 		$time = $this[$key];
 		if (!$time instanceof DateTime) {
-			if (!$time || substr((string) $time, 0, 7) === '0000-00') { // '', null, false, '0000-00-00', ...
+			if (!$time || str_starts_with((string) $time, '0000-00')) { // '', null, false, '0000-00-00', ...
 				return null;
 			}
 
@@ -49,10 +48,11 @@ class Row implements \ArrayAccess, \IteratorAggregate, \Countable
 	}
 
 
-	public function __get(string $key)
+	public function __get(string $key): mixed
 	{
 		$hint = Helpers::getSuggestion(array_keys((array) $this), $key);
 		trigger_error("Attempt to read missing column '$key'" . ($hint ? ", did you mean '$hint'?" : '.'), E_USER_NOTICE);
+		return null;
 	}
 
 
@@ -83,8 +83,7 @@ class Row implements \ArrayAccess, \IteratorAggregate, \Countable
 	}
 
 
-	#[\ReturnTypeWillChange]
-	final public function offsetGet($nm)
+	final public function offsetGet($nm): mixed
 	{
 		return $this->$nm;
 	}

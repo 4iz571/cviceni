@@ -32,19 +32,21 @@ use Dibi;
  */
 class MySqliDriver implements Dibi\Driver
 {
-	use Dibi\Strict;
+	public const ErrorAccessDenied = 1045;
+	public const ErrorDuplicateEntry = 1062;
+	public const ErrorDataTruncated = 1265;
 
-	public const ERROR_ACCESS_DENIED = 1045;
+	/** @deprecated use MySqliDriver::ErrorAccessDenied */
+	public const ERROR_ACCESS_DENIED = self::ErrorAccessDenied;
 
-	public const ERROR_DUPLICATE_ENTRY = 1062;
+	/** @deprecated use MySqliDriver::ErrorDuplicateEntry */
+	public const ERROR_DUPLICATE_ENTRY = self::ErrorDuplicateEntry;
 
-	public const ERROR_DATA_TRUNCATED = 1265;
+	/** @deprecated use MySqliDriver::ErrorDataTruncated */
+	public const ERROR_DATA_TRUNCATED = self::ErrorDataTruncated;
 
-	/** @var \mysqli */
-	private $connection;
-
-	/** @var bool  Is buffered (seekable and countable)? */
-	private $buffered;
+	private \mysqli $connection;
+	private bool $buffered = false;
 
 
 	/** @throws Dibi\NotSupportedException */
@@ -96,7 +98,7 @@ class MySqliDriver implements Dibi\Driver
 				$config['database'] ?? '',
 				$config['port'] ?? 0,
 				$config['socket'],
-				$config['flags'] ?? 0
+				$config['flags'] ?? 0,
 			);
 
 			if ($this->connection->connect_errno) {
@@ -159,10 +161,7 @@ class MySqliDriver implements Dibi\Driver
 	}
 
 
-	/**
-	 * @param int|string $code
-	 */
-	public static function createException(string $message, $code, string $sql): Dibi\DriverException
+	public static function createException(string $message, int|string $code, string $sql): Dibi\DriverException
 	{
 		if (in_array($code, [1216, 1217, 1451, 1452, 1701], true)) {
 			return new Dibi\ForeignKeyConstraintViolationException($message, $code, $sql);

@@ -39,7 +39,7 @@ class UploadControl extends BaseControl
 			->addRule([$this, 'isOk'], Forms\Validator::$messages[self::Valid]);
 		$this->addRule(Form::MaxFileSize, null, Forms\Helpers::iniGetSize('upload_max_filesize'));
 		if ($multiple) {
-			$this->addRule(Form::MaxLength, 'The maximum allowed number of uploaded files is %i', (int) ini_get('max_file_uploads'));
+			$this->addRule(Form::MaxLength, 'The maximum allowed number of uploaded files is %d', (int) ini_get('max_file_uploads'));
 		}
 
 		$this->monitor(Form::class, function (Form $form): void {
@@ -105,7 +105,7 @@ class UploadControl extends BaseControl
 	public function addRule($validator, $errorMessage = null, $arg = null)
 	{
 		if ($validator === Form::Image) {
-			$this->control->accept = implode(', ', FileUpload::IMAGE_MIME_TYPES);
+			$this->control->accept = implode(', ', Forms\Helpers::getSupportedImages());
 
 		} elseif ($validator === Form::MimeType) {
 			$this->control->accept = implode(', ', (array) $arg);

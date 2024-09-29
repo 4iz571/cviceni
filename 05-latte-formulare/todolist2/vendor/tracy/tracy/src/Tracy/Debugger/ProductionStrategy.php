@@ -27,10 +27,7 @@ final class ProductionStrategy
 
 	public function handleException(\Throwable $exception, bool $firstTime): void
 	{
-		try {
-			Debugger::log($exception, Debugger::EXCEPTION);
-		} catch (\Throwable $e) {
-		}
+		$e = Debugger::tryLog($exception, Debugger::EXCEPTION);
 
 		if (!$firstTime) {
 			// nothing
@@ -40,14 +37,11 @@ final class ProductionStrategy
 				header('Content-Type: text/html; charset=UTF-8');
 			}
 
-			(function ($logged) use ($exception) {
-				require Debugger::$errorTemplate ?: __DIR__ . '/assets/error.500.phtml';
-			})(empty($e));
+			(fn($logged) => require Debugger::$errorTemplate ?: __DIR__ . '/assets/error.500.phtml')(!$e);
 
-		} elseif (Helpers::isCli()) {
-			// @ triggers E_NOTICE when strerr is closed since PHP 7.4
-			@fwrite(STDERR, "ERROR: {$exception->getMessage()}\n"
-				. (isset($e)
+		} elseif (Helpers::isCli() && is_resource(STDERR)) {
+			fwrite(STDERR, "ERROR: {$exception->getMessage()}\n"
+				. ($e
 					? 'Unable to log error. You may try enable debug mode to inspect the problem.'
 					: 'Check log to see more info.')
 				. "\n");
@@ -60,21 +54,16 @@ final class ProductionStrategy
 		string $message,
 		string $file,
 		int $line,
-		array $context = null
 	): void
 	{
 		if ($severity & Debugger::$logSeverity) {
 			$err = new ErrorException($message, 0, $severity, $file, $line);
-			@$err->context = $context; // dynamic properties are deprecated since PHP 8.2
 			Helpers::improveException($err);
 		} else {
-			$err = 'PHP ' . Helpers::errorTypeToString($severity) . ': ' . Helpers::improveError($message, (array) $context) . " in $file:$line";
+			$err = 'PHP ' . Helpers::errorTypeToString($severity) . ': ' . Helpers::improveError($message) . " in $file:$line";
 		}
 
-		try {
-			Debugger::log($err, Debugger::ERROR);
-		} catch (\Throwable $e) {
-		}
+		Debugger::tryLog($err, Debugger::ERROR);
 	}
 
 

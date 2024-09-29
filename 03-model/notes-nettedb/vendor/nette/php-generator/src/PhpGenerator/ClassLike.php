@@ -17,7 +17,6 @@ use Nette;
  */
 abstract class ClassLike
 {
-	use Nette\SmartObject;
 	use Traits\CommentAware;
 	use Traits\AttributeAware;
 
@@ -39,29 +38,30 @@ abstract class ClassLike
 	private ?string $name;
 
 
-	public static function from(string|object $class, bool $withBodies = false, ?bool $materializeTraits = null): self
+	public static function from(string|object $class, bool $withBodies = false): self
 	{
-		if ($materializeTraits !== null) {
-			trigger_error(__METHOD__ . '() parameter $materializeTraits has been removed (is always false).', E_USER_DEPRECATED);
-		}
-		return (new Factory)
+		$instance = (new Factory)
 			->fromClassReflection(new \ReflectionClass($class), $withBodies);
-	}
 
+		if (!$instance instanceof static) {
+			$class = is_object($class) ? $class::class : $class;
+			trigger_error("$class cannot be represented with " . static::class . '. Call ' . $instance::class . '::' . __FUNCTION__ . '() or ' . __METHOD__ . '() instead.', E_USER_WARNING);
+		}
 
-	/** @deprecated  use from(..., withBodies: true) */
-	public static function withBodiesFrom(string|object $class): self
-	{
-		trigger_error(__METHOD__ . '() is deprecated, use from(..., withBodies: true)', E_USER_DEPRECATED);
-		return (new Factory)
-			->fromClassReflection(new \ReflectionClass($class), withBodies: true);
+		return $instance;
 	}
 
 
 	public static function fromCode(string $code): self
 	{
-		return (new Factory)
+		$instance = (new Factory)
 			->fromClassCode($code);
+
+		if (!$instance instanceof static) {
+			trigger_error('Provided code cannot be represented with ' . static::class . '. Call ' . $instance::class . '::' . __FUNCTION__ . '() or ' . __METHOD__ . '() instead.', E_USER_WARNING);
+		}
+
+		return $instance;
 	}
 
 
@@ -139,5 +139,11 @@ abstract class ClassLike
 
 	public function validate(): void
 	{
+	}
+
+
+	public function __clone(): void
+	{
+		$this->attributes = array_map(fn($attr) => clone $attr, $this->attributes);
 	}
 }

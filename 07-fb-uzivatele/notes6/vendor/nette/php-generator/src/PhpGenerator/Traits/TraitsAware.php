@@ -22,7 +22,10 @@ trait TraitsAware
 	private array $traits = [];
 
 
-	/** @param  TraitUse[]  $traits */
+	/**
+	 * Replaces all traits.
+	 * @param  TraitUse[]  $traits
+	 */
 	public function setTraits(array $traits): static
 	{
 		(function (TraitUse ...$traits) {})(...$traits);
@@ -42,6 +45,9 @@ trait TraitsAware
 	}
 
 
+	/**
+	 * Adds a method. If it already exists, throws an exception.
+	 */
 	public function addTrait(string $name): TraitUse
 	{
 		if (isset($this->traits[$name])) {
@@ -60,5 +66,11 @@ trait TraitsAware
 	{
 		unset($this->traits[$name]);
 		return $this;
+	}
+
+
+	public function hasTrait(string $name): bool
+	{
+		return isset($this->traits[$name]);
 	}
 }

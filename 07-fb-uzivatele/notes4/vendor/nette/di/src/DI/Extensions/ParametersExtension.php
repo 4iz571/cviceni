@@ -57,19 +57,20 @@ final class ParametersExtension extends Nette\DI\CompilerExtension
 	public function afterCompile(Nette\PhpGenerator\ClassType $class)
 	{
 		$builder = $this->getContainerBuilder();
-		$dynamicParams = $this->dynamicParams;
+		$dynamicParams = array_fill_keys($this->dynamicParams, true);
 		foreach ($builder->parameters as $key => $value) {
 			$value = [$value];
 			array_walk_recursive($value, function ($val) use (&$dynamicParams, $key): void {
-				if ($val instanceof DynamicParameter || $val instanceof Nette\DI\Definitions\Statement) {
-					$dynamicParams[] = $key;
+				if ($val instanceof DynamicParameter) {
+					$dynamicParams[$key] = $dynamicParams[$key] ?? true;
+				} elseif ($val instanceof Nette\DI\Definitions\Statement) {
+					$dynamicParams[$key] = false;
 				}
 			});
 		}
-		$dynamicParams = array_values(array_unique($dynamicParams));
 
 		$method = Method::from([Container::class, 'getStaticParameters'])
-			->addBody('return ?;', [array_diff_key($builder->parameters, array_flip($dynamicParams))]);
+			->addBody('return ?;', [array_diff_key($builder->parameters, $dynamicParams)]);
 		$class->addMember($method);
 
 		if (!$dynamicParams) {
@@ -81,24 +82,23 @@ final class ParametersExtension extends Nette\DI\CompilerExtension
 		$method = Method::from([Container::class, 'getDynamicParameter']);
 		$class->addMember($method);
 		$method->addBody('switch (true) {');
-		foreach ($dynamicParams as $i => $key) {
+		foreach ($dynamicParams as $key => $foo) {
 			$value = Helpers::expand($this->config[$key] ?? null, $builder->parameters);
 			try {
 				$value = $generator->convertArguments($resolver->completeArguments(Helpers::filterArguments([$value])))[0];
-			} catch (\Throwable $e) {
-				$value = 'unable to resolve';
+				$method->addBody("\tcase \$key === ?: return ?;", [$key, $value]);
+			} catch (Nette\DI\ServiceCreationException $e) {
+				$method->addBody("\tcase \$key === ?: throw new Nette\\DI\\ServiceCreationException(?);", [$key, $e->getMessage()]);
 			}
-			$method->addBody("\tcase \$key === ?: return ?;", [$key, $value]);
 		}
 		$method->addBody("\tdefault: return parent::getDynamicParameter(\$key);\n};");
 
-		$method = Method::from([Container::class, 'getParameters']);
-		$class->addMember($method);
-		$method->addBody(
-			'array_map(function ($key) { try { $this->getParameter($key); } catch (\Throwable $e) { $this->parameters[$key] = "unable to resolve"; } }, ?);',
-			[$dynamicParams]
-		);
-		$method->addBody('return parent::getParameters();');
+		if ($preload = array_keys($dynamicParams, true, true)) {
+			$method = Method::from([Container::class, 'getParameters']);
+			$class->addMember($method);
+			$method->addBody('array_map([$this, \'getParameter\'], ?);', [$preload]);
+			$method->addBody('return parent::getParameters();');
+		}
 
 		foreach ($this->dynamicValidators as [$param, $expected, $path]) {
 			if ($param instanceof DynamicParameter) {

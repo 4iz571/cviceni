@@ -92,6 +92,7 @@ trait FunctionLike
 
 
 	/**
+	 * Adds a parameter. If it already exists, it overwrites it.
 	 * @param  string  $name without $
 	 */
 	public function addParameter(string $name, mixed $defaultValue = null): Parameter
@@ -172,14 +173,6 @@ trait FunctionLike
 
 	public function isReturnNullable(): bool
 	{
-		return $this->returnNullable;
-	}
-
-
-	/** @deprecated  use isReturnNullable() */
-	public function getReturnNullable(): bool
-	{
-		trigger_error(__METHOD__ . '() is deprecated, use isReturnNullable().', E_USER_DEPRECATED);
 		return $this->returnNullable;
 	}
 }

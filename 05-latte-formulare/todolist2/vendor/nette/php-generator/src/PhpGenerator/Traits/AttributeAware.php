@@ -18,11 +18,11 @@ use Nette\PhpGenerator\Attribute;
 trait AttributeAware
 {
 	/** @var Attribute[] */
-	private $attributes = [];
+	private array $attributes = [];
 
 
-	/** @return static */
-	public function addAttribute(string $name, array $args = []): self
+	/** @param  mixed[]  $args */
+	public function addAttribute(string $name, array $args = []): static
 	{
 		$this->attributes[] = new Attribute($name, $args);
 		return $this;
@@ -30,10 +30,10 @@ trait AttributeAware
 
 
 	/**
+	 * Replaces all attributes.
 	 * @param  Attribute[]  $attrs
-	 * @return static
 	 */
-	public function setAttributes(array $attrs): self
+	public function setAttributes(array $attrs): static
 	{
 		(function (Attribute ...$attrs) {})(...$attrs);
 		$this->attributes = $attrs;

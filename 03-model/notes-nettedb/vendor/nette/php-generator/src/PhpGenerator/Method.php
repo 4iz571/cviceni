@@ -14,24 +14,23 @@ use Nette;
 
 /**
  * Class method.
- *
- * @property-deprecated string|null $body
  */
 final class Method
 {
-	use Nette\SmartObject;
 	use Traits\FunctionLike;
 	use Traits\NameAware;
 	use Traits\VisibilityAware;
 	use Traits\CommentAware;
 	use Traits\AttributeAware;
 
+	public const Constructor = '__construct';
+
 	private bool $static = false;
 	private bool $final = false;
 	private bool $abstract = false;
 
 
-	public static function from(string|array $method): static
+	public static function from(string|array|\Closure $method): static
 	{
 		return (new Factory)->fromMethodReflection(Nette\Utils\Callback::toReflection($method));
 	}
@@ -102,5 +101,11 @@ final class Method
 		if ($this->abstract && ($this->final || $this->visibility === ClassLike::VisibilityPrivate)) {
 			throw new Nette\InvalidStateException("Method $this->name() cannot be abstract and final or private at the same time.");
 		}
+	}
+
+
+	public function __clone(): void
+	{
+		$this->parameters = array_map(fn($param) => clone $param, $this->parameters);
 	}
 }

@@ -16,10 +16,8 @@ namespace Tracy;
 class Bar
 {
 	/** @var IBarPanel[] */
-	private $panels = [];
-
-	/** @var bool */
-	private $loaderRendered = false;
+	private array $panels = [];
+	private bool $loaderRendered = false;
 
 
 	/**
@@ -31,7 +29,7 @@ class Bar
 		if ($id === null) {
 			$c = 0;
 			do {
-				$id = get_class($panel) . ($c++ ? "-$c" : '');
+				$id = $panel::class . ($c++ ? "-$c" : '');
 			} while (isset($this->panels[$id]));
 		}
 
@@ -61,7 +59,7 @@ class Bar
 
 		$this->loaderRendered = true;
 		$requestId = $defer->getRequestId();
-		$nonce = Helpers::getNonce();
+		$nonceAttr = Helpers::getNonceAttr();
 		$async = true;
 		require __DIR__ . '/assets/loader.phtml';
 	}
@@ -103,7 +101,7 @@ class Bar
 				$defer->addSetup('Tracy.Debug.init', $content);
 
 			} else {
-				$nonce = Helpers::getNonce();
+				$nonceAttr = Helpers::getNonceAttr();
 				$async = false;
 				Debugger::removeOutputBuffers(false);
 				require __DIR__ . '/assets/loader.phtml';

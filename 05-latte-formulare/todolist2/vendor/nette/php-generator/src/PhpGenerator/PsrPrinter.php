@@ -15,9 +15,13 @@ namespace Nette\PhpGenerator;
  */
 final class PsrPrinter extends Printer
 {
-	/** @var string */
-	protected $indentation = '    ';
+	public string $indentation = '    ';
+	public int $linesBetweenMethods = 1;
+	public int $linesBetweenUseTypes = 1;
 
-	/** @var int */
-	protected $linesBetweenMethods = 1;
+
+	protected function isBraceOnNextLine(bool $multiLine, bool $hasReturnType): bool
+	{
+		return !$multiLine;
+	}
 }

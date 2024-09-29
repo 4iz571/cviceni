@@ -12,21 +12,17 @@ namespace Dibi;
 
 class Helpers
 {
-	use Strict;
-
-	/** @var HashMap */
-	private static $types;
+	private static HashMap $types;
 
 
 	/**
 	 * Prints out a syntax highlighted version of the SQL command or Result.
-	 * @param  string|Result  $sql
 	 */
-	public static function dump($sql = null, bool $return = false): ?string
+	public static function dump(string|Result|null $sql = null, bool $return = false): ?string
 	{
 		ob_start();
 		if ($sql instanceof Result && PHP_SAPI === 'cli') {
-			$hasColors = (substr((string) getenv('TERM'), 0, 5) === 'xterm');
+			$hasColors = (str_starts_with((string) getenv('TERM'), 'xterm'));
 			$maxLen = 0;
 			foreach ($sql as $i => $row) {
 				if ($i === 0) {
@@ -75,8 +71,8 @@ class Helpers
 				$sql = \dibi::$sql;
 			}
 
-			static $keywords1 = 'SELECT|(?:ON\s+DUPLICATE\s+KEY)?UPDATE|INSERT(?:\s+INTO)?|REPLACE(?:\s+INTO)?|DELETE|CALL|UNION|FROM|WHERE|HAVING|GROUP\s+BY|ORDER\s+BY|LIMIT|OFFSET|FETCH\s+NEXT|SET|VALUES|LEFT\s+JOIN|INNER\s+JOIN|TRUNCATE|START\s+TRANSACTION|BEGIN|COMMIT|ROLLBACK(?:\s+TO\s+SAVEPOINT)?|(?:RELEASE\s+)?SAVEPOINT';
-			static $keywords2 = 'ALL|DISTINCT|DISTINCTROW|IGNORE|AS|USING|ON|AND|OR|IN|IS|NOT|NULL|LIKE|RLIKE|REGEXP|TRUE|FALSE';
+			$keywords1 = 'SELECT|(?:ON\s+DUPLICATE\s+KEY)?UPDATE|INSERT(?:\s+INTO)?|REPLACE(?:\s+INTO)?|DELETE|CALL|UNION|FROM|WHERE|HAVING|GROUP\s+BY|ORDER\s+BY|LIMIT|OFFSET|FETCH\s+NEXT|SET|VALUES|LEFT\s+JOIN|INNER\s+JOIN|TRUNCATE|START\s+TRANSACTION|BEGIN|COMMIT|ROLLBACK(?:\s+TO\s+SAVEPOINT)?|(?:RELEASE\s+)?SAVEPOINT';
+			$keywords2 = 'ALL|DISTINCT|DISTINCTROW|IGNORE|AS|USING|ON|AND|OR|IN|IS|NOT|NULL|LIKE|RLIKE|REGEXP|TRUE|FALSE';
 
 			// insert new lines
 			$sql = " $sql ";
@@ -91,7 +87,7 @@ class Helpers
 			// syntax highlight
 			$highlighter = "#(/\\*.+?\\*/)|(\\*\\*.+?\\*\\*)|(?<=[\\s,(])($keywords1)(?=[\\s,)])|(?<=[\\s,(=])($keywords2)(?=[\\s,)=])#is";
 			if (PHP_SAPI === 'cli') {
-				if (substr((string) getenv('TERM'), 0, 5) === 'xterm') {
+				if (str_starts_with((string) getenv('TERM'), 'xterm')) {
 					$sql = preg_replace_callback($highlighter, function (array $m) {
 						if (!empty($m[1])) { // comment
 							return "\033[1;30m" . $m[1] . "\033[0m";
@@ -162,13 +158,13 @@ class Helpers
 	/** @internal */
 	public static function escape(Driver $driver, $value, string $type): string
 	{
-		static $types = [
-			Type::TEXT => 'text',
-			Type::BINARY => 'binary',
-			Type::BOOL => 'bool',
-			Type::DATE => 'date',
-			Type::DATETIME => 'datetime',
-			\dibi::IDENTIFIER => 'identifier',
+		$types = [
+			Type::Text => 'text',
+			Type::Binary => 'binary',
+			Type::Bool => 'bool',
+			Type::Date => 'date',
+			Type::DateTime => 'datetime',
+			Fluent::Identifier => 'identifier',
 		];
 		if (isset($types[$type])) {
 			return $driver->{'escape' . $types[$type]}($value);
@@ -184,17 +180,17 @@ class Helpers
 	 */
 	public static function detectType(string $type): ?string
 	{
-		static $patterns = [
-			'^_' => Type::TEXT, // PostgreSQL arrays
-			'RANGE$' => Type::TEXT, // PostgreSQL range types
-			'BYTEA|BLOB|BIN' => Type::BINARY,
-			'TEXT|CHAR|POINT|INTERVAL|STRING' => Type::TEXT,
-			'YEAR|BYTE|COUNTER|SERIAL|INT|LONG|SHORT|^TINY$' => Type::INTEGER,
-			'CURRENCY|REAL|MONEY|FLOAT|DOUBLE|DECIMAL|NUMERIC|NUMBER' => Type::FLOAT,
-			'^TIME$' => Type::TIME,
-			'TIME' => Type::DATETIME, // DATETIME, TIMESTAMP
-			'DATE' => Type::DATE,
-			'BOOL' => Type::BOOL,
+		$patterns = [
+			'^_' => Type::Text, // PostgreSQL arrays
+			'RANGE$' => Type::Text, // PostgreSQL range types
+			'BYTEA|BLOB|BIN' => Type::Binary,
+			'TEXT|CHAR|POINT|INTERVAL|STRING' => Type::Text,
+			'YEAR|BYTE|COUNTER|SERIAL|INT|LONG|SHORT|^TINY$' => Type::Integer,
+			'CURRENCY|REAL|MONEY|FLOAT|DOUBLE|DECIMAL|NUMERIC|NUMBER' => Type::Float,
+			'^TIME$' => Type::Time,
+			'TIME' => Type::DateTime, // DATETIME, TIMESTAMP
+			'DATE' => Type::Date,
+			'BOOL' => Type::Bool,
 			'JSON' => Type::JSON,
 		];
 
@@ -211,7 +207,7 @@ class Helpers
 	/** @internal */
 	public static function getTypeCache(): HashMap
 	{
-		if (self::$types === null) {
+		if (!isset(self::$types)) {
 			self::$types = new HashMap([self::class, 'detectType']);
 		}
 
@@ -238,7 +234,7 @@ class Helpers
 
 	/**
 	 * Import SQL dump from file.
-	 * @return int  count of sql commands
+	 * Returns count of sql commands
 	 */
 	public static function loadFromFile(Connection $connection, string $file, ?callable $onProgress = null): int
 	{
@@ -259,7 +255,7 @@ class Helpers
 			if (strtoupper(substr($s, 0, 10)) === 'DELIMITER ') {
 				$delimiter = trim(substr($s, 10));
 
-			} elseif (substr($ts = rtrim($s), -strlen($delimiter)) === $delimiter) {
+			} elseif (str_ends_with($ts = rtrim($s), $delimiter)) {
 				$sql .= substr($ts, 0, -strlen($delimiter));
 				$driver->query($sql);
 				$sql = '';
@@ -286,14 +282,14 @@ class Helpers
 
 
 	/** @internal */
-	public static function false2Null($val)
+	public static function false2Null(mixed $val): mixed
 	{
 		return $val === false ? null : $val;
 	}
 
 
 	/** @internal */
-	public static function intVal($value): int
+	public static function intVal(mixed $value): int
 	{
 		if (is_int($value)) {
 			return $value;

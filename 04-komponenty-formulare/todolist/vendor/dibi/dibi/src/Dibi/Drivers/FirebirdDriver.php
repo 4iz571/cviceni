@@ -26,18 +26,17 @@ use Dibi\Helpers;
  */
 class FirebirdDriver implements Dibi\Driver
 {
-	use Dibi\Strict;
+	public const ErrorExceptionThrown = -836;
 
-	public const ERROR_EXCEPTION_THROWN = -836;
+	/** @deprecated use FirebirdDriver::ErrorExceptionThrown */
+	public const ERROR_EXCEPTION_THROWN = self::ErrorExceptionThrown;
 
 	/** @var resource */
 	private $connection;
 
-	/** @var resource|null */
+	/** @var ?resource */
 	private $transaction;
-
-	/** @var bool */
-	private $inTransaction = false;
+	private bool $inTransaction = false;
 
 
 	/** @throws Dibi\NotSupportedException */
@@ -191,7 +190,7 @@ class FirebirdDriver implements Dibi\Driver
 	 * Returns the connection resource.
 	 * @return resource|null
 	 */
-	public function getResource()
+	public function getResource(): mixed
 	{
 		return is_resource($this->connection) ? $this->connection : null;
 	}

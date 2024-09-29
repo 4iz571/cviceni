@@ -83,6 +83,7 @@ class Dumper
 		\DOMNamedNodeMap::class => [Exposer::class, 'exposeDOMNodeList'],
 		Ds\Collection::class => [Exposer::class, 'exposeDsCollection'],
 		Ds\Map::class => [Exposer::class, 'exposeDsMap'],
+		\WeakMap::class => [Exposer::class, 'exposeWeakMap'],
 	];
 
 	/** @var array<string, array{bool, string[]}> */
@@ -154,8 +155,7 @@ class Dumper
 
 		$sent = true;
 
-		$nonce = Helpers::getNonce();
-		$nonceAttr = $nonce ? ' nonce="' . Helpers::escapeHtml($nonce) . '"' : '';
+		$nonceAttr = Helpers::getNonceAttr();
 		$s = file_get_contents(__DIR__ . '/../assets/toggle.css')
 			. file_get_contents(__DIR__ . '/assets/dumper-light.css')
 			. file_get_contents(__DIR__ . '/assets/dumper-dark.css');

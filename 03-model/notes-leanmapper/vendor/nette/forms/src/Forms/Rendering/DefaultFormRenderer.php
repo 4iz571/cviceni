@@ -131,9 +131,7 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 	 */
 	public function render(Nette\Forms\Form $form, ?string $mode = null): string
 	{
-		if ($this->form !== $form) {
-			$this->form = $form;
-		}
+		$this->form = $form;
 
 		$s = '';
 		if (!$mode || $mode === 'begin') {
@@ -203,10 +201,6 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 			if ($control->getOption('type') === 'hidden' && !$control->getOption('rendered')) {
 				$s .= $control->getControl();
 			}
-		}
-
-		if (iterator_count($this->form->getComponents(true, Nette\Forms\Controls\TextInput::class)) < 2) {
-			$s .= '<!--[if IE]><input type=IEbug disabled style="display:none"><![endif]-->';
 		}
 
 		if ($s) {

@@ -14,9 +14,6 @@ use Nette;
 
 /**
  * Class description.
- *
- * @property-deprecated Method[] $methods
- * @property-deprecated Property[] $properties
  */
 final class ClassType extends ClassLike
 {
@@ -32,7 +29,6 @@ final class ClassType extends ClassLike
 		TYPE_TRAIT = 'trait',
 		TYPE_ENUM = 'enum';
 
-	private string $type = self::TYPE_CLASS;
 	private bool $final = false;
 	private bool $abstract = false;
 	private ?string $extends = null;
@@ -45,6 +41,7 @@ final class ClassType extends ClassLike
 	/** @deprecated  create object using 'new Nette\PhpGenerator\ClassType' */
 	public static function class(?string $name): self
 	{
+		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\ClassType", E_USER_DEPRECATED);
 		return new self($name);
 	}
 
@@ -52,6 +49,7 @@ final class ClassType extends ClassLike
 	/** @deprecated  create object using 'new Nette\PhpGenerator\InterfaceType' */
 	public static function interface(string $name): InterfaceType
 	{
+		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\InterfaceType'", E_USER_DEPRECATED);
 		return new InterfaceType($name);
 	}
 
@@ -59,6 +57,7 @@ final class ClassType extends ClassLike
 	/** @deprecated  create object using 'new Nette\PhpGenerator\TraitType' */
 	public static function trait(string $name): TraitType
 	{
+		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\TraitType'", E_USER_DEPRECATED);
 		return new TraitType($name);
 	}
 
@@ -66,6 +65,7 @@ final class ClassType extends ClassLike
 	/** @deprecated  create object using 'new Nette\PhpGenerator\EnumType' */
 	public static function enum(string $name): EnumType
 	{
+		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\EnumType'", E_USER_DEPRECATED);
 		return new EnumType($name);
 	}
 
@@ -82,68 +82,10 @@ final class ClassType extends ClassLike
 
 
 	/** @deprecated */
-	public function setClass(): static
-	{
-		trigger_error(__METHOD__ . '() is deprecated.', E_USER_DEPRECATED);
-		$this->type = self::TYPE_CLASS;
-		return $this;
-	}
-
-
-	public function isClass(): bool
-	{
-		return $this->type === self::TYPE_CLASS;
-	}
-
-
-	/** @deprecated  create object using 'new Nette\PhpGenerator\InterfaceType' */
-	public function setInterface(): static
-	{
-		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\InterfaceType'", E_USER_DEPRECATED);
-		$this->type = self::TYPE_INTERFACE;
-		return $this;
-	}
-
-
-	public function isInterface(): bool
-	{
-		return $this->type === self::TYPE_INTERFACE;
-	}
-
-
-	/** @deprecated  create object using 'new Nette\PhpGenerator\TraitType' */
-	public function setTrait(): static
-	{
-		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\TraitType'", E_USER_DEPRECATED);
-		$this->type = self::TYPE_TRAIT;
-		return $this;
-	}
-
-
-	public function isTrait(): bool
-	{
-		return $this->type === self::TYPE_TRAIT;
-	}
-
-
-	/** @deprecated  create object using 'new Nette\PhpGenerator\InterfaceType' or 'TraitType' */
-	public function setType(string $type): static
-	{
-		$upper = ucfirst($type);
-		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\{$upper}Type'", E_USER_DEPRECATED);
-		if (!in_array($type, [self::TYPE_CLASS, self::TYPE_INTERFACE, self::TYPE_TRAIT], true)) {
-			throw new Nette\InvalidArgumentException('Argument must be class|interface|trait.');
-		}
-
-		$this->type = $type;
-		return $this;
-	}
-
-
-	/** @deprecated */
 	public function getType(): string
 	{
-		return $this->type;
+		trigger_error(__METHOD__ . "() is deprecated, method always returns 'class'", E_USER_DEPRECATED);
+		return self::TYPE_CLASS;
 	}
 
 
@@ -235,7 +177,7 @@ final class ClassType extends ClassLike
 	}
 
 
-	public function addMember(Method|Property|Constant|TraitUse $member): static
+	public function addMember(Method|Property|Constant|TraitUse $member, bool $overwrite = false): static
 	{
 		$name = $member->getName();
 		[$type, $n] = match (true) {
@@ -244,11 +186,29 @@ final class ClassType extends ClassLike
 			$member instanceof Property => ['properties', $name],
 			$member instanceof TraitUse => ['traits', $name],
 		};
-		if (isset($this->$type[$n])) {
+		if (!$overwrite && isset($this->$type[$n])) {
 			throw new Nette\InvalidStateException("Cannot add member '$name', because it already exists.");
 		}
 		$this->$type[$n] = $member;
 		return $this;
+	}
+
+
+	/**
+	 * @deprecated use ClassManipulator::inheritProperty()
+	 */
+	public function inheritProperty(string $name, bool $returnIfExists = false): Property
+	{
+		return (new ClassManipulator($this))->inheritProperty($name, $returnIfExists);
+	}
+
+
+	/**
+	 * @deprecated use ClassManipulator::inheritMethod()
+	 */
+	public function inheritMethod(string $name, bool $returnIfExists = false): Method
+	{
+		return (new ClassManipulator($this))->inheritMethod($name, $returnIfExists);
 	}
 
 
@@ -265,8 +225,9 @@ final class ClassType extends ClassLike
 	}
 
 
-	public function __clone()
+	public function __clone(): void
 	{
+		parent::__clone();
 		$clone = fn($item) => clone $item;
 		$this->consts = array_map($clone, $this->consts);
 		$this->methods = array_map($clone, $this->methods);

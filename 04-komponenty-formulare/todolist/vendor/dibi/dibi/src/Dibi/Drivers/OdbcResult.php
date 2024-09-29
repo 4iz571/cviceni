@@ -17,13 +17,9 @@ use Dibi;
  */
 class OdbcResult implements Dibi\ResultDriver
 {
-	use Dibi\Strict;
-
 	/** @var resource */
 	private $resultSet;
-
-	/** @var int  Cursor */
-	private $row = 0;
+	private int $row = 0;
 
 
 	/**
@@ -113,7 +109,7 @@ class OdbcResult implements Dibi\ResultDriver
 	 * Returns the result set resource.
 	 * @return resource|null
 	 */
-	public function getResultResource()
+	public function getResultResource(): mixed
 	{
 		return is_resource($this->resultSet) ? $this->resultSet : null;
 	}

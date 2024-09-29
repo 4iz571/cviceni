@@ -14,33 +14,28 @@ use Nette;
 
 /**
  * Global function.
- *
- * @property-deprecated string $body
  */
 final class GlobalFunction
 {
-	use Nette\SmartObject;
 	use Traits\FunctionLike;
 	use Traits\NameAware;
 	use Traits\CommentAware;
 	use Traits\AttributeAware;
 
-	public static function from(string $function, bool $withBody = false): self
+	public static function from(string|\Closure $function, bool $withBody = false): self
 	{
-		return (new Factory)->fromFunctionReflection(new \ReflectionFunction($function), $withBody);
-	}
-
-
-	/** @deprecated  use GlobalFunction::from(..., withBody: true) */
-	public static function withBodyFrom(string $function): self
-	{
-		trigger_error(__METHOD__ . '() is deprecated, use GlobalFunction::from(..., withBody: true)', E_USER_DEPRECATED);
-		return (new Factory)->fromFunctionReflection(new \ReflectionFunction($function), withBody: true);
+		return (new Factory)->fromFunctionReflection(Nette\Utils\Callback::toReflection($function), $withBody);
 	}
 
 
 	public function __toString(): string
 	{
 		return (new Printer)->printFunction($this);
+	}
+
+
+	public function __clone(): void
+	{
+		$this->parameters = array_map(fn($param) => clone $param, $this->parameters);
 	}
 }

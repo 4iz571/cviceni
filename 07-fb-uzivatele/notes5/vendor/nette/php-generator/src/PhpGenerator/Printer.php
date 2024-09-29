@@ -48,7 +48,7 @@ class Printer
 		$params = $this->printParameters($function, strlen($line) + strlen($returnType) + 2); // 2 = parentheses
 		$body = Helpers::simplifyTaggedNames($function->getBody(), $this->namespace);
 		$body = ltrim(rtrim(Strings::normalize($body)) . "\n");
-		$braceOnNextLine = $this->bracesOnNextLine && (!str_contains($params, "\n") || $returnType);
+		$braceOnNextLine = $this->isBraceOnNextLine(str_contains($params, "\n"), (bool) $returnType);
 
 		return $this->printDocComment($function)
 			. $this->printAttributes($function->getAttributes())
@@ -119,7 +119,7 @@ class Printer
 		$params = $this->printParameters($method, strlen($line) + strlen($returnType) + strlen($this->indentation) + 2);
 		$body = Helpers::simplifyTaggedNames($method->getBody(), $this->namespace);
 		$body = ltrim(rtrim(Strings::normalize($body)) . "\n");
-		$braceOnNextLine = $this->bracesOnNextLine && (!str_contains($params, "\n") || $returnType);
+		$braceOnNextLine = $this->isBraceOnNextLine(str_contains($params, "\n"), (bool) $returnType);
 
 		return $this->printDocComment($method)
 			. $this->printAttributes($method->getAttributes())
@@ -170,6 +170,7 @@ class Printer
 			}
 		}
 
+		$readOnlyClass = $class instanceof ClassType && $class->isReadOnly();
 		$consts = [];
 		$methods = [];
 		if (
@@ -179,19 +180,14 @@ class Printer
 			|| $class instanceof EnumType
 		) {
 			foreach ($class->getConstants() as $const) {
-				$def = ($const->isFinal() ? 'final ' : '')
-					. ($const->getVisibility() ? $const->getVisibility() . ' ' : '')
-					. 'const '
-					. ltrim($this->printType($const->getType(), nullable: false) . ' ')
-					. $const->getName() . ' = ';
-
-				$consts[] = $this->printDocComment($const)
-					. $this->printAttributes($const->getAttributes())
-					. $def
-					. $this->dump($const->getValue(), strlen($def)) . ";\n";
+				$consts[] = $this->printConstant($const);
 			}
 
 			foreach ($class->getMethods() as $method) {
+				if ($readOnlyClass && $method->getName() === Method::Constructor) {
+					$method = clone $method;
+					array_map(fn($param) => $param instanceof PromotedParameter ? $param->setReadOnly(false) : null, $method->getParameters());
+				}
 				$methods[] = $this->printMethod($method, $namespace, $class->isInterface());
 			}
 		}
@@ -199,22 +195,7 @@ class Printer
 		$properties = [];
 		if ($class instanceof ClassType || $class instanceof TraitType) {
 			foreach ($class->getProperties() as $property) {
-				$property->validate();
-				$type = $property->getType();
-				$def = (($property->getVisibility() ?: 'public')
-					. ($property->isStatic() ? ' static' : '')
-					. ($property->isReadOnly() && $type ? ' readonly' : '')
-					. ' '
-					. ltrim($this->printType($type, $property->isNullable()) . ' ')
-					. '$' . $property->getName());
-
-				$properties[] = $this->printDocComment($property)
-					. $this->printAttributes($property->getAttributes())
-					. $def
-					. ($property->getValue() === null && !$property->isInitialized()
-						? ''
-						: ' = ' . $this->dump($property->getValue(), strlen($def) + 3)) // 3 = ' = '
-					. ";\n";
+				$properties[] = $this->printProperty($property, $readOnlyClass);
 			}
 		}
 
@@ -277,10 +258,6 @@ class Printer
 			$items[] = $this->printFunction($function, $namespace);
 		}
 
-		if (!$items && $this->omitEmptyNamespaces) {
-			return '';
-		}
-
 		$body = ($uses ? $uses . "\n" : '')
 			. implode("\n", $items);
 
@@ -300,7 +277,9 @@ class Printer
 	{
 		$namespaces = [];
 		foreach ($file->getNamespaces() as $namespace) {
-			$namespaces[] = $this->printNamespace($namespace);
+			if (!$this->omitEmptyNamespaces || $namespace->getClasses() || $namespace->getFunctions()) {
+				$namespaces[] = $this->printNamespace($namespace);
+			}
 		}
 
 		return "<?php\n"
@@ -373,7 +352,42 @@ class Printer
 		return $multiline
 			? "(\n" . $this->indent($res) . ')'
 			: '(' . substr($res, 0, -2) . ')';
+	}
 
+
+	private function printConstant(Constant $const): string
+	{
+		$def = ($const->isFinal() ? 'final ' : '')
+			. ($const->getVisibility() ? $const->getVisibility() . ' ' : '')
+			. 'const '
+			. ltrim($this->printType($const->getType(), nullable: false) . ' ')
+			. $const->getName() . ' = ';
+
+		return $this->printDocComment($const)
+			. $this->printAttributes($const->getAttributes())
+			. $def
+			. $this->dump($const->getValue(), strlen($def)) . ";\n";
+	}
+
+
+	private function printProperty(Property $property, bool $readOnlyClass = false): string
+	{
+		$property->validate();
+		$type = $property->getType();
+		$def = (($property->getVisibility() ?: 'public')
+			. ($property->isStatic() ? ' static' : '')
+			. (!$readOnlyClass && $property->isReadOnly() && $type ? ' readonly' : '')
+			. ' '
+			. ltrim($this->printType($type, $property->isNullable()) . ' ')
+			. '$' . $property->getName());
+
+		return $this->printDocComment($property)
+			. $this->printAttributes($property->getAttributes())
+			. $def
+			. ($property->getValue() === null && !$property->isInitialized()
+				? ''
+				: ' = ' . $this->dump($property->getValue(), strlen($def) + 3)) // 3 = ' = '
+			. ";\n";
 	}
 
 
@@ -387,13 +401,9 @@ class Printer
 			$type = $this->namespace->simplifyType($type);
 		}
 
-		if ($nullable && strcasecmp($type, 'mixed')) {
-			$type = str_contains($type, '|')
-				? $type . '|null'
-				: '?' . $type;
-		}
-
-		return $type;
+		return $nullable
+			? Type::nullable($type)
+			: $type;
 	}
 
 
@@ -467,5 +477,11 @@ class Printer
 		return $this->linesBetweenProperties
 			? implode(str_repeat("\n", $this->linesBetweenProperties), $props)
 			: preg_replace('#^(\w.*\n)\n(?=\w.*;)#m', '$1', implode("\n", $props));
+	}
+
+
+	protected function isBraceOnNextLine(bool $multiLine, bool $hasReturnType): bool
+	{
+		return $this->bracesOnNextLine && (!$multiLine || $hasReturnType);
 	}
 }

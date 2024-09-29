@@ -9,17 +9,12 @@ declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
-use Nette;
-
 
 /**
  * Closure.
- *
- * @property-deprecated string $body
  */
 final class Closure
 {
-	use Nette\SmartObject;
 	use Traits\FunctionLike;
 	use Traits\AttributeAware;
 
@@ -40,6 +35,7 @@ final class Closure
 
 
 	/**
+	 * Replaces all uses.
 	 * @param  Parameter[]  $uses
 	 */
 	public function setUses(array $uses): static
@@ -60,5 +56,11 @@ final class Closure
 	public function addUse(string $name): Parameter
 	{
 		return $this->uses[] = new Parameter($name);
+	}
+
+
+	public function __clone(): void
+	{
+		$this->parameters = array_map(fn($param) => clone $param, $this->parameters);
 	}
 }

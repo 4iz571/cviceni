@@ -14,8 +14,6 @@ use Nette;
 
 /**
  * Interface description.
- *
- * @property-deprecated Method[] $methods
  */
 final class InterfaceType extends ClassLike
 {
@@ -53,14 +51,17 @@ final class InterfaceType extends ClassLike
 	}
 
 
-	public function addMember(Method|Constant $member): static
+	/**
+	 * Adds a member. If it already exists, throws an exception or overwrites it if $overwrite is true.
+	 */
+	public function addMember(Method|Constant $member, bool $overwrite = false): static
 	{
 		$name = $member->getName();
 		[$type, $n] = match (true) {
 			$member instanceof Constant => ['consts', $name],
 			$member instanceof Method => ['methods', strtolower($name)],
 		};
-		if (isset($this->$type[$n])) {
+		if (!$overwrite && isset($this->$type[$n])) {
 			throw new Nette\InvalidStateException("Cannot add member '$name', because it already exists.");
 		}
 		$this->$type[$n] = $member;
@@ -68,8 +69,9 @@ final class InterfaceType extends ClassLike
 	}
 
 
-	public function __clone()
+	public function __clone(): void
 	{
+		parent::__clone();
 		$clone = fn($item) => clone $item;
 		$this->consts = array_map($clone, $this->consts);
 		$this->methods = array_map($clone, $this->methods);
