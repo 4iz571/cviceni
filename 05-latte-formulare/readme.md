@@ -107,7 +107,14 @@
 - je v tom trošku "magie", ale v presenteru či komponentách můžeme mít proměnné, které chceme automaticky přidávat ve všech požadavcích
     - např. zvolený tag, podle kterého filtrujeme, chceme mít k dispozici i při návratu z editace úkolu
     - obdobně můžeme chtít předávat např. aktuálně zvolený jazyk ve vícejazyčné aplikaci
-- takovouto proměnnou označíme atributem:
+- takovouto proměnnou označíme atributem či anotací (dle verze Nette/Application):
+    ```php
+    class MujPresenter extends Nette\Application\UI\Presenter {
+      /**@persistent*/
+      public int $page; //persistentní parametr předávaný mezi jednotlivými requesty
+    }    
+    ```
+    
     ```php
     class MujPresenter extends Nette\Application\UI\Presenter {
       #[Persistent]
@@ -126,7 +133,7 @@
 - volitelně lze napsat vlastní validaci persistentních parametrů, např.
     ```php
     class MujPresenter extends Nette\Application\UI\Presenter {
-      #[Persistent]
+      /**@persistent*/
       public int $page = 1; //persistentní parametr předávaný mezi jednotlivými requesty
   
       public function loadState(array $params):void {
