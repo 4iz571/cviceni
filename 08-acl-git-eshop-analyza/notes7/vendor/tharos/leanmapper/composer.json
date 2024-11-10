@@ -1,0 +1,52 @@
+{
+	"name": "tharos/leanmapper",
+	"description": "Tiny ORM based on powerful Dibi database abstraction library for PHP.",
+	"homepage": "http://www.leanmapper.com",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Vojtěch Kohout",
+			"role": "Author"
+		},
+		{
+			"name": "Miroslav Paulík",
+			"role": "Maintainer"
+		},
+		{
+			"name": "Jan Pecha",
+			"role": "Maintainer"
+		}
+	],
+	"autoload": {
+		"psr-0": {
+			"LeanMapper": "src/"
+		}
+	},
+	"autoload-dev": {
+		"classmap": ["tests/phpstan/DibiFluentDynamicReturnTypeExtension.php"]
+	},
+	"require": {
+		"php": "7.2 - 8.3",
+		"dibi/dibi": "^4.0 || ^5.0"
+	},
+	"require-dev": {
+		"nette/bootstrap": "^2.4 || ^3.0",
+		"nette/caching": "^2.4 || ^3.0",
+		"nette/di": "^2.4 || ^3.0",
+		"nette/robot-loader": "^2.4 || ^3.0",
+		"tracy/tracy": "^2.4 || ^3.0",
+		"nette/tester": "^2.3",
+		"phpstan/phpstan": "^1.10"
+	},
+	"scripts": {
+		"coverage": "tester -C -d zend_extension=xdebug --coverage tests/coverage.html --coverage-src src tests",
+		"phpstan": "phpstan analyse --configuration phpstan.neon",
+		"phpstan-baseline": "phpstan analyse --configuration phpstan.neon --generate-baseline",
+		"tests": "tester -C tests"
+	},
+	"extra": {
+		"branch-alias": {
+			"dev-develop": "4.1-dev"
+		}
+	}
+}

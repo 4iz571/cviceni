@@ -1,0 +1,21 @@
+{varType App\Model\Entities\User $currentUser}
+{varType string $qrCodeImage}
+{block content}
+
+<h1 n:block="title">Nastavení 2FA</h1>
+
+{if empty($currentUser->secretCode)}
+  Pokud chcete nastavit 2FA za využití jednorázového hesla (např. Google Authenticator),
+  naskenujte následující QR kód a zadejte do formuláře kód zobrazený v aplikaci.
+
+  <div>
+    <img src="{$qrCodeImage|nocheck}" alt="QR code"/>
+  </div>
+
+  {control newUserSecretCodeForm}
+
+{else}
+
+  <a n:href="unser2fa" class="btn btn-danger">zrušit nastavení 2FA</a>
+
+{/if}

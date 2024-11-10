@@ -1,0 +1,46 @@
+parameters:
+
+application:
+	errorPresenter: Error
+	mapping:
+		*: App\*Module\Presenters\*Presenter
+
+session:
+	expiration: 14 days
+
+di:
+	export:
+		parameters: no
+		tags: no
+
+services:
+	- App\Router\RouterFactory::createRouter
+
+	- LeanMapper\Connection(%database%)
+	- Vojir\LeanMapper\Mappers\CamelcaseUnderdashMapper('App\Model\Entities')
+	- LeanMapper\DefaultEntityFactory
+
+	- App\Model\Authenticator\Authenticator
+	- App\Model\Authorization\Authorizator
+
+	- App\Model\Api\Facebook\FacebookApi(%facebook.appId%, %facebook.secret%)
+
+	- App\Components\CategoryEditForm\CategoryEditFormFactory
+	- App\Components\NoteEditForm\NoteEditFormFactory
+	- App\Components\UserLoginForm\UserLoginFormFactory
+	- App\Components\UserRegistrationForm\UserRegistrationFormFactory
+	- App\Components\ForgottenPasswordForm\ForgottenPasswordFormFactory
+	- App\Components\NewPasswordForm\NewPasswordFormFactory
+	- App\Components\UserSecretCodeForm\UserSecretCodeFormFactory
+
+	- App\Model\Facades\CategoriesFacade
+	- App\Model\Facades\NotesFacade
+	- App\Model\Facades\UsersFacade
+
+	- App\Model\Repositories\CategoryRepository
+	- App\Model\Repositories\ForgottenPasswordRepository
+	- App\Model\Repositories\NoteRepository
+	- App\Model\Repositories\UserRepository
+	- App\Model\Repositories\PermissionRepository
+	- App\Model\Repositories\ResourceRepository
+	- App\Model\Repositories\RoleRepository
