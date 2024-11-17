@@ -70,13 +70,17 @@ class UserPresenter extends BasePresenter{
    * @param bool $callback
    * @throws Nette\Application\AbortException
    * @throws Nette\Application\UI\InvalidLinkException
-   * @throws \Facebook\Exceptions\FacebookSDKException
+   * @throws \InvalidArgumentException
    */
   public function actionFacebookLogin(bool $callback=false):void {
+    //nastavíme URL pro zpětné přesměrování z Facebooku
+    $this->facebookApi->redirectUri=$this->link('//User:facebookLogin',['callback'=>true]);
+
+    //vyhodnotíme, zda jde o návrat z FB, nebo teprve o přesměrování na přihlášení
     if ($callback){
       #region návrat z Facebooku
       try{
-        $facebookUser = $this->facebookApi->getFacebookUser(); //v proměnné $facebookUser máme facebookId, email a jméno uživatele => jdeme jej přihlásit
+        $facebookUser = $this->facebookApi->getFacebookUser($this->getHttpRequest()->getQuery('code'), $this->getHttpRequest()->getQuery('state')); //v proměnné $facebookUser máme facebookId, email a jméno uživatele => jdeme jej přihlásit
 
         //necháme si vytvořit identitu uživatele
         $userUdentity = $this->usersFacade->getFacebookUserIdentity($facebookUser);
@@ -89,14 +93,12 @@ class UserPresenter extends BasePresenter{
         $this->redirect('Homepage:default');
       }
 
-      //obnovíme uložený požadavek - pokud se to nepovede, pokračujeme přesměrováním
-      $this->restoreRequest($this->backlink);
+      //pokračujeme přesměrováním
       $this->redirect('Homepage:default');
       #endregion návrat z Facebooku
     }else{
       #region přesměrování na přihlášení pomocí Facebooku
-      $backlink = $this->link('//User:facebookLogin',['callback'=>true]);
-      $facebookLoginLink = $this->facebookApi->getLoginUrl($backlink);
+      $facebookLoginLink = $this->facebookApi->getLoginUrl();
       $this->redirectUrl($facebookLoginLink);
       #endregion přesměrování na přihlášení pomocí Facebooku
     }
