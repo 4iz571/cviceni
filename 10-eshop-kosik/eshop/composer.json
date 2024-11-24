@@ -4,7 +4,7 @@
 	"type": "project",
 	"license": ["proprietary"],
 	"require": {
-		"php": ">= 7.4",
+		"php": ">= 8.1",
 		"nette/application": "^3.1",
 		"nette/bootstrap": "^3.1",
 		"nette/caching": "^3.1",
@@ -20,7 +20,7 @@
 		"tracy/tracy": "^2.8",
 		"tharos/leanmapper": "^4.0",
 		"vojir/leanmapper-mappers": "^1.0",
-		"nickdnk/graph-sdk": "^7.0",
+		"league/oauth2-facebook": "^2.2",
 		"nextras/forms-rendering": "^1.1"
 	},
 	"autoload": {

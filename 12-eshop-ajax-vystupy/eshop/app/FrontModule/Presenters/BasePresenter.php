@@ -21,7 +21,7 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter {
    * @throws ForbiddenRequestException
    * @throws AbortException
    */
-  protected function startup(){
+  protected function startup():void {
     parent::startup();
     $presenterName = $this->request->presenterName;
     $action = !empty($this->request->parameters['action'])?$this->request->parameters['action']:'';

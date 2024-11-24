@@ -2,84 +2,76 @@
   
 namespace App\Model\Api\Facebook;
 
-use Facebook\Exceptions\FacebookSDKException;
-use Facebook\Facebook;
+use League\OAuth2\Client\Provider\Facebook;
+use Nette\Http\Session;
+use Nette\Http\SessionSection;
 
 /**
  * Class FacebookApi
  * @package App\Model\Api\Facebook
  */
 class FacebookApi{
+  public string $redirectUri;
   private string $appId;
   private string $appSecret;
-  private Facebook $facebook;
+  private SessionSection $facebookSessionSection;
 
 
-  public function __construct(string $appId, string $appSecret){
+  public function __construct(string $appId, string $appSecret, Session $session){
     $this->appId=$appId;
     $this->appSecret=$appSecret;
+    $this->facebookSessionSection=$session->getSection('FacebookApi');
   }
 
-  /**
-   * Metoda vracející instanci Facebook SDK
-   * @return Facebook
-   * @throws FacebookSDKException
-   */
-  public function getFacebook():Facebook{
-    if (empty($this->facebook)){
-      $this->facebook=new Facebook([
-        'app_id'=>$this->appId,
-        'app_secret'=>$this->appSecret
-      ]);
-    }
-    return $this->facebook;
+  private function getFacebook(): Facebook{
+    return new Facebook([
+      'clientId'=>$this->appId,
+      'clientSecret'=>$this->appSecret,
+      'graphApiVersion'=>'v21.0',
+      'redirectUri'=>$this->redirectUri
+    ]);
   }
 
   /**
    * Metoda pro získání adresy pro přihlášení na Facebook - vrátí nás na redirectUrl
    * @param string $redirectUrl
    * @return string
-   * @throws FacebookSDKException
+   * @throws \InvalidArgumentException
    */
-  public function getLoginUrl(string $redirectUrl):string {
-    //inicializujeme helper pro vytvoření odkazu
-    $redirectLoginHelper=$this->getFacebook()->getRedirectLoginHelper();
-    //necháme vygenerovat odkaz
-    return $redirectLoginHelper->getLoginUrl($redirectUrl, ['email']);
+  public function getLoginUrl():string {
+    $facebook = $this->getFacebook();
+
+    //vygenerujeme URL pro FB
+    $url=$facebook->getAuthorizationUrl(['scope'=>['email']]);
+
+    //uložíme do session bezpečnostní kód proti CSRF
+    $this->facebookSessionSection->set('apiState',$facebook->getState());
+
+    //vrátíme URL pro přesměrování na FB
+    return $url;
   }
 
   /**
    * Metoda pro získání aktuálního uživatele z Facebooku
+   * @param string $authorizationCode
+   * @param string $facebookApiState
    * @return FacebookUser
-   * @throws FacebookSDKException
-   * @throws \Exception
+   * @throws \League\OAuth2\Client\Provider\Exception\IdentityProviderException
    */
-  public function getFacebookUser():FacebookUser {
-    //inicializujeme helper pro vytvoření odkazu
-    $redirectLoginHelper=$this->getFacebook()->getRedirectLoginHelper();
-    //získáme access token z aktuálního přihlášení (když se jej nepovede získat, je vyhozena výjimka)
-    $accessToken = $redirectLoginHelper->getAccessToken();
+  public function getFacebookUser(string $authorizationCode, string $facebookApiState):FacebookUser {
+    $facebook = $this->getFacebook();
+    if (empty($facebookApiState) || ($facebookApiState!=$this->facebookSessionSection->get('apiState'))){
+      throw new \Exception('Přihlášení pomocí Facebooku se nezdařilo, zkuste to prosím znovu.');
+    }
 
+    $accessToken=$facebook->getAccessToken('authorization_code',['code' => $authorizationCode]);
     if (!$accessToken){
       throw new \Exception('Přihlášení pomocí Facebooku se nezdařilo.');
     }
 
-    //OAuth 2.0 client pro správu access tokenů
-    $oAuth2Client = $this->getFacebook()->getOAuth2Client();
-    //získáme údaje k tokenu, který jsme získali z přihlášení
-    $accessTokenMetadata = $oAuth2Client->debugToken($accessToken);
-
-    //získáme ID uživatele z Facebooku a začneme vytvářet odpověď
-    $facebookUser = new FacebookUser($accessTokenMetadata->getUserId());
-
-    //získáme jméno a e-mail uživatele
-    $response=$this->getFacebook()->get('/me?fields=name,email', $accessToken);
-    $graphUser=$response->getGraphUser();
-
-    $facebookUser->email=$graphUser->getEmail();
-    $facebookUser->name=$graphUser->getName();
-
-    return $facebookUser;
+    //získáme údaje o uživateli FB a vygenerujeme instanci FacebookUser
+    $resourceOwner = $this->getFacebook()->getResourceOwner($accessToken);
+    return new FacebookUser($resourceOwner->getId(), $resourceOwner->getName(), $resourceOwner->getEmail());
   }
 
 }

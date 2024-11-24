@@ -8,6 +8,7 @@ $baseDir = dirname($vendorDir);
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'Dibi\\Bridges\\Nette\\DibiExtension22' => $vendorDir . '/dibi/dibi/src/Dibi/Bridges/Nette/DibiExtension22.php',
+    'Dibi\\Bridges\\Nette\\DibiExtension3' => $vendorDir . '/dibi/dibi/src/Dibi/Bridges/Nette/DibiExtension3.php',
     'Dibi\\Bridges\\Tracy\\Panel' => $vendorDir . '/dibi/dibi/src/Dibi/Bridges/Tracy/Panel.php',
     'Dibi\\Connection' => $vendorDir . '/dibi/dibi/src/Dibi/Connection.php',
     'Dibi\\ConstraintViolationException' => $vendorDir . '/dibi/dibi/src/Dibi/exceptions.php',
@@ -293,6 +294,7 @@ return array(
     'Nette\\DeprecatedException' => $vendorDir . '/nette/utils/src/exceptions.php',
     'Nette\\DirectoryNotFoundException' => $vendorDir . '/nette/utils/src/exceptions.php',
     'Nette\\FileNotFoundException' => $vendorDir . '/nette/utils/src/exceptions.php',
+    'Nette\\Forms\\Blueprint' => $vendorDir . '/nette/forms/src/Forms/Blueprint.php',
     'Nette\\Forms\\Container' => $vendorDir . '/nette/forms/src/Forms/Container.php',
     'Nette\\Forms\\Control' => $vendorDir . '/nette/forms/src/Forms/Control.php',
     'Nette\\Forms\\ControlGroup' => $vendorDir . '/nette/forms/src/Forms/ControlGroup.php',
@@ -389,6 +391,7 @@ return array(
     'Nette\\OutOfRangeException' => $vendorDir . '/nette/utils/src/exceptions.php',
     'Nette\\PhpGenerator\\Attribute' => $vendorDir . '/nette/php-generator/src/PhpGenerator/Attribute.php',
     'Nette\\PhpGenerator\\ClassLike' => $vendorDir . '/nette/php-generator/src/PhpGenerator/ClassLike.php',
+    'Nette\\PhpGenerator\\ClassManipulator' => $vendorDir . '/nette/php-generator/src/PhpGenerator/ClassManipulator.php',
     'Nette\\PhpGenerator\\ClassType' => $vendorDir . '/nette/php-generator/src/PhpGenerator/ClassType.php',
     'Nette\\PhpGenerator\\Closure' => $vendorDir . '/nette/php-generator/src/PhpGenerator/Closure.php',
     'Nette\\PhpGenerator\\Constant' => $vendorDir . '/nette/php-generator/src/PhpGenerator/Constant.php',

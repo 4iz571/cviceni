@@ -54,13 +54,24 @@ class ProductPresenter extends BasePresenter{
           //kontrola zakoupitelnosti
         }catch (\Exception $e){
           $this->flashMessage('Produkt nejde přidat do košíku','error');
-          $this->redirect('this');
+          if ($this->isAjax()){
+            $this->redrawControl('flashes');
+          }else{
+            $this->redirect('this');
+          }
         }
         //přidání do košíku
         /** @var CartControl $cart */
         $cart = $this->getComponent('cart');
         $cart->addToCart($product, (int)$form->values->count);
-        $this->redirect('this');
+
+        $this->flashMessage('Produkt přidán do košíku: '.$product->title);
+        if ($this->isAjax()){
+          $this->redrawControl('flashes');
+          $this->redrawControl('cart');
+        }else{
+          $this->redirect('this');
+        }
       };
 
       return $form;

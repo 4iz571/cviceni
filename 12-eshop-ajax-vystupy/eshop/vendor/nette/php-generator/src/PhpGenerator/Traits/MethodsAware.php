@@ -22,7 +22,10 @@ trait MethodsAware
 	private array $methods = [];
 
 
-	/** @param  Method[]  $methods */
+	/**
+	 * Replaces all methods.
+	 * @param  Method[]  $methods
+	 */
 	public function setMethods(array $methods): static
 	{
 		(function (Method ...$methods) {})(...$methods);
@@ -53,10 +56,13 @@ trait MethodsAware
 	}
 
 
-	public function addMethod(string $name): Method
+	/**
+	 * Adds a method. If it already exists, throws an exception or overwrites it if $overwrite is true.
+	 */
+	public function addMethod(string $name, bool $overwrite = false): Method
 	{
 		$lower = strtolower($name);
-		if (isset($this->methods[$lower])) {
+		if (!$overwrite && isset($this->methods[$lower])) {
 			throw new Nette\InvalidStateException("Cannot add method '$name', because it already exists.");
 		}
 		$method = new Method($name);

@@ -40,6 +40,7 @@ class ProductCartForm extends Form{
   }
 
   private function createSubcomponents(){
+    $this->setHtmlAttribute('class', 'ajax'); //třída ajax zařídí, že se Naja pokusí odchytit využití tohoto formuláře
     $this->addHidden('productId');
     $this->addInteger('count','Počet kusů')
       ->addRule(Form::RANGE,'Chybný počet kusů.',[1,100]);

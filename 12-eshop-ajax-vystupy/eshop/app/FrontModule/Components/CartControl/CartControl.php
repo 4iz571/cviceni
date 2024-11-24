@@ -48,7 +48,14 @@ class CartControl extends Control{
     }catch (\Exception $e){
       //chybu odstranění ignorujeme (položka už tam pravděpodobně není)
     }
-    $this->redirect('this');
+
+    if ($this->presenter->isAjax()){
+      $this->presenter->redrawControl('content');
+      $this->presenter->redrawControl('cart');
+      $this->redrawControl();
+    }else{
+      $this->redirect('this');
+    }
   }
 
   /**
@@ -78,6 +85,8 @@ class CartControl extends Control{
     $this->cartFacade->saveCartItem($cartItem);
     $this->cartFacade->saveCart($this->cart);
     $this->cart->updateCartItems();
+
+    $this->redrawControl();
   }
 
   /**

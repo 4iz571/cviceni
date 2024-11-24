@@ -155,8 +155,7 @@ class Dumper
 
 		$sent = true;
 
-		$nonce = Helpers::getNonce();
-		$nonceAttr = $nonce ? ' nonce="' . Helpers::escapeHtml($nonce) . '"' : '';
+		$nonceAttr = Helpers::getNonceAttr();
 		$s = file_get_contents(__DIR__ . '/../assets/toggle.css')
 			. file_get_contents(__DIR__ . '/assets/dumper-light.css')
 			. file_get_contents(__DIR__ . '/assets/dumper-dark.css');
@@ -164,6 +163,7 @@ class Dumper
 
 		if (!Debugger::isEnabled()) {
 			$s = '(function(){' . file_get_contents(__DIR__ . '/../assets/toggle.js') . '})();'
+				. '(function(){' . file_get_contents(__DIR__ . '/../assets/helpers.js') . '})();'
 				. '(function(){' . file_get_contents(__DIR__ . '/../Dumper/assets/dumper.js') . '})();';
 			echo "<script{$nonceAttr}>", str_replace(['<!--', '</s'], ['<\!--', '<\/s'], Helpers::minifyJs($s)), "</script>\n";
 		}

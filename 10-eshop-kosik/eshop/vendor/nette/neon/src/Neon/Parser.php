@@ -211,12 +211,12 @@ final class Parser
 
 		$this->injectPos($item, $item->startTokenPos, $item->value->endTokenPos);
 
-		if ($this->tokens->consume(',', Token::Newline)) {
-			goto loop;
-		}
-
+		$old = $this->tokens->getPos();
 		while ($this->tokens->consume(Token::Newline));
-		if (!$this->tokens->isNext($endBrace)) {
+		$this->tokens->consume(',');
+		if ($old !== $this->tokens->getPos()) {
+			goto loop;
+		} elseif (!$this->tokens->isNext($endBrace)) {
 			$this->tokens->error();
 		}
 
@@ -240,7 +240,7 @@ final class Parser
 	}
 
 
-	private function injectPos(Node $node, int $start = null, int $end = null): Node
+	private function injectPos(Node $node, ?int $start = null, ?int $end = null): Node
 	{
 		$node->startTokenPos = $start ?? $this->tokens->getPos();
 		$node->startLine = $this->posToLine[$node->startTokenPos];

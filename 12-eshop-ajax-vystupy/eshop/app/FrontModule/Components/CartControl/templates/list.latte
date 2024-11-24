@@ -1,23 +1,24 @@
 {varType App\Model\Entities\Cart $cart}
 
-{if empty($cart->items)}
-    košík je prázdný
+<div n:snippet="list" data-naja-snippet-cache="off">
+    {if empty($cart->items)}
+        košík je prázdný
+
+    {else}
+        <table class="table table-hover">
+
+            {foreach $cart->items as $item}
+                <tr>
+                    <th>{$item->product->title}</th>
+                    <td>{$item->count}</td>
+                    <td>
+                        <a href="{link remove! $item->cartItemId}" class="ajax">odebrat</a>
+                    </td>
+                </tr>
+            {/foreach}
+
+        </table>
 
 
-{else}
-    <table class="table table-hover">
-
-        {foreach $cart->items as $item}
-            <tr>
-                <th>{$item->product->title}</th>
-                <td>{$item->count}</td>
-                <td>
-                    <a href="{link remove! $item->cartItemId}">odebrat</a>
-                </td>
-            </tr>
-        {/foreach}
-
-    </table>
-
-
-{/if}
+    {/if}
+</div>

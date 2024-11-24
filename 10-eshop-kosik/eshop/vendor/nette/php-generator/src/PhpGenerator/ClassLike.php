@@ -40,15 +40,28 @@ abstract class ClassLike
 
 	public static function from(string|object $class, bool $withBodies = false): self
 	{
-		return (new Factory)
+		$instance = (new Factory)
 			->fromClassReflection(new \ReflectionClass($class), $withBodies);
+
+		if (!$instance instanceof static) {
+			$class = is_object($class) ? $class::class : $class;
+			trigger_error("$class cannot be represented with " . static::class . '. Call ' . $instance::class . '::' . __FUNCTION__ . '() or ' . __METHOD__ . '() instead.', E_USER_WARNING);
+		}
+
+		return $instance;
 	}
 
 
 	public static function fromCode(string $code): self
 	{
-		return (new Factory)
+		$instance = (new Factory)
 			->fromClassCode($code);
+
+		if (!$instance instanceof static) {
+			trigger_error('Provided code cannot be represented with ' . static::class . '. Call ' . $instance::class . '::' . __FUNCTION__ . '() or ' . __METHOD__ . '() instead.', E_USER_WARNING);
+		}
+
+		return $instance;
 	}
 
 
@@ -126,5 +139,11 @@ abstract class ClassLike
 
 	public function validate(): void
 	{
+	}
+
+
+	public function __clone(): void
+	{
+		$this->attributes = array_map(fn($attr) => clone $attr, $this->attributes);
 	}
 }

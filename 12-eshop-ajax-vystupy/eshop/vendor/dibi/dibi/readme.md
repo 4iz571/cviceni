@@ -34,7 +34,7 @@ Install Dibi via Composer:
 composer require dibi/dibi
 ```
 
-The Dibi 5.0 requires PHP version 8.0 and supports PHP up to 8.3.
+The Dibi 5.0 requires PHP version 8.0 and supports PHP up to 8.4.
 
 
 Usage
@@ -608,7 +608,7 @@ $database->query("UPDATE [:blog:items] SET [text]='Hello World'");
 Dibi automatically detects the types of query columns and converts fields them to native PHP types. We can also specify the type manually. You can find the possible types in the `Dibi\Type` class.
 
 ```php
-$result->setType('id', Dibi\Type::INTEGER); // id will be integer
+$result->setType('id', Dibi\Type::Integer); // id will be integer
 $row = $result->fetch();
 
 is_int($row->id) // true
@@ -639,7 +639,7 @@ In the configuration file, we will register the DI extensions and add the `dibi`
 
 ```neon
 extensions:
-	dibi: Dibi\Bridges\Nette\DibiExtension22
+	dibi: Dibi\Bridges\Nette\DibiExtension3
 
 dibi:
 	host: localhost
