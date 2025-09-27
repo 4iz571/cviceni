@@ -10,10 +10,11 @@ declare(strict_types=1);
 namespace Nette\PhpGenerator;
 
 use Nette;
+use function array_diff, array_map, strtolower;
 
 
 /**
- * Class description.
+ * Definition of a class with properties, methods, constants, traits and PHP attributes.
  */
 final class ClassType extends ClassLike
 {

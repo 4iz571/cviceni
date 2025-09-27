@@ -6,5 +6,6 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'Nette\\' => array($vendorDir . '/nette/php-generator/src'),
     'App\\' => array($baseDir . '/app'),
 );
