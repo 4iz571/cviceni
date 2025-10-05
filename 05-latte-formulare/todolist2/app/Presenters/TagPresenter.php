@@ -19,7 +19,7 @@ class TagPresenter extends \Nette\Application\UI\Presenter {
   /**
    * Akce pro zobrazení přehledu tagů
    */
-  public function renderDefault(){
+  public function renderDefault():void {
     $this->template->tags=$this->tagsFacade->findTags();
   }
 

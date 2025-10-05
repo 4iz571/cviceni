@@ -10,7 +10,7 @@ use LeanMapper\Entity;
  * @property int $todoId
  * @property string $title
  * @property string $description = ''
- * @property \DateTime|null $deadline = null
+ * @property \DateTimeImmutable|null $deadline = null
  * @property bool $completed = false
  * @property Tag[] $tags m:hasMany
  *

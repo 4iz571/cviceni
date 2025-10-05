@@ -7,5 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Vojir\\LeanMapper\\Mappers\\' => array($vendorDir . '/vojir/leanmapper-mappers/src'),
+    'Nette\\' => array($vendorDir . '/nette/php-generator/src'),
+    'Dibi\\' => array($vendorDir . '/dibi/dibi/src/Dibi'),
     'App\\' => array($baseDir . '/app'),
 );

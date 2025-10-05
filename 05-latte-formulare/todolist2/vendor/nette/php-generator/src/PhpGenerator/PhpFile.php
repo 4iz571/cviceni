@@ -9,9 +9,11 @@ declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
+use function count;
+
 
 /**
- * Instance of PHP file.
+ * Definition of a PHP file.
  *
  * Generates:
  * - opening tag (<?php)

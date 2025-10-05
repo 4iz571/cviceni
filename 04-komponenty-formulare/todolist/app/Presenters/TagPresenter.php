@@ -85,16 +85,10 @@ class TagPresenter extends \Nette\Application\UI\Presenter {
   }
 
   #region injections
-  /**
-   * @param TagsFacade $tagsFacade
-   */
   public function injectTagsFacade(TagsFacade $tagsFacade):void {
     $this->tagsFacade=$tagsFacade;
   }
 
-  /**
-   * @param TagEditFormFactory $tagEditFormFactory
-   */
   public function injectTagEditFormFactory(TagEditFormFactory $tagEditFormFactory):void {
     $this->tagEditFormFactory=$tagEditFormFactory;
   }

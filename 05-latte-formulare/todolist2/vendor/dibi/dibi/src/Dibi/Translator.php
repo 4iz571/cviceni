@@ -9,14 +9,16 @@ declare(strict_types=1);
 
 namespace Dibi;
 
+use function array_filter, array_keys, array_splice, array_values, count, explode, get_debug_type, gettype, implode, is_array, is_bool, is_float, is_int, is_numeric, is_object, is_scalar, is_string, iterator_to_array, key, ltrim, number_format, preg_last_error, preg_match, preg_replace_callback, reset, rtrim, str_contains, str_replace, strcspn, strlen, strncasecmp, strtoupper, substr, trim;
+
 
 /**
  * SQL translator.
  */
 final class Translator
 {
-	private Connection $connection;
-	private Driver $driver;
+	private readonly Connection $connection;
+	private readonly Driver $driver;
 	private int $cursor = 0;
 	private array $args;
 
@@ -34,7 +36,7 @@ final class Translator
 	{
 		$this->connection = $connection;
 		$this->driver = $connection->getDriver();
-		$this->identifiers = new HashMap([$this, 'delimite']);
+		$this->identifiers = new HashMap($this->delimite(...));
 	}
 
 
@@ -88,7 +90,7 @@ final class Translator
 									(\?)                            ## 11) placeholder
 								)/xs
 								XX,
-							[$this, 'cb'],
+							$this->cb(...),
 							substr($arg, $toSkip),
 						);
 					if (preg_last_error()) {
@@ -434,7 +436,7 @@ final class Translator
 										:(\S*?:)([a-zA-Z0-9._]?)
 									)/sx
 									XX,
-								[$this, 'cb'],
+								$this->cb(...),
 								substr($value, $toSkip),
 							);
 						if (preg_last_error()) {
