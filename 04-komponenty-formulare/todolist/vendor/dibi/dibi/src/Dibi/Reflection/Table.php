@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Dibi\Reflection;
 
 use Dibi;
+use function array_values, strtolower;
 
 
 /**
@@ -25,7 +26,7 @@ use Dibi;
  */
 class Table
 {
-	private Dibi\Reflector $reflector;
+	private readonly Dibi\Reflector $reflector;
 	private string $name;
 	private bool $view;
 

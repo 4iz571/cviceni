@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Dibi\Drivers;
 
 use Dibi;
+use function is_resource;
 
 
 /**
@@ -17,17 +18,13 @@ use Dibi;
  */
 class OdbcResult implements Dibi\ResultDriver
 {
-	/** @var resource */
-	private $resultSet;
 	private int $row = 0;
 
 
-	/**
-	 * @param  resource  $resultSet
-	 */
-	public function __construct($resultSet)
-	{
-		$this->resultSet = $resultSet;
+	public function __construct(
+		/** @var resource */
+		private $resultSet,
+	) {
 	}
 
 

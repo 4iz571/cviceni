@@ -11,6 +11,7 @@ namespace Nette\PhpGenerator;
 
 use Nette;
 use Nette\Utils\Strings;
+use function array_filter, array_map, count, end, get_debug_type, implode, is_scalar, ltrim, preg_replace, rtrim, str_contains, str_repeat, str_replace, strlen, substr;
 
 
 /**
@@ -46,8 +47,7 @@ class Printer
 			. $function->getName();
 		$returnType = $this->printReturnType($function);
 		$params = $this->printParameters($function, strlen($line) + strlen($returnType) + 2); // 2 = parentheses
-		$body = Helpers::simplifyTaggedNames($function->getBody(), $this->namespace);
-		$body = ltrim(rtrim(Strings::normalize($body)) . "\n");
+		$body = $this->printFunctionBody($function);
 		$braceOnNextLine = $this->isBraceOnNextLine(str_contains($params, "\n"), (bool) $returnType);
 
 		return $this->printDocComment($function)
@@ -71,8 +71,7 @@ class Printer
 		$useStr = strlen($tmp = implode(', ', $uses)) > $this->wrapLength && count($uses) > 1
 			? "\n" . $this->indentation . implode(",\n" . $this->indentation, $uses) . ",\n"
 			: $tmp;
-		$body = Helpers::simplifyTaggedNames($closure->getBody(), $this->namespace);
-		$body = ltrim(rtrim(Strings::normalize($body)) . "\n");
+		$body = $this->printFunctionBody($closure);
 
 		return $this->printAttributes($closure->getAttributes(), inline: true)
 			. 'function '
@@ -93,14 +92,14 @@ class Printer
 			}
 		}
 
-		$body = Helpers::simplifyTaggedNames($closure->getBody(), $this->namespace);
+		$body = $this->printFunctionBody($closure);
 
 		return $this->printAttributes($closure->getAttributes())
 			. 'fn'
 			. ($closure->getReturnReference() ? '&' : '')
 			. $this->printParameters($closure)
 			. $this->printReturnType($closure)
-			. ' => ' . trim(Strings::normalize($body)) . ';';
+			. ' => ' . rtrim($body, "\n") . ';';
 	}
 
 
@@ -117,8 +116,7 @@ class Printer
 			. $method->getName();
 		$returnType = $this->printReturnType($method);
 		$params = $this->printParameters($method, strlen($line) + strlen($returnType) + strlen($this->indentation) + 2);
-		$body = Helpers::simplifyTaggedNames($method->getBody(), $this->namespace);
-		$body = ltrim(rtrim(Strings::normalize($body)) . "\n");
+		$body = $this->printFunctionBody($method);
 		$braceOnNextLine = $this->isBraceOnNextLine(str_contains($params, "\n"), (bool) $returnType);
 
 		return $this->printDocComment($method)
@@ -129,6 +127,14 @@ class Printer
 			. ($method->isAbstract() || $isInterface
 				? ";\n"
 				: ($braceOnNextLine ? "\n" : ' ') . "{\n" . $this->indent($body) . "}\n");
+	}
+
+
+	private function printFunctionBody(Closure|GlobalFunction|Method|PropertyHook $function): string
+	{
+		$code = Helpers::simplifyTaggedNames($function->getBody(), $this->namespace);
+		$code = Strings::normalize($code);
+		return ltrim(rtrim($code) . "\n");
 	}
 
 
@@ -193,9 +199,9 @@ class Printer
 		}
 
 		$properties = [];
-		if ($class instanceof ClassType || $class instanceof TraitType) {
+		if ($class instanceof ClassType || $class instanceof TraitType || $class instanceof InterfaceType) {
 			foreach ($class->getProperties() as $property) {
-				$properties[] = $this->printProperty($property, $readOnlyClass);
+				$properties[] = $this->printProperty($property, $readOnlyClass, $class instanceof InterfaceType);
 			}
 		}
 
@@ -308,7 +314,7 @@ class Printer
 	}
 
 
-	protected function printParameters(Closure|GlobalFunction|Method $function, int $column = 0): string
+	protected function printParameters(Closure|GlobalFunction|Method|PropertyHook $function, int $column = 0): string
 	{
 		$special = false;
 		foreach ($function->getParameters() as $param) {
@@ -327,25 +333,29 @@ class Printer
 	}
 
 
-	private function formatParameters(Closure|GlobalFunction|Method $function, bool $multiline): string
+	private function formatParameters(Closure|GlobalFunction|Method|PropertyHook $function, bool $multiline): string
 	{
 		$params = $function->getParameters();
 		$res = '';
 
 		foreach ($params as $param) {
-			$variadic = $function->isVariadic() && $param === end($params);
+			$variadic = !$function instanceof PropertyHook && $function->isVariadic() && $param === end($params);
 			$attrs = $this->printAttributes($param->getAttributes(), inline: true);
 			$res .=
 				$this->printDocComment($param)
 				. ($attrs ? ($multiline ? substr($attrs, 0, -1) . "\n" : $attrs) : '')
 				. ($param instanceof PromotedParameter
-					? ($param->getVisibility() ?: 'public') . ($param->isReadOnly() && $param->getType() ? ' readonly' : '') . ' '
+					? ($param->isFinal() ? 'final ' : '')
+						. $this->printPropertyVisibility($param)
+						. ($param->isReadOnly() && $param->getType() ? ' readonly' : '')
+						. ' '
 					: '')
 				. ltrim($this->printType($param->getType(), $param->isNullable()) . ' ')
 				. ($param->isReference() ? '&' : '')
 				. ($variadic ? '...' : '')
 				. '$' . $param->getName()
 				. ($param->hasDefaultValue() && !$variadic ? ' = ' . $this->dump($param->getDefaultValue()) : '')
+				. ($param instanceof PromotedParameter ? $this->printHooks($param) : '')
 				. ($multiline ? ",\n" : ', ');
 		}
 
@@ -370,24 +380,39 @@ class Printer
 	}
 
 
-	private function printProperty(Property $property, bool $readOnlyClass = false): string
+	private function printProperty(Property $property, bool $readOnlyClass = false, bool $isInterface = false): string
 	{
 		$property->validate();
 		$type = $property->getType();
-		$def = (($property->getVisibility() ?: 'public')
+		$def = ($property->isAbstract() && !$isInterface ? 'abstract ' : '')
+			. ($property->isFinal() ? 'final ' : '')
+			. $this->printPropertyVisibility($property)
 			. ($property->isStatic() ? ' static' : '')
 			. (!$readOnlyClass && $property->isReadOnly() && $type ? ' readonly' : '')
 			. ' '
 			. ltrim($this->printType($type, $property->isNullable()) . ' ')
-			. '$' . $property->getName());
+			. '$' . $property->getName();
+
+		$defaultValue = $property->getValue() === null && !$property->isInitialized()
+			? ''
+			: ' = ' . $this->dump($property->getValue(), strlen($def) + 3); // 3 = ' = '
 
 		return $this->printDocComment($property)
 			. $this->printAttributes($property->getAttributes())
 			. $def
-			. ($property->getValue() === null && !$property->isInitialized()
-				? ''
-				: ' = ' . $this->dump($property->getValue(), strlen($def) + 3)) // 3 = ' = '
-			. ";\n";
+			. $defaultValue
+			. ($this->printHooks($property, $isInterface) ?: ';')
+			. "\n";
+	}
+
+
+	private function printPropertyVisibility(Property|PromotedParameter $param): string
+	{
+		$get = $param->getVisibility(PropertyAccessMode::Get);
+		$set = $param->getVisibility(PropertyAccessMode::Set);
+		return $set
+			? ($get ? "$get $set(set)" : "$set(set)")
+			: $get ?? 'public';
 	}
 
 
@@ -444,6 +469,37 @@ class Printer
 		return $inline
 			? '#[' . implode(', ', $items) . '] '
 			: '#[' . implode("]\n#[", $items) . "]\n";
+	}
+
+
+	private function printHooks(Property|PromotedParameter $property, bool $isInterface = false): string
+	{
+		$hooks = $property->getHooks();
+		if (!$hooks) {
+			return '';
+		}
+
+		$simple = true;
+		foreach ($hooks as $type => $hook) {
+			$simple = $simple && ($hook->isAbstract() || $isInterface);
+			$hooks[$type] = $this->printDocComment($hook)
+				. $this->printAttributes($hook->getAttributes())
+				. ($hook->isAbstract() || $isInterface
+					? ($hook->getReturnReference() ? '&' : '')
+						. $type . ';'
+					: ($hook->isFinal() ? 'final ' : '')
+						. ($hook->getReturnReference() ? '&' : '')
+						. $type
+						. ($hook->getParameters() ? $this->printParameters($hook) : '')
+						. ' '
+						. ($hook->isShort()
+							? '=> ' . $hook->getBody() . ';'
+							: "{\n" . $this->indent($this->printFunctionBody($hook)) . '}'));
+		}
+
+		return $simple
+			? ' { ' . implode(' ', $hooks) . ' }'
+			: " {\n" . $this->indent(implode("\n", $hooks)) . "\n}";
 	}
 
 

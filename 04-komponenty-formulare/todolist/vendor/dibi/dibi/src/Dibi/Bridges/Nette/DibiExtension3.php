@@ -13,6 +13,7 @@ use Dibi;
 use Nette;
 use Nette\Schema\Expect;
 use Tracy;
+use function is_array;
 
 
 /**
@@ -20,14 +21,10 @@ use Tracy;
  */
 class DibiExtension3 extends Nette\DI\CompilerExtension
 {
-	private ?bool $debugMode;
-	private ?bool $cliMode;
-
-
-	public function __construct(?bool $debugMode = null, ?bool $cliMode = null)
-	{
-		$this->debugMode = $debugMode;
-		$this->cliMode = $cliMode;
+	public function __construct(
+		private ?bool $debugMode = null,
+		private ?bool $cliMode = null,
+	) {
 	}
 
 

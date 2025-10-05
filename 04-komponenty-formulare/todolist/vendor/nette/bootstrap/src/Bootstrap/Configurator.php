@@ -14,6 +14,7 @@ use Composer\InstalledVersions;
 use Latte;
 use Nette;
 use Nette\DI;
+use Nette\DI\Definitions\Statement;
 use Tracy;
 
 
@@ -33,6 +34,7 @@ class Configurator
 
 	public array $defaultExtensions = [
 		'application' => [Nette\Bridges\ApplicationDI\ApplicationExtension::class, ['%debugMode%', ['%appDir%'], '%tempDir%/cache/nette.application']],
+		'assets' => [Nette\Bridges\AssetsDI\DIExtension::class, ['%baseUrl%', '%wwwDir%', '%debugMode%']],
 		'cache' => [Nette\Bridges\CacheDI\CacheExtension::class, ['%tempDir%/cache']],
 		'constants' => Extensions\ConstantsExtension::class,
 		'database' => [Nette\Bridges\DatabaseDI\DatabaseExtension::class, ['%debugMode%']],
@@ -170,7 +172,10 @@ class Configurator
 			? new \ReflectionClass(ClassLoader::class)
 			: null;
 		$rootDir = class_exists(InstalledVersions::class) && ($tmp = InstalledVersions::getRootPackage()['install_path'] ?? null)
-			? rtrim(Nette\Utils\FileSystem::normalizePath($tmp), '\\/')
+			? rtrim(Nette\Utils\FileSystem::normalizePath($tmp), '\/')
+			: null;
+		$baseUrl = class_exists(Nette\Http\Request::class)
+			? new Statement(['', 'rtrim'], [new Statement([new Statement('@Nette\Http\IRequest::getUrl'), 'getBaseUrl']), '/'])
 			: null;
 		return [
 			'appDir' => isset($trace[1]['file']) ? dirname($trace[1]['file']) : null,
@@ -180,6 +185,7 @@ class Configurator
 			'debugMode' => $debugMode,
 			'productionMode' => !$debugMode,
 			'consoleMode' => PHP_SAPI === 'cli',
+			'baseUrl' => $baseUrl,
 		];
 	}
 
@@ -290,7 +296,7 @@ class Configurator
 		}
 
 		$compiler->addConfig(['parameters' => DI\Helpers::escape($this->staticParameters)]);
-		$compiler->setDynamicParameterNames(array_keys($this->dynamicParameters));
+		$compiler->setDynamicParameterNames(array_merge(array_keys($this->dynamicParameters), ['baseUrl']));
 
 		$builder = $compiler->getContainerBuilder();
 		$builder->addExcludedClasses($this->autowireExcludedClasses);

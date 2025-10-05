@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Dibi\Drivers;
 
 use Dibi;
+use function sprintf;
 
 
 /**
@@ -17,12 +18,9 @@ use Dibi;
  */
 class SqlsrvReflector implements Dibi\Reflector
 {
-	private Dibi\Driver $driver;
-
-
-	public function __construct(Dibi\Driver $driver)
-	{
-		$this->driver = $driver;
+	public function __construct(
+		private readonly Dibi\Driver $driver,
+	) {
 	}
 
 
