@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7c642a3cae0bbd0c45563eb4668432e7",
+    "content-hash": "8aaaad1971f09ec9c10a99c025d1daf1",
     "packages": [
         {
             "name": "dibi/dibi",
@@ -1513,7 +1513,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">= 8.1"
+        "php": ">=8.1"
     },
     "platform-dev": [],
     "platform-overrides": {
