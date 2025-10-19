@@ -38,7 +38,9 @@ class HomepagePresenter extends BasePresenter{
   /**
    * Akce pro smazání poznámky
    * @param int $id
+   * @throws Nette\Application\AbortException
    * @throws Nette\Application\BadRequestException
+   * @throws \LeanMapper\Exception\InvalidStateException
    */
   public function actionDelete(int $id):void {
     try{
