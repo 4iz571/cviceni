@@ -37,7 +37,7 @@ class UserLoginForm extends Form{
   private function createSubcomponents():void {
     $this->addEmail('email','E-mail')
       ->setRequired('Zadejte platný email');
-    $password=$this->addPassword('password','Heslo')
+    $this->addPassword('password','Heslo')
       ->setRequired('Zadejte své heslo');
 
     $this->addSubmit('ok','přihlásit se')

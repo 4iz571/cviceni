@@ -17,7 +17,7 @@ class UserLoginControl extends Control{
    * Akce renderující šablonu s odkazem pro zobrazení harmonogramu na desktopu
    * @param array $params = []
    */
-  public function render($params=[]):void {
+  public function render(array $params=[]):void {
     $template=$this->prepareTemplate('default');
     $template->user=$this->user;
     $template->class=(!empty($params['class'])?$params['class']:'');
@@ -28,7 +28,7 @@ class UserLoginControl extends Control{
    * Signál pro přihlášení uživatele s uložením requestu
    * @throws \Nette\Application\AbortException
    */
-  public function handleLogin():void {
+  public function handleLogin():never {
     if ($this->user->isLoggedIn()){
       $this->presenter->redirect('this');
     }else{
@@ -39,7 +39,7 @@ class UserLoginControl extends Control{
   /**
    * @throws \Nette\Application\AbortException
    */
-  public function handleLogout():void {
+  public function handleLogout():never {
     if (!$this->user->isLoggedIn()){
       $this->presenter->redirect('this');
     }else{
