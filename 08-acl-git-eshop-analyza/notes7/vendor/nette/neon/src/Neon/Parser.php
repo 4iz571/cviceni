@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace Nette\Neon;
 
+use function array_key_exists, count, end, is_scalar, min, strlen, strncmp, substr, substr_count;
+
 
 /** @internal */
 final class Parser
@@ -240,7 +242,7 @@ final class Parser
 	}
 
 
-	private function injectPos(Node $node, int $start = null, int $end = null): Node
+	private function injectPos(Node $node, ?int $start = null, ?int $end = null): Node
 	{
 		$node->startTokenPos = $start ?? $this->tokens->getPos();
 		$node->startLine = $this->posToLine[$node->startTokenPos];

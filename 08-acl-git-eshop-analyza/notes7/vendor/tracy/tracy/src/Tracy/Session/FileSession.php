@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Tracy;
 
+use function is_string;
+use const LOCK_EX, LOCK_UN;
+
 
 class FileSession implements SessionStorage
 {
@@ -18,7 +21,7 @@ class FileSession implements SessionStorage
 	public string $cookieName = 'tracy-session';
 
 	/** probability that the clean() routine is started */
-	public float $gcProbability = 0.001;
+	public float $gcProbability = 0.03;
 	private string $dir;
 
 	/** @var resource */

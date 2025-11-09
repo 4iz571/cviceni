@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Tracy;
 
+use function array_filter, array_map, array_merge, array_pop, array_slice, array_unique, basename, bin2hex, class_exists, constant, count, dechex, defined, dirname, end, escapeshellarg, explode, extension_loaded, func_get_args, function_exists, get_class, get_class_methods, get_declared_classes, get_defined_functions, getenv, getmypid, headers_list, htmlspecialchars, htmlspecialchars_decode, iconv_strlen, implode, in_array, is_a, is_array, is_callable, is_file, is_object, is_string, levenshtein, ltrim, mb_strlen, mb_substr, method_exists, ob_end_clean, ob_get_clean, ob_start, ord, preg_match, preg_replace, preg_replace_callback, random_bytes, rawurlencode, rtrim, sapi_windows_vt100_support, spl_object_id, str_contains, str_pad, str_replace, strcasecmp, stream_isatty, strip_tags, strlen, strtoupper, strtr, substr, trait_exists, utf8_decode;
+use const DIRECTORY_SEPARATOR, ENT_HTML5, ENT_QUOTES, ENT_SUBSTITUTE, PHP_EOL, PHP_SAPI, STDOUT, STR_PAD_LEFT;
+
 
 /**
  * Rendering helpers for Debugger.
@@ -130,7 +133,6 @@ class Helpers
 			E_USER_WARNING => 'User Warning',
 			E_NOTICE => 'Notice',
 			E_USER_NOTICE => 'User Notice',
-			E_STRICT => 'Strict standards',
 			E_DEPRECATED => 'Deprecated',
 			E_USER_DEPRECATED => 'User Deprecated',
 		];
@@ -184,20 +186,20 @@ class Helpers
 				$message = str_replace($m[2], "but function '$arg' does not exist" . ($hint ? " (did you mean $hint?)" : ''), $message);
 			}
 
-		} elseif (preg_match('#^Call to undefined function (\S+\\\\)?(\w+)\(#', $message, $m)) {
+		} elseif (preg_match('#^Call to undefined function (\S+\\\)?(\w+)\(#', $message, $m)) {
 			$funcs = array_merge(get_defined_functions()['internal'], get_defined_functions()['user']);
 			if ($hint = self::getSuggestion($funcs, $m[1] . $m[2]) ?: self::getSuggestion($funcs, $m[2])) {
 				$message = "Call to undefined function $m[2](), did you mean $hint()?";
 				$replace = ["$m[2](", "$hint("];
 			}
 
-		} elseif (preg_match('#^Call to undefined method ([\w\\\\]+)::(\w+)#', $message, $m)) {
+		} elseif (preg_match('#^Call to undefined method ([\w\\\]+)::(\w+)#', $message, $m)) {
 			if ($hint = self::getSuggestion(get_class_methods($m[1]) ?: [], $m[2])) {
 				$message .= ", did you mean $hint()?";
 				$replace = ["$m[2](", "$hint("];
 			}
 
-		} elseif (preg_match('#^Undefined property: ([\w\\\\]+)::\$(\w+)#', $message, $m)) {
+		} elseif (preg_match('#^Undefined property: ([\w\\\]+)::\$(\w+)#', $message, $m)) {
 			$rc = new \ReflectionClass($m[1]);
 			$items = array_filter($rc->getProperties(\ReflectionProperty::IS_PUBLIC), fn($prop) => !$prop->isStatic());
 			if ($hint = self::getSuggestion($items, $m[2])) {
@@ -205,7 +207,7 @@ class Helpers
 				$replace = ["->$m[2]", "->$hint"];
 			}
 
-		} elseif (preg_match('#^Access to undeclared static property:? ([\w\\\\]+)::\$(\w+)#', $message, $m)) {
+		} elseif (preg_match('#^Access to undeclared static property:? ([\w\\\]+)::\$(\w+)#', $message, $m)) {
 			$rc = new \ReflectionClass($m[1]);
 			$items = array_filter($rc->getProperties(\ReflectionProperty::IS_STATIC), fn($prop) => $prop->isPublic());
 			if ($hint = self::getSuggestion($items, $m[2])) {
@@ -216,7 +218,6 @@ class Helpers
 
 		if ($message !== $e->getMessage()) {
 			$ref = new \ReflectionProperty($e, 'message');
-			$ref->setAccessible(true);
 			$ref->setValue($e, $message);
 		}
 
@@ -233,7 +234,7 @@ class Helpers
 	/** @internal */
 	public static function improveError(string $message): string
 	{
-		if (preg_match('#^Undefined property: ([\w\\\\]+)::\$(\w+)#', $message, $m)) {
+		if (preg_match('#^Undefined property: ([\w\\\]+)::\$(\w+)#', $message, $m)) {
 			$rc = new \ReflectionClass($m[1]);
 			$items = array_filter($rc->getProperties(\ReflectionProperty::IS_PUBLIC), fn($prop) => !$prop->isStatic());
 			$hint = self::getSuggestion($items, $m[2]);
@@ -357,7 +358,7 @@ class Helpers
 	 */
 	public static function capture(callable $func): string
 	{
-		ob_start(fn() => null);
+		ob_start(fn() => '');
 		try {
 			$func();
 			return ob_get_clean();

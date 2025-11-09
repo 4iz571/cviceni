@@ -7,10 +7,13 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Vojir\\LeanMapper\\Mappers\\' => array($vendorDir . '/vojir/leanmapper-mappers/src'),
+    'Tracy\\' => array($vendorDir . '/tracy/tracy/src'),
     'PragmaRX\\Google2FA\\' => array($vendorDir . '/pragmarx/google2fa/src'),
     'ParagonIE\\ConstantTime\\' => array($vendorDir . '/paragonie/constant_time_encoding/src'),
+    'Nette\\' => array($vendorDir . '/nette/bootstrap/src', $vendorDir . '/nette/php-generator/src', $vendorDir . '/nette/neon/src'),
     'Facebook\\' => array($vendorDir . '/nickdnk/graph-sdk/src/Facebook'),
     'Endroid\\QrCode\\' => array($vendorDir . '/endroid/qr-code/src'),
+    'Dibi\\' => array($vendorDir . '/dibi/dibi/src/Dibi'),
     'DASPRiD\\Enum\\' => array($vendorDir . '/dasprid/enum/src'),
     'BaconQrCode\\' => array($vendorDir . '/bacon/bacon-qr-code/src'),
     'App\\' => array($baseDir . '/app'),

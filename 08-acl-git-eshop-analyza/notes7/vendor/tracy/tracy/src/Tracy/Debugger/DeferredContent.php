@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Tracy;
 
+use function array_slice, is_string, strlen;
+use const JSON_INVALID_UTF8_SUBSTITUTE, JSON_UNESCAPED_SLASHES, JSON_UNESCAPED_UNICODE;
+
 
 /**
  * @internal
@@ -126,6 +129,7 @@ final class DeferredContent
 			__DIR__ . '/../assets/toggle.js',
 			__DIR__ . '/../assets/table-sort.js',
 			__DIR__ . '/../assets/tabs.js',
+			__DIR__ . '/../assets/helpers.js',
 			__DIR__ . '/../Dumper/assets/dumper.js',
 			__DIR__ . '/../BlueScreen/assets/bluescreen.js',
 		]);

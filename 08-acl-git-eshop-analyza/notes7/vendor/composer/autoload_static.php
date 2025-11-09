@@ -15,10 +15,18 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         array (
             'Vojir\\LeanMapper\\Mappers\\' => 25,
         ),
+        'T' => 
+        array (
+            'Tracy\\' => 6,
+        ),
         'P' => 
         array (
             'PragmaRX\\Google2FA\\' => 19,
             'ParagonIE\\ConstantTime\\' => 23,
+        ),
+        'N' => 
+        array (
+            'Nette\\' => 6,
         ),
         'F' => 
         array (
@@ -30,6 +38,7 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         ),
         'D' => 
         array (
+            'Dibi\\' => 5,
             'DASPRiD\\Enum\\' => 13,
         ),
         'B' => 
@@ -47,6 +56,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         array (
             0 => __DIR__ . '/..' . '/vojir/leanmapper-mappers/src',
         ),
+        'Tracy\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/tracy/tracy/src',
+        ),
         'PragmaRX\\Google2FA\\' => 
         array (
             0 => __DIR__ . '/..' . '/pragmarx/google2fa/src',
@@ -55,6 +68,12 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         array (
             0 => __DIR__ . '/..' . '/paragonie/constant_time_encoding/src',
         ),
+        'Nette\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/nette/bootstrap/src',
+            1 => __DIR__ . '/..' . '/nette/php-generator/src',
+            2 => __DIR__ . '/..' . '/nette/neon/src',
+        ),
         'Facebook\\' => 
         array (
             0 => __DIR__ . '/..' . '/nickdnk/graph-sdk/src/Facebook',
@@ -62,6 +81,10 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         'Endroid\\QrCode\\' => 
         array (
             0 => __DIR__ . '/..' . '/endroid/qr-code/src',
+        ),
+        'Dibi\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/dibi/dibi/src/Dibi',
         ),
         'DASPRiD\\Enum\\' => 
         array (
@@ -494,6 +517,9 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         'Nette\\PhpGenerator\\Printer' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Printer.php',
         'Nette\\PhpGenerator\\PromotedParameter' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/PromotedParameter.php',
         'Nette\\PhpGenerator\\Property' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Property.php',
+        'Nette\\PhpGenerator\\PropertyAccessMode' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/PropertyAccessMode.php',
+        'Nette\\PhpGenerator\\PropertyHook' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/PropertyHook.php',
+        'Nette\\PhpGenerator\\PropertyHookType' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/PropertyHookType.php',
         'Nette\\PhpGenerator\\PsrPrinter' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/PsrPrinter.php',
         'Nette\\PhpGenerator\\TraitType' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/TraitType.php',
         'Nette\\PhpGenerator\\TraitUse' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/TraitUse.php',
@@ -504,9 +530,11 @@ class ComposerStaticInitb1b97e29a9cf0faeec5829dab71133a3
         'Nette\\PhpGenerator\\Traits\\MethodsAware' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Traits/MethodsAware.php',
         'Nette\\PhpGenerator\\Traits\\NameAware' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Traits/NameAware.php',
         'Nette\\PhpGenerator\\Traits\\PropertiesAware' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Traits/PropertiesAware.php',
+        'Nette\\PhpGenerator\\Traits\\PropertyLike' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Traits/PropertyLike.php',
         'Nette\\PhpGenerator\\Traits\\TraitsAware' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Traits/TraitsAware.php',
         'Nette\\PhpGenerator\\Traits\\VisibilityAware' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Traits/VisibilityAware.php',
         'Nette\\PhpGenerator\\Type' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Type.php',
+        'Nette\\PhpGenerator\\Visibility' => __DIR__ . '/..' . '/nette/php-generator/src/PhpGenerator/Visibility.php',
         'Nette\\Routing\\Route' => __DIR__ . '/..' . '/nette/routing/src/Routing/Route.php',
         'Nette\\Routing\\RouteList' => __DIR__ . '/..' . '/nette/routing/src/Routing/RouteList.php',
         'Nette\\Routing\\Router' => __DIR__ . '/..' . '/nette/routing/src/Routing/Router.php',

@@ -11,9 +11,11 @@ namespace Nette\PhpGenerator;
 
 use Nette;
 use PhpParser;
+use PhpParser\Modifiers;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
+use function addcslashes, array_map, assert, class_exists, end, in_array, is_array, method_exists, rtrim, str_contains, str_repeat, str_replace, str_starts_with, strlen, substr, substr_replace, usort;
 
 
 /**
@@ -68,7 +70,6 @@ final class Extractor
 
 		$res = [];
 		foreach ($nodeFinder->findInstanceOf($classNode, Node\Stmt\ClassMethod::class) as $methodNode) {
-			assert($methodNode instanceof Node\Stmt\ClassMethod);
 			if ($methodNode->stmts) {
 				$res[$methodNode->name->toString()] = $this->getReformattedContents($methodNode->stmts, 2);
 			}
@@ -78,7 +79,37 @@ final class Extractor
 	}
 
 
-	public function extractFunctionBody(string $name): ?string
+	/** @return array<string, array<string, array{string, bool}>> */
+	public function extractPropertyHookBodies(string $className): array
+	{
+		if (!class_exists(Node\PropertyHook::class)) {
+			return [];
+		}
+
+		$nodeFinder = new NodeFinder;
+		$classNode = $nodeFinder->findFirst(
+			$this->statements,
+			fn(Node $node) => $node instanceof Node\Stmt\ClassLike && $node->namespacedName->toString() === $className,
+		);
+
+		$res = [];
+		foreach ($nodeFinder->findInstanceOf($classNode, Node\Stmt\Property::class) as $propertyNode) {
+			foreach ($propertyNode->props as $propNode) {
+				$propName = $propNode->name->toString();
+				foreach ($propertyNode->hooks as $hookNode) {
+					$body = $hookNode->body;
+					if ($body !== null) {
+						$contents = $this->getReformattedContents(is_array($body) ? $body : [$body], 3);
+						$res[$propName][$hookNode->name->toString()] = [$contents, !is_array($body)];
+					}
+				}
+			}
+		}
+		return $res;
+	}
+
+
+	public function extractFunctionBody(string $name): string
 	{
 		$functionNode = (new NodeFinder)->findFirst(
 			$this->statements,
@@ -93,6 +124,9 @@ final class Extractor
 	/** @param  Node[]  $nodes */
 	private function getReformattedContents(array $nodes, int $level): string
 	{
+		if (!$nodes) {
+			return '';
+		}
 		$body = $this->getNodeContents(...$nodes);
 		$body = $this->performReplacements($body, $this->prepareReplacements($nodes, $level));
 		return Helpers::unindent($body, $level);
@@ -215,7 +249,6 @@ final class Extractor
 		$namespaces = ['' => $this->statements];
 		foreach ($this->statements as $node) {
 			if ($node instanceof Node\Stmt\Declare_
-				&& $node->declares[0] instanceof Node\Stmt\DeclareDeclare
 				&& $node->declares[0]->key->name === 'strict_types'
 				&& $node->declares[0]->value instanceof Node\Scalar\LNumber
 			) {
@@ -309,6 +342,7 @@ final class Extractor
 		foreach ($node->traits as $item) {
 			$trait = $class->addTrait($item->toString());
 		}
+		assert($trait instanceof TraitUse);
 
 		foreach ($node->adaptations as $item) {
 			$trait->addResolution(rtrim($this->getReformattedContents([$item], 0), ';'));
@@ -323,7 +357,7 @@ final class Extractor
 		foreach ($node->props as $item) {
 			$prop = $class->addProperty($item->name->toString());
 			$prop->setStatic($node->isStatic());
-			$prop->setVisibility($this->toVisibility($node->flags));
+			$prop->setVisibility($this->toVisibility($node->flags), $this->toSetterVisibility($node->flags));
 			$prop->setType($node->type ? $this->toPhp($node->type) : null);
 			if ($item->default) {
 				$prop->setValue($this->toValue($item->default));
@@ -331,6 +365,29 @@ final class Extractor
 
 			$prop->setReadOnly((method_exists($node, 'isReadonly') && $node->isReadonly()) || ($class instanceof ClassType && $class->isReadOnly()));
 			$this->addCommentAndAttributes($prop, $node);
+
+			$prop->setAbstract((bool) ($node->flags & Node\Stmt\Class_::MODIFIER_ABSTRACT));
+			$prop->setFinal((bool) ($node->flags & Node\Stmt\Class_::MODIFIER_FINAL));
+			$this->addHooksToProperty($prop, $node);
+		}
+	}
+
+
+	private function addHooksToProperty(Property|PromotedParameter $prop, Node\Stmt\Property|Node\Param $node): void
+	{
+		if (!class_exists(Node\PropertyHook::class)) {
+			return;
+		}
+
+		foreach ($node->hooks as $hookNode) {
+			$hook = $prop->addHook($hookNode->name->toString());
+			$hook->setFinal((bool) ($hookNode->flags & Modifiers::FINAL));
+			$this->setupFunction($hook, $hookNode);
+			if ($hookNode->body === null) {
+				$hook->setAbstract();
+			} elseif (!is_array($hookNode->body)) {
+				$hook->setBody($this->getReformattedContents([$hookNode->body], 1), short: true);
+			}
 		}
 	}
 
@@ -380,7 +437,7 @@ final class Extractor
 
 
 	private function addCommentAndAttributes(
-		PhpFile|ClassLike|Constant|Property|GlobalFunction|Method|Parameter|EnumCase|TraitUse $element,
+		PhpFile|ClassLike|Constant|Property|GlobalFunction|Method|Parameter|EnumCase|TraitUse|PropertyHook $element,
 		Node $node,
 	): void
 	{
@@ -408,19 +465,31 @@ final class Extractor
 	}
 
 
-	private function setupFunction(GlobalFunction|Method $function, Node\FunctionLike $node): void
+	private function setupFunction(GlobalFunction|Method|PropertyHook $function, Node\FunctionLike $node): void
 	{
 		$function->setReturnReference($node->returnsByRef());
-		$function->setReturnType($node->getReturnType() ? $this->toPhp($node->getReturnType()) : null);
+		if (!$function instanceof PropertyHook) {
+			$function->setReturnType($node->getReturnType() ? $this->toPhp($node->getReturnType()) : null);
+		}
+
 		foreach ($node->getParams() as $item) {
-			$visibility = $this->toVisibility($item->flags);
-			$isReadonly = (bool) ($item->flags & Node\Stmt\Class_::MODIFIER_READONLY);
-			$param = $visibility
-				? ($function->addPromotedParameter($item->var->name))->setVisibility($visibility)->setReadonly($isReadonly)
-				: $function->addParameter($item->var->name);
+			$getVisibility = $this->toVisibility($item->flags);
+			$setVisibility = $this->toSetterVisibility($item->flags);
+			$final = (bool) ($item->flags & Modifiers::FINAL);
+			if ($getVisibility || $setVisibility || $final) {
+				$param = $function->addPromotedParameter($item->var->name)
+					->setVisibility($getVisibility, $setVisibility)
+					->setReadonly((bool) ($item->flags & Node\Stmt\Class_::MODIFIER_READONLY))
+					->setFinal($final);
+				$this->addHooksToProperty($param, $item);
+			} else {
+				$param = $function->addParameter($item->var->name);
+			}
 			$param->setType($item->type ? $this->toPhp($item->type) : null);
 			$param->setReference($item->byRef);
-			$function->setVariadic($item->variadic);
+			if (!$function instanceof PropertyHook) {
+				$function->setVariadic($item->variadic);
+			}
 			if ($item->default) {
 				$param->setDefaultValue($this->toValue($item->default));
 			}
@@ -458,10 +527,7 @@ final class Extractor
 					return new Literal($this->getReformattedContents([$node], 0));
 
 				} elseif ($item->key) {
-					$key = $item->key instanceof Node\Identifier
-						? $item->key->name
-						: $this->toValue($item->key);
-
+					$key = $this->toValue($item->key);
 					if ($key instanceof Literal) {
 						return new Literal($this->getReformattedContents([$node], 0));
 					}
@@ -483,9 +549,21 @@ final class Extractor
 	private function toVisibility(int $flags): ?string
 	{
 		return match (true) {
-			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PUBLIC) => ClassType::VisibilityPublic,
-			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PROTECTED) => ClassType::VisibilityProtected,
-			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PRIVATE) => ClassType::VisibilityPrivate,
+			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PUBLIC) => Visibility::Public,
+			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PROTECTED) => Visibility::Protected,
+			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PRIVATE) => Visibility::Private,
+			default => null,
+		};
+	}
+
+
+	private function toSetterVisibility(int $flags): ?string
+	{
+		return match (true) {
+			!class_exists(Node\PropertyHook::class) => null,
+			(bool) ($flags & Modifiers::PUBLIC_SET) => Visibility::Public,
+			(bool) ($flags & Modifiers::PROTECTED_SET) => Visibility::Protected,
+			(bool) ($flags & Modifiers::PRIVATE_SET) => Visibility::Private,
 			default => null,
 		};
 	}

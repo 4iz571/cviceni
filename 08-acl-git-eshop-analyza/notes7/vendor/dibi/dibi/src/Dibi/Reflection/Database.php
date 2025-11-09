@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Dibi\Reflection;
 
 use Dibi;
+use function array_values, strtolower;
 
 
 /**
@@ -21,17 +22,14 @@ use Dibi;
  */
 class Database
 {
-	private Dibi\Reflector $reflector;
-	private ?string $name;
-
 	/** @var Table[] */
 	private array $tables;
 
 
-	public function __construct(Dibi\Reflector $reflector, ?string $name = null)
-	{
-		$this->reflector = $reflector;
-		$this->name = $name;
+	public function __construct(
+		private readonly Dibi\Reflector $reflector,
+		private ?string $name = null,
+	) {
 	}
 
 
