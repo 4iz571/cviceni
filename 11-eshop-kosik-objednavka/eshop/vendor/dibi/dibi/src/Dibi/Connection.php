@@ -11,6 +11,8 @@ namespace Dibi;
 
 use JetBrains\PhpStorm\Language;
 use Traversable;
+use function array_key_exists, is_array, sprintf;
+use const PHP_SAPI;
 
 
 /**
@@ -673,7 +675,7 @@ class Connection implements IConnection
 	/**
 	 * Prevents unserialization.
 	 */
-	public function __wakeup()
+	public function __unserialize($_)
 	{
 		throw new NotSupportedException('You cannot serialize or unserialize ' . static::class . ' instances.');
 	}
@@ -682,7 +684,7 @@ class Connection implements IConnection
 	/**
 	 * Prevents serialization.
 	 */
-	public function __sleep()
+	public function __serialize()
 	{
 		throw new NotSupportedException('You cannot serialize or unserialize ' . static::class . ' instances.');
 	}

@@ -11,6 +11,8 @@ namespace Nette\PhpGenerator;
 
 use Nette;
 use Nette\Utils\Reflection;
+use function array_diff, array_filter, array_key_exists, array_map, count, explode, file_get_contents, implode, is_object, is_subclass_of, method_exists, reset;
+use const PHP_VERSION_ID;
 
 
 /**
@@ -31,8 +33,8 @@ final class Factory
 		bool $withBodies = false,
 	): ClassLike
 	{
-		if ($withBodies && ($from->isAnonymous() || $from->isInternal())) {
-			throw new Nette\NotSupportedException('The $withBodies parameter cannot be used for anonymous or internal classes.');
+		if ($withBodies && ($from->isAnonymous() || $from->isInternal() || $from->isInterface())) {
+			throw new Nette\NotSupportedException('The $withBodies parameter cannot be used for anonymous or internal classes or interfaces.');
 		}
 
 		$enumIface = null;
@@ -81,7 +83,13 @@ final class Factory
 				&& !$prop->isPromoted()
 				&& !$class->isEnum()
 			) {
-				$props[] = $this->fromPropertyReflection($prop);
+				$props[] = $p = $this->fromPropertyReflection($prop);
+				if ($withBodies) {
+					$hookBodies ??= $this->getExtractor($declaringClass->getFileName())->extractPropertyHookBodies($declaringClass->name);
+					foreach ($hookBodies[$prop->getName()] ?? [] as $hookType => [$body, $short]) {
+						$p->getHook($hookType)->setBody($body, short: $short);
+					}
+				}
 			}
 		}
 
@@ -120,7 +128,10 @@ final class Factory
 		$class->setMethods($methods);
 
 		foreach ($from->getTraitNames() as $trait) {
-			$class->addTrait($trait, $resolutions);
+			$trait = $class->addTrait($trait);
+			foreach ($resolutions as $resolution) {
+				$trait->addResolution($resolution);
+			}
 			$resolutions = [];
 		}
 
@@ -199,9 +210,16 @@ final class Factory
 
 	public function fromParameterReflection(\ReflectionParameter $from): Parameter
 	{
-		$param = $from->isPromoted()
-			? (new PromotedParameter($from->name))->setReadOnly(PHP_VERSION_ID >= 80100 && $from->getDeclaringClass()->getProperty($from->name)->isReadonly())
-			: new Parameter($from->name);
+		if ($from->isPromoted()) {
+			$property = $from->getDeclaringClass()->getProperty($from->name);
+			$param = (new PromotedParameter($from->name))
+				->setVisibility($this->getVisibility($property))
+				->setReadOnly(PHP_VERSION_ID >= 80100 && $property->isReadonly())
+				->setFinal(PHP_VERSION_ID >= 80500 && $property->isFinal() && !$property->isPrivateSet());
+			$this->addHooks($property, $param);
+		} else {
+			$param = new Parameter($from->name);
+		}
 		$param->setReference($from->isPassedByReference());
 		$param->setType((string) $from->getType());
 
@@ -255,12 +273,55 @@ final class Factory
 		$prop->setStatic($from->isStatic());
 		$prop->setVisibility($this->getVisibility($from));
 		$prop->setType((string) $from->getType());
-
 		$prop->setInitialized($from->hasType() && array_key_exists($prop->getName(), $defaults));
 		$prop->setReadOnly(PHP_VERSION_ID >= 80100 && $from->isReadOnly());
 		$prop->setComment(Helpers::unformatDocComment((string) $from->getDocComment()));
 		$prop->setAttributes($this->getAttributes($from));
+
+		if (PHP_VERSION_ID >= 80400) {
+			$this->addHooks($from, $prop);
+			$isInterface = $from->getDeclaringClass()->isInterface();
+			$prop->setFinal($from->isFinal() && !$prop->isPrivate(PropertyAccessMode::Set));
+			$prop->setAbstract($from->isAbstract() && !$isInterface);
+		}
 		return $prop;
+	}
+
+
+	private function addHooks(\ReflectionProperty $from, Property|PromotedParameter $prop): void
+	{
+		if (PHP_VERSION_ID < 80400) {
+			return;
+		}
+
+		$getV = $this->getVisibility($from);
+		$setV = $from->isPrivateSet()
+			? Visibility::Private
+			: ($from->isProtectedSet() ? Visibility::Protected : $getV);
+		$defaultSetV = $from->isReadOnly() && $getV !== Visibility::Private
+			? Visibility::Protected
+			: $getV;
+		if ($setV !== $defaultSetV) {
+			$prop->setVisibility($getV === Visibility::Public ? null : $getV, $setV);
+		}
+
+		foreach ($from->getHooks() as $type => $hook) {
+			$params = $hook->getParameters();
+			if (
+				count($params) === 1
+				&& $params[0]->getName() === 'value'
+				&& $params[0]->getType() == $from->getType() // intentionally ==
+			) {
+				$params = [];
+			}
+			$prop->addHook($type)
+				->setParameters(array_map([$this, 'fromParameterReflection'], $params))
+				->setAbstract($hook->isAbstract())
+				->setFinal($hook->isFinal())
+				->setReturnReference($hook->returnsReference())
+				->setComment(Helpers::unformatDocComment((string) $hook->getDocComment()))
+				->setAttributes($this->getAttributes($hook));
+		}
 	}
 
 
@@ -284,6 +345,7 @@ final class Factory
 	}
 
 
+	/** @return Attribute[] */
 	private function getAttributes($from): array
 	{
 		return array_map(function ($attr) {
@@ -299,11 +361,11 @@ final class Factory
 	}
 
 
-	private function getVisibility($from): string
+	private function getVisibility(\ReflectionProperty|\ReflectionMethod|\ReflectionClassConstant $from): string
 	{
 		return $from->isPrivate()
-			? ClassLike::VisibilityPrivate
-			: ($from->isProtected() ? ClassLike::VisibilityProtected : ClassLike::VisibilityPublic);
+			? Visibility::Private
+			: ($from->isProtected() ? Visibility::Protected : Visibility::Public);
 	}
 
 

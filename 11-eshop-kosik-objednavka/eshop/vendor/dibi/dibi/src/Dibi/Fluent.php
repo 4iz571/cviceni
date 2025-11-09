@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace Dibi;
 
+use function array_key_exists, count, func_get_args, is_array, is_string;
+
 
 /**
  * SQL builder via fluent interfaces.
@@ -97,7 +99,7 @@ class Fluent implements IDataSource
 		'RIGHT JOIN' => 'FROM',
 	];
 
-	private Connection $connection;
+	private readonly Connection $connection;
 	private array $setups = [];
 	private ?string $command = null;
 	private array $clauses = [];
@@ -113,7 +115,7 @@ class Fluent implements IDataSource
 		$this->connection = $connection;
 
 		if (!isset(self::$normalizer)) {
-			self::$normalizer = new HashMap([self::class, '_formatClause']);
+			self::$normalizer = new HashMap(self::_formatClause(...));
 		}
 	}
 

@@ -9,10 +9,13 @@ declare(strict_types=1);
 
 namespace Tracy;
 
+use Dom;
 use Ds;
 use Tracy\Dumper\Describer;
 use Tracy\Dumper\Exposer;
 use Tracy\Dumper\Renderer;
+use function array_flip, array_map, file_get_contents, fwrite, str_replace;
+use const STDOUT;
 
 
 /**
@@ -81,6 +84,11 @@ class Dumper
 		\DOMNode::class => [Exposer::class, 'exposeDOMNode'],
 		\DOMNodeList::class => [Exposer::class, 'exposeDOMNodeList'],
 		\DOMNamedNodeMap::class => [Exposer::class, 'exposeDOMNodeList'],
+		Dom\Node::class => [Exposer::class, 'exposeDOMNode'],
+		Dom\NodeList::class => [Exposer::class, 'exposeDOMNodeList'],
+		Dom\NamedNodeMap::class => [Exposer::class, 'exposeDOMNodeList'],
+		Dom\TokenList::class => [Exposer::class, 'exposeDOMNodeList'],
+		Dom\HTMLCollection::class => [Exposer::class, 'exposeDOMNodeList'],
 		Ds\Collection::class => [Exposer::class, 'exposeDsCollection'],
 		Ds\Map::class => [Exposer::class, 'exposeDsMap'],
 		\WeakMap::class => [Exposer::class, 'exposeWeakMap'],

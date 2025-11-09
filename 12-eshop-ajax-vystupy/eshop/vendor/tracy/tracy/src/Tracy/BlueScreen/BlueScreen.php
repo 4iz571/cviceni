@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Tracy;
 
+use function in_array, strlen;
+use const ARRAY_FILTER_USE_KEY, ENT_IGNORE;
+
 
 /**
  * Red BlueScreen.
@@ -131,7 +134,10 @@ class BlueScreen
 	{
 		if ($handle = @fopen($file, 'x')) {
 			ob_start(); // double buffer prevents sending HTTP headers in some PHP
-			ob_start(function ($buffer) use ($handle): void { fwrite($handle, $buffer); }, 4096);
+			ob_start(function ($buffer) use ($handle) {
+				fwrite($handle, $buffer);
+				return '';
+			}, 4096);
 			$this->renderTemplate($exception, __DIR__ . '/assets/page.phtml', toScreen: false);
 			ob_end_flush();
 			ob_end_clean();
@@ -255,7 +261,7 @@ class BlueScreen
 			}
 		}
 
-		if (preg_match('# ([\'"])((?:/|[a-z]:[/\\\\])\w[^\'"]+\.\w{2,5})\1#i', $ex->getMessage(), $m)) {
+		if (preg_match('# ([\'"])((?:/|[a-z]:[/\\\])\w[^\'"]+\.\w{2,5})\1#i', $ex->getMessage(), $m)) {
 			$file = $m[2];
 			if (@is_file($file)) { // @ - may trigger error
 				$label = 'open';
@@ -380,14 +386,14 @@ class BlueScreen
 
 		// highlight 'string'
 		$msg = preg_replace(
-			'#\'\S(?:[^\']|\\\\\')*\S\'|"\S(?:[^"]|\\\\")*\S"#',
+			'#\'\S(?:[^\']|\\\\\')*\S\'|"\S(?:[^"]|\\\")*\S"#',
 			'<i>$0</i>',
 			$msg,
 		);
 
 		// clickable class & methods
 		$msg = preg_replace_callback(
-			'#(\w+\\\\[\w\\\\]+\w)(?:::(\w+))?#',
+			'#(\w+\\\[\w\\\]+\w)(?:::(\w+))?#',
 			function ($m) {
 				if (isset($m[2]) && method_exists($m[1], $m[2])) {
 					$r = new \ReflectionMethod($m[1], $m[2]);
@@ -406,7 +412,7 @@ class BlueScreen
 
 		// clickable file name
 		$msg = preg_replace_callback(
-			'#([\w\\\\/.:-]+\.(?:php|phpt|phtml|latte|neon))(?|:(\d+)| on line (\d+))?#',
+			'#([\w\\\/.:-]+\.(?:php|phpt|phtml|latte|neon))(?|:(\d+)| on line (\d+))?#',
 			fn($m) => @is_file($m[1]) // @ - may trigger error
 				? '<a href="' . Helpers::escapeHtml(Helpers::editorUri($m[1], isset($m[2]) ? (int) $m[2] : null)) . '" class="tracy-editor">' . $m[0] . '</a>'
 				: $m[0],
@@ -483,7 +489,12 @@ class BlueScreen
 		$add = function ($obj) use (&$generators, &$fibers) {
 			if ($obj instanceof \Generator) {
 				try {
-					new \ReflectionGenerator($obj);
+					$ref = new \ReflectionGenerator($obj);
+					// Before PHP 8.4 the ReflectionGenerator cannot be constructed from closed generator.
+					// Since PHP 8.4 it can, but getTrace throws ReflectionException.
+					if (PHP_VERSION_ID >= 80400 && $ref->isClosed()) {
+						return;
+					}
 					$generators[spl_object_id($obj)] = $obj;
 				} catch (\ReflectionException) {
 				}

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Dibi\Reflection;
 
 use Dibi;
+use function array_values, strtolower;
 
 
 /**
@@ -20,8 +21,6 @@ use Dibi;
  */
 class Result
 {
-	private Dibi\ResultDriver $driver;
-
 	/** @var Column[]|null */
 	private ?array $columns;
 
@@ -29,9 +28,9 @@ class Result
 	private ?array $names;
 
 
-	public function __construct(Dibi\ResultDriver $driver)
-	{
-		$this->driver = $driver;
+	public function __construct(
+		private readonly Dibi\ResultDriver $driver,
+	) {
 	}
 
 

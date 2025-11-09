@@ -11,20 +11,23 @@
 		}
 	],
 	"require": {
-		"php": "8.0 - 8.4"
+		"php": "8.2 - 8.5"
 	},
 	"require-dev": {
 		"tracy/tracy": "^2.9",
 		"nette/tester": "^2.5",
 		"nette/di": "^3.1",
-		"phpstan/phpstan": "^1.0",
+		"phpstan/phpstan-nette": "^2.0@stable",
 		"jetbrains/phpstorm-attributes": "^1.0"
 	},
 	"replace": {
 		"dg/dibi": "*"
 	},
 	"autoload": {
-		"classmap": ["src/"]
+		"classmap": ["src/"],
+		"psr-4": {
+			"Dibi\\": "src/Dibi"
+		}
 	},
 	"minimum-stability": "dev",
 	"scripts": {
@@ -33,7 +36,7 @@
 	},
 	"extra": {
 		"branch-alias": {
-			"dev-master": "5.0-dev"
+			"dev-master": "5.1-dev"
 		}
 	}
 }

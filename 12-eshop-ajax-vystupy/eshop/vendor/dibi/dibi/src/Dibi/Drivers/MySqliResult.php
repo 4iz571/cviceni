@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Dibi\Drivers;
 
 use Dibi;
+use const MYSQLI_TYPE_LONG, MYSQLI_TYPE_SHORT, MYSQLI_TYPE_TIME, MYSQLI_TYPE_TINY;
 
 
 /**
@@ -17,14 +18,10 @@ use Dibi;
  */
 class MySqliResult implements Dibi\ResultDriver
 {
-	private \mysqli_result $resultSet;
-	private bool $buffered;
-
-
-	public function __construct(\mysqli_result $resultSet, bool $buffered)
-	{
-		$this->resultSet = $resultSet;
-		$this->buffered = $buffered;
+	public function __construct(
+		private readonly \mysqli_result $resultSet,
+		private readonly bool $buffered,
+	) {
 	}
 
 

@@ -13,6 +13,7 @@ use Dibi;
 use Dibi\Event;
 use Dibi\Helpers;
 use Tracy;
+use function count, is_string, strlen;
 
 
 /**
@@ -21,23 +22,22 @@ use Tracy;
 class Panel implements Tracy\IBarPanel
 {
 	public static int $maxLength = 1000;
-	public bool|string $explain;
-	public int $filter;
+
 	private array $events = [];
 
 
-	public function __construct(bool $explain = true, ?int $filter = null)
-	{
-		$this->filter = $filter ?: Event::QUERY;
-		$this->explain = $explain;
+	public function __construct(
+		public bool|string $explain = true,
+		public int $filter = Event::QUERY,
+	) {
 	}
 
 
 	public function register(Dibi\Connection $connection): void
 	{
 		Tracy\Debugger::getBar()->addPanel($this);
-		Tracy\Debugger::getBlueScreen()->addPanel([self::class, 'renderException']);
-		$connection->onEvent[] = [$this, 'logEvent'];
+		Tracy\Debugger::getBlueScreen()->addPanel(self::renderException(...));
+		$connection->onEvent[] = $this->logEvent(...);
 	}
 
 

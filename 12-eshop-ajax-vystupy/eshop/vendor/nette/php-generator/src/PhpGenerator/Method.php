@@ -10,10 +10,11 @@ declare(strict_types=1);
 namespace Nette\PhpGenerator;
 
 use Nette;
+use function func_num_args;
 
 
 /**
- * Class method.
+ * Definition of a class method.
  */
 final class Method
 {
@@ -30,6 +31,9 @@ final class Method
 	private bool $abstract = false;
 
 
+	/**
+	 * @param  string|array{object|string, string}|\Closure  $method
+	 */
 	public static function from(string|array|\Closure $method): static
 	{
 		return (new Factory)->fromMethodReflection(Nette\Utils\Callback::toReflection($method));
@@ -98,7 +102,7 @@ final class Method
 	/** @throws Nette\InvalidStateException */
 	public function validate(): void
 	{
-		if ($this->abstract && ($this->final || $this->visibility === ClassLike::VisibilityPrivate)) {
+		if ($this->abstract && ($this->final || $this->visibility === Visibility::Private)) {
 			throw new Nette\InvalidStateException("Method $this->name() cannot be abstract and final or private at the same time.");
 		}
 	}

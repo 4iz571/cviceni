@@ -11,10 +11,12 @@ namespace Nette\PhpGenerator;
 
 use Nette;
 use Nette\InvalidStateException;
+use function strlen;
+use const ARRAY_FILTER_USE_BOTH;
 
 
 /**
- * Namespaced part of a PHP file.
+ * Definition of a PHP namespace.
  *
  * Generates:
  * - namespace statement
@@ -165,7 +167,7 @@ final class PhpNamespace
 		uasort($this->aliases[$of], fn(string $a, string $b): int => strtr($a, '\\', ' ') <=> strtr($b, '\\', ' '));
 		return array_filter(
 			$this->aliases[$of],
-			fn($name, $alias) => strcasecmp(($this->name ? $this->name . '\\' : '') . $alias, $name),
+			fn($name, $alias) => (bool) strcasecmp(($this->name ? $this->name . '\\' : '') . $alias, $name),
 			ARRAY_FILTER_USE_BOTH,
 		);
 	}
@@ -200,7 +202,7 @@ final class PhpNamespace
 	 */
 	public function simplifyType(string $type, string $of = self::NameNormal): string
 	{
-		return preg_replace_callback('~[\w\x7f-\xff\\\\]+~', fn($m) => $this->simplifyName($m[0], $of), $type);
+		return preg_replace_callback('~[\w\x7f-\xff\\\]+~', fn($m) => $this->simplifyName($m[0], $of), $type);
 	}
 
 
