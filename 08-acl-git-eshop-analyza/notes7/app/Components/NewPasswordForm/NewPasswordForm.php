@@ -22,16 +22,14 @@ class NewPasswordForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onFailed */
-  public $onFailed = [];
+  public array $onFailed = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var Nette\Security\Passwords $passwords */
-  private $passwords;
+  private UsersFacade $usersFacade;
+  private Nette\Security\Passwords $passwords;
 
   /**
    * ForgottenPasswordForm constructor.

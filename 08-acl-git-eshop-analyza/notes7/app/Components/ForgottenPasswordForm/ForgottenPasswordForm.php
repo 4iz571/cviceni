@@ -20,9 +20,9 @@ class ForgottenPasswordForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
   private UsersFacade $usersFacade;
   private Nette\Application\LinkGenerator $linkGenerator;

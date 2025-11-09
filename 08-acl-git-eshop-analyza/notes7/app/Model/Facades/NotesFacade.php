@@ -24,14 +24,15 @@ class NotesFacade{
    * @throws \Exception
    */
   public function getNote(int $id):Note {
+    /** @noinspection PhpIncompatibleReturnTypeInspection */
     return $this->noteRepository->find($id); //buď počítáme s možností vyhození výjimky, nebo ji ošetříme už tady a můžeme vracet např. null
   }
 
   /**
    * Metoda pro vyhledání poznámek
-   * @param Category|int|null $category
-   * @param int $offset = null
-   * @param int $limit = null
+   * @param null $category
+   * @param int|null $offset = null
+   * @param int|null $limit = null
    * @return Note[]
    */
   public function findNotes($category = null, ?int $offset=null, ?int $limit=null):array {

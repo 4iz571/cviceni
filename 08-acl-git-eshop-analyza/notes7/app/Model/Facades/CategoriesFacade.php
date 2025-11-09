@@ -23,14 +23,15 @@ class CategoriesFacade{
    * @throws \Exception
    */
   public function getCategory(int $id):Category {
+    /** @noinspection PhpIncompatibleReturnTypeInspection */
     return $this->categoryRepository->find($id); //buď počítáme s možností vyhození výjimky, nebo ji ošetříme už tady a můžeme vracet např. null
   }
 
   /**
    * Metoda pro vyhledání kategorií
    * @param array|null $params = null
-   * @param int $offset = null
-   * @param int $limit = null
+   * @param int|null $offset = null
+   * @param int|null $limit = null
    * @return Category[]
    */
   public function findCategories(array $params=null,int $offset=null,int $limit=null):array {

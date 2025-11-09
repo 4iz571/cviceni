@@ -21,7 +21,7 @@ class UserSecretCodeForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
 
   private UsersFacade $usersFacade;
   private Nette\Security\User $user;
@@ -29,7 +29,6 @@ class UserSecretCodeForm extends Form{
   /**
    * UserRegistrationForm constructor.
    * @param UsersFacade $usersFacade
-   * @param Nette\Security\Passwords $passwords
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    */

@@ -47,6 +47,7 @@ class UsersFacade{
    * @throws \Exception
    */
   public function getUser(int $id):User {
+    /** @noinspection PhpIncompatibleReturnTypeInspection */
     return $this->userRepository->find($id);
   }
 
@@ -57,6 +58,7 @@ class UsersFacade{
    * @throws \Exception
    */
   public function getUserByEmail(string $email):User {
+    /** @noinspection PhpIncompatibleReturnTypeInspection */
     return $this->userRepository->findBy(['email'=>$email]);
   }
 

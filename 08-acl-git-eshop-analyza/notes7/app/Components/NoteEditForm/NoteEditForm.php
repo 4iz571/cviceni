@@ -26,11 +26,11 @@ class NoteEditForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onFailed */
-  public $onFailed = [];
+  public array $onFailed = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
   private CategoriesFacade $categoriesFacade;
   private NotesFacade $notesFacade;
@@ -71,7 +71,7 @@ class NoteEditForm extends Form{
   /**
    * Vytvoření struktury formuláře
    */
-  private function createSubcomponents():void{
+  private function createSubcomponents():void {
     $noteId=$this->addHidden('noteId');
     $this->addText('title','Předmět:')
       ->setRequired('Musíte zadat předmět');
