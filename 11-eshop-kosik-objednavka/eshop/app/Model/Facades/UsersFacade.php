@@ -154,12 +154,12 @@ class UsersFacade{
    * Metoda pro jednoduché smazání kódů pro obnovu hesla pro konkrétního uživatele
    * @param User|int $user
    */
-  public function deleteForgottenPasswordsByUser($user):void {
+  public function deleteForgottenPasswordsByUser(User|int $user):void {
     try{
       if ($user instanceof User){
         $user=$user->userId;
       }
-      $this->forgottenPasswordRepository->delete(['user_id' => $user]);
+      $this->forgottenPasswordRepository->deleteForgottenPasswordsByUserId($user);
     }catch (InvalidStateException $e){
       //ignore error
     }

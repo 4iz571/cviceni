@@ -142,7 +142,7 @@ class UserPresenter extends BasePresenter{
       try{
         $this->user->login($values['email'],$values['password']);
         //po přihlášení uživatele smažeme jeho kódy na obnovu hesla
-        $this->usersFacade->deleteForgottenPasswordsByUser($this->user->id);
+        $this->usersFacade->deleteForgottenPasswordsByUser((int)$this->user->id);
       }catch (\Exception $e){
         $this->flashMessage('Neplatná kombinace e-mailu a hesla!','error');
         $this->redirect('login');
