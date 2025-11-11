@@ -161,7 +161,7 @@ class UsersFacade{
       if ($user instanceof User){
         $user=$user->userId;
       }
-      $this->forgottenPasswordRepository->delete(['user_id' => $user]);
+      $this->forgottenPasswordRepository->deleteForgottenPasswordsByUserId((int)$user);
     }catch (InvalidStateException $e){
       //ignore error
     }

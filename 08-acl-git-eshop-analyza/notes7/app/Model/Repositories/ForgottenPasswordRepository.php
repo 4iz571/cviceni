@@ -9,6 +9,13 @@ namespace App\Model\Repositories;
 class ForgottenPasswordRepository extends BaseRepository{
 
   /**
+   * Metoda pro smazání záznamů pro konkrétního uživatele
+   */
+  public function deleteForgottenPasswordsByUserId(int $user):void {
+    $this->connection->delete($this->getTable())->where(['user_id'=>$user])->execute();
+  }
+
+  /**
    * Metoda pro smazání již neplatných záznamů
    */
   public function deleteOldForgottenPasswords(){
