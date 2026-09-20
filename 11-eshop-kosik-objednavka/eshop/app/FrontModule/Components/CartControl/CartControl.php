@@ -3,6 +3,7 @@
 namespace App\FrontModule\Components\CartControl;
 
 use App\Model\Entities\Cart;
+use App\Model\Entities\CartItem;
 use App\Model\Entities\Product;
 use App\Model\Facades\CartFacade;
 use Nette\Application\UI\Control;
@@ -31,13 +32,58 @@ class CartControl extends Control{
     $template->render();
   }
 
+  public function renderList():void {
+    $template=$this->prepareTemplate('list');
+    $template->cart=$this->cart;
+    $template->render();
+  }
+
   /**
    * Metoda pro přidání produktu do košíku
    * @param Product $product
    */
-  public function addToCart(Product $product):void {
-    //TODO implementovat
+  public function addToCart(Product $product, int $count=1):void {
+    $cartItem=null;
+
+    $this->cart->updateCartItems();
+
+    if ($this->cart->items){
+      foreach ($this->cart->items as $item){
+        if ($item->product->productId==$product->productId){
+          $cartItem=$item;
+          break;
+        }
+      }
+    }
+
+    if (!$cartItem){
+      $cartItem=new CartItem();
+      $cartItem->cart=$this->cart;
+      $cartItem->product=$product;
+    }
+
+    $cartItem->count+=$count;
+    if ($cartItem->count>0){
+      $this->cartFacade->saveCartItem($cartItem);
+    }else{
+      $this->cartFacade->deleteCartItem($cartItem);
+    }
+
+
+    $this->cartFacade->saveCart($this->cart);
+    $this->cart->updateCartItems();
   }
+
+
+  public function handleRemove($cartItemId):void {
+    $this->cart->updateCartItems();
+
+    $cartItem = $this->cartFacade->getCartItem($cartItemId);
+    $this->cartFacade->deleteCartItem($cartItem);
+
+    $this->presenter->redirect('this');
+  }
+
 
   /**
    * UserLoginControl constructor.

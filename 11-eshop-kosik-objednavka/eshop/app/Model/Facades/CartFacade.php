@@ -55,6 +55,16 @@ class CartFacade{
     }catch (\Exception $e){}
   }
 
+  public function deleteCartItem(CartItem $cartItem):void {
+    $this->cartItemRepository->delete($cartItem);
+  }
+
+  public function getCartItem($cartItemId):CartItem {
+    return $this->cartItemRepository->find($cartItemId);
+  }
+
+
+
   /**
    * Metoda pro uložení položky v košíku
    * @param CartItem $cartItem

@@ -3,7 +3,7 @@
 ## Výukový server eso.vse.cz
 :point_right:
 - [informace k připojení](./server-eso.md)
-- aktuálně je na serveru PHP ve verzi 8.1
+- aktuálně je na serveru PHP ve verzi 8.3
 - k dispozici má každý student jeden adresář pro umístění webu a 1 databázi (MariaDB) 
 - [homepage serveru eso.vse.cz](https://eso.vse.cz/)
 
@@ -85,19 +85,6 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
 :point_right:
 - postupně přibývají věci, které usnadní kontrolu a zabezpečení kódu, naopak ale také není zaručena plná zpětná kompatibilita
 
-**Pro použití ve verzi 7.4:**
-- kontrola datových typů u parametrů funkcí i properties, návratové datové typy metod
-- anonymní a arrow funkce
-- operátor **??**
-    ```php
-    $user = $_GET['user'] ?? 'nobody';
-    ```
-- operátor **...** pro slučování polí
-    ```php
-    $parts = ['apple', 'pear'];
-    $fruits = ['banana', 'orange', ...$parts, 'watermelon'];
-    ```
-    
 **Nově ve verzi 8:**
 - union types
     ```php
@@ -134,6 +121,14 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
         //
     }
     ```
+- match jako alternativa ke switch
+    ```php
+    $message = match ($status) {
+    200 => 'OK',
+    404 => 'Not found',
+    default => 'Unknown status',
+    };
+    ```
 
 **Nově ve verzi 8.1:**
 - výčtový typ Enum
@@ -168,7 +163,179 @@ JmenoTridy::statickaFunkce(); //zavolání statické metody
       echo 'Hello'; // <- dead code detected by static analysis
     }
     ```
+- readonly properties
+    ```php
+    class User {
+      public function __construct(
+        public readonly int $id,
+      ) {}
+    }
+    ```
 - pro serializaci objektů je potřeba využívat magické metody *__serialize* a *__unserialize*  
+
+**Nově ve verzi 8.2:**
+- readonly lze označit celou třídu
+    ```php
+    readonly class User {
+      public function __construct(
+        public int $id,
+        public string $name,
+      ){}
+    }
+    ```
+- lze kombinovat union a intersection types (DNF types)
+    ```php
+    function foo((A&B)|C $value): void {
+      //...
+    }
+    ```
+- null, false a true lze používat jako samostatné datové typy
+    ```php
+    function alwaysTrue(): true {
+      return true;
+    }
+    ```
+- konstanty lze definovat také v traitech
+    ```php
+    trait ExampleTrait {
+      public const TYPE = 'example';
+    }
+    ```
+- atribut `#[SensitiveParameter]` umožňuje skrýt citlivé parametry například ve stack trace
+    ```php
+    function login(
+      string $username,
+      #[SensitiveParameter] string $password,
+    ): void {
+      //...
+    }
+    ```
+- *vytváření dynamických properties je deprecated*
+    ```php
+    class User {
+      public string $name;
+    }
+    
+    $user = new User();
+    $user->email = 'a@example.com'; //deprecated od PHP 8.2
+    ``` 
+
+**Nově ve verzi 8.3:**
+- typované konstanty tříd
+    ```php
+    class Configuration {
+      public const string ENVIRONMENT = 'production';
+      public const int MAX_ITEMS = 100;
+    }
+    ```
+- atribut `#[Override]` umožňuje ověřit, že metoda skutečně přepisuje metodu rodiče nebo implementuje metodu rozhraní. Pokud odpovídající metoda v rodičovské třídě neexistuje, PHP vyvolá chybu.
+    ```php
+    class Child extends ParentClass {
+      #[Override]
+      public function save(): void {
+        //...
+      }
+    }
+    ```
+- funkce ```json_validate()``` umožňuje ověřit syntaktickou správnost JSON bez jeho dekódování
+
+**Nově ve verzi 8.4:**
+- property hooks umožňují definovat chování při čtení a zápisu property
+    ```php
+    class Person {
+      public string $firstName {
+        set => ucfirst(strtolower($value));
+      } 
+      public string $lastName; 
+      public string $fullName {
+        get => $this->firstName.' '.$this->lastName;
+      }
+    }
+    
+    $person = new Person();
+    $person->firstName = 'JAN';
+    $person->lastName = 'Novák';
+    
+    echo $person->fullName; //Jan Novák
+    ``` 
+- asymetrická viditelnost properties – lze samostatně určit oprávnění pro čtení a zápis
+    ```php
+    class User {
+      public private(set) string $name;
+    
+      public function __construct(string $name) {
+        $this->name = $name;
+      }
+    }
+    
+    $user = new User('Jan');
+    
+    echo $user->name;       //OK
+    $user->name = 'Petr';   //chyba
+    ```
+- atribut `#[Deprecated]` umožňuje označit vlastní funkce a metody jako zastaralé
+    ```php
+    #[Deprecated('Použijte newFunction()')]
+    function oldFunction(): void {
+    //...
+    }
+    ```
+- *implicitně nullable parametry jsou deprecated:*
+    ```php
+    //deprecated
+    function foo(string $value = null): void {
+    }
+    
+    //správně
+    function foo(?string $value = null): void {
+    }
+    ```
+  
+**Nově ve verzi 8.5**
+- *pipe operator* ```|>``` umožňuje předávat výsledek jedné operace do následující a zapisovat transformace zleva doprava
+    ```php
+    $result = ' Hello World '
+      |> trim(...)
+      |> strtolower(...)
+      |> strlen(...);
+
+    echo $result; //11
+
+    //Místo například:
+    $result = strlen(strtolower(trim(' Hello World ')));
+    ```
+- ```clone()``` umožňuje při klonování zároveň změnit vybrané properties, což je užitečné zejména pro immutable/readonly objekty.
+    ```php
+    readonly class User {
+      public function __construct(
+        public int $id,
+        public string $name,
+      ){}
+    }
+    
+    $user1 = new User(1, 'Jan');
+    $user2 = clone($user1, [
+      'name' => 'Petr',
+    ]);
+    ```
+- atribut `#[NoDiscard]` umožňuje označit návratovou hodnotu funkce jako hodnotu, která by neměla být ignorována
+    ```php
+    #[NoDiscard]
+    function calculate(): int {
+      return 42;
+    }
+  
+    calculate(); //warning – návratová hodnota nebyla použita
+    $result = calculate(); //OK
+    ```
+    
+  - Pokud chceme výsledek záměrně ignorovat, lze to explicitně uvést:
+      ```php
+      (void) calculate();
+      ```
+- `#[Override]` lze nově použít také pro properties
+- statické properties podporují asymetrickou viditelnost
+- nové funkce ```array_first()``` a ```array_last()``` usnadňují získání první a poslední hodnoty pole
 
 ## Pojďme si to ověřit na kousku kódu
 ```php

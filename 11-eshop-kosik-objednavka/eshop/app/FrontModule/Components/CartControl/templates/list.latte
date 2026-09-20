@@ -1,0 +1,29 @@
+{varType App\Model\Entities\Cart $cart}
+
+{if empty($cart->items)}
+  v košíku nic není - chceš něco koupit?
+{else}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Produkt</th>
+        <th>Počet</th>
+        {*TODO cena atd.*}
+        <th>Akce</th>
+      </tr>
+    </thead>
+    <tbody>
+      {foreach $cart->items as $cartItem}
+
+        <tr>
+          <td>{$cartItem->product->title}</td>
+          <td>{$cartItem->count}</td>
+          <td>
+            <a href="{link remove! $cartItem->cartItemId}">odebrat</a>
+          </td>
+        </tr>
+
+      {/foreach}
+    </tbody>
+  </table>
+{/if}
