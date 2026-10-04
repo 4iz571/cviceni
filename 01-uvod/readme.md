@@ -1,16 +1,16 @@
 # 1. Úvod, potřebné základní znalosti
 
-## Výukový server eso.vse.cz
+## Výukový server eso-2025.vse.cz
 :point_right:
-- [informace k připojení](./server-eso.md)
-- aktuálně je na serveru PHP ve verzi 8.3
+- [informace k připojení](./server-eso-2025.md)
+- aktuálně je na serveru PHP ve verzi 8.5
 - k dispozici má každý student jeden adresář pro umístění webu a 1 databázi (MariaDB) 
-- [homepage serveru eso.vse.cz](https://eso.vse.cz/)
+- [homepage serveru eso-2025.vse.cz](https://eso-2025.vse.cz/)
 
 :mega:
 Vyzkoušejte si připojení k serveru:
 - nahrajte na server statický soubor a zobrazte jej přes prohlížeč
-- vyzkoušejte připojení k databázi přes [phpMyAdmin](https://eso.vse.cz/myadmin/)
+- vyzkoušejte připojení k databázi přes [phpMyAdmin](https://eso-2025.vse.cz/phpmyadmin/)
 
 ## Úvodní rozcvička
 :point_right:
