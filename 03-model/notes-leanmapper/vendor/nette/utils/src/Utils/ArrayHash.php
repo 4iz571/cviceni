@@ -1,21 +1,20 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Utils;
 
 use Nette;
+use function count, is_array, is_scalar, sprintf;
 
 
 /**
- * Provides objects to work as array.
+ * Array-like object with property access.
  * @template T
- * @implements \RecursiveArrayIterator<array-key, T>
+ * @implements \IteratorAggregate<array-key, T>
  * @implements \ArrayAccess<array-key, T>
  */
 class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \IteratorAggregate
@@ -23,14 +22,13 @@ class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \Iterator
 	/**
 	 * Transforms array to ArrayHash.
 	 * @param  array<T>  $array
-	 * @return static
 	 */
-	public static function from(array $array, bool $recursive = true)
+	public static function from(array $array, bool $recursive = true): static
 	{
 		$obj = new static;
 		foreach ($array as $key => $value) {
 			$obj->$key = $recursive && is_array($value)
-				? static::from($value, true)
+				? static::from($value)
 				: $value;
 		}
 
@@ -39,18 +37,16 @@ class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \Iterator
 
 
 	/**
-	 * Returns an iterator over all items.
-	 * @return \RecursiveArrayIterator<array-key, T>
+	 * @return \Iterator<array-key, T>
 	 */
-	public function getIterator(): \RecursiveArrayIterator
+	public function &getIterator(): \Iterator
 	{
-		return new \RecursiveArrayIterator((array) $this);
+		foreach ((array) $this as $key => $foo) {
+			yield $key => $this->$key;
+		}
 	}
 
 
-	/**
-	 * Returns items count.
-	 */
 	public function count(): int
 	{
 		return count((array) $this);
@@ -58,14 +54,14 @@ class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \Iterator
 
 
 	/**
-	 * Replaces or appends a item.
+	 * Replaces or appends an item.
 	 * @param  array-key  $key
 	 * @param  T  $value
 	 */
 	public function offsetSet($key, $value): void
 	{
 		if (!is_scalar($key)) { // prevents null
-			throw new Nette\InvalidArgumentException(sprintf('Key must be either a string or an integer, %s given.', gettype($key)));
+			throw new Nette\InvalidArgumentException(sprintf('Key must be either a string or an integer, %s given.', get_debug_type($key)));
 		}
 
 		$this->$key = $value;
@@ -73,19 +69,18 @@ class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \Iterator
 
 
 	/**
-	 * Returns a item.
+	 * Returns an item.
 	 * @param  array-key  $key
 	 * @return T
 	 */
-	#[\ReturnTypeWillChange]
-	public function offsetGet($key)
+	public function offsetGet($key): mixed
 	{
 		return $this->$key;
 	}
 
 
 	/**
-	 * Determines whether a item exists.
+	 * Determines whether an item exists.
 	 * @param  array-key  $key
 	 */
 	public function offsetExists($key): bool

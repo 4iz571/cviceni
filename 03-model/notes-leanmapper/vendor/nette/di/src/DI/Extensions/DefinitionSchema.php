@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\DI\Extensions;
 
@@ -16,6 +14,7 @@ use Nette\DI\Definitions\Statement;
 use Nette\Schema\Context;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
+use function is_array, is_string;
 
 
 /**
@@ -23,19 +22,13 @@ use Nette\Schema\Schema;
  */
 class DefinitionSchema implements Schema
 {
-	use Nette\SmartObject;
-
-	/** @var Nette\DI\ContainerBuilder */
-	private $builder;
-
-
-	public function __construct(Nette\DI\ContainerBuilder $builder)
-	{
-		$this->builder = $builder;
+	public function __construct(
+		private readonly Nette\DI\ContainerBuilder $builder,
+	) {
 	}
 
 
-	public function complete($def, Context $context)
+	public function complete(mixed $def, Context $context): mixed
 	{
 		if ($def === [false]) {
 			return (object) $def;
@@ -51,9 +44,8 @@ class DefinitionSchema implements Schema
 			}
 		}
 
-		$def = $this->expandParameters($def);
 		$type = $this->sniffType(end($context->path), $def);
-		$def = $this->getSchema($type)->complete($def, $context);
+		$def = self::getSchema($type)->complete($def, $context);
 		if ($def) {
 			$def->defType = $type;
 		}
@@ -62,7 +54,7 @@ class DefinitionSchema implements Schema
 	}
 
 
-	public function merge($def, $base)
+	public function merge(mixed $def, mixed $base): mixed
 	{
 		if (!empty($def['alteration'])) {
 			unset($def['alteration']);
@@ -75,7 +67,7 @@ class DefinitionSchema implements Schema
 	/**
 	 * Normalizes configuration of service definitions.
 	 */
-	public function normalize($def, Context $context)
+	public function normalize(mixed $def, Context $context): mixed
 	{
 		if ($def === null || $def === false) {
 			return (array) $def;
@@ -85,8 +77,12 @@ class DefinitionSchema implements Schema
 
 		} elseif ($def instanceof Statement && is_string($def->getEntity()) && interface_exists($def->getEntity())) {
 			$res = ['implement' => $def->getEntity()];
-			if (array_keys($def->arguments) === ['tagged']) {
-				$res += $def->arguments;
+			if (array_key_exists('tagged', $def->arguments)) {
+				if (count($def->arguments) > 1) {
+					throw new Nette\DI\InvalidConfigurationException(sprintf("Argument 'tagged' cannot be combined with other arguments in %s(...).", $def->getEntity()));
+				}
+
+				$res['tagged'] = $def->arguments['tagged'];
 			} elseif (array_keys($def->arguments) === [0]) {
 				$res['create'] = $def->arguments[0];
 			} elseif ($def->arguments) {
@@ -104,32 +100,9 @@ class DefinitionSchema implements Schema
 				$def['create'] = $def['factory'];
 				unset($def['factory']);
 			}
-
-			if (
-				isset($def['class'])
-				&& !isset($def['type'])
-				&& !isset($def['dynamic'])
-				&& !isset($def['imported'])
-			) {
+			if (isset($def['class']) && !isset($def['type']) && !isset($def['imported'])) {
 				$def[isset($def['create']) ? 'type' : 'create'] = $def['class'];
 				unset($def['class']);
-			}
-
-			foreach (['class' => 'type', 'dynamic' => 'imported'] as $alias => $original) {
-				if (array_key_exists($alias, $def)) {
-					if (array_key_exists($original, $def)) {
-						throw new Nette\DI\InvalidConfigurationException(sprintf(
-							"Options '%s' and '%s' are aliases, use only '%s'.",
-							$alias,
-							$original,
-							$original
-						));
-					}
-
-					trigger_error(sprintf("Service '%s': option '$alias' should be changed to '$original'.", end($context->path)), E_USER_DEPRECATED);
-					$def[$original] = $def[$alias];
-					unset($def[$alias]);
-				}
 			}
 
 			return $def;
@@ -137,20 +110,25 @@ class DefinitionSchema implements Schema
 	}
 
 
-	public function completeDefault(Context $context)
+	public function completeDefault(Context $context): mixed
 	{
+		return null;
 	}
 
 
-	private function sniffType($key, array $def): string
+	/**
+	 * @param  string|int  $key
+	 * @param  array<string, mixed>  $def
+	 */
+	private function sniffType(string|int $key, array $def): string
 	{
 		if (is_string($key)) {
-			$name = preg_match('#^@[\w\\\\]+$#D', $key)
+			$name = preg_match('#^@[\w\\\]+$#D', $key)
 				? $this->builder->getByType(substr($key, 1))
 				: $key;
 
 			if ($name && $this->builder->hasDefinition($name)) {
-				return get_class($this->builder->getDefinition($name));
+				return $this->builder->getDefinition($name)::class;
 			}
 		}
 
@@ -174,24 +152,10 @@ class DefinitionSchema implements Schema
 	}
 
 
-	private function expandParameters(array $config): array
-	{
-		$params = $this->builder->parameters;
-		if (isset($config['parameters'])) {
-			foreach ((array) $config['parameters'] as $k => $v) {
-				$v = explode(' ', is_int($k) ? $v : $k);
-				$params[end($v)] = $this->builder::literal('$' . end($v));
-			}
-		}
-
-		return Nette\DI\Helpers::expand($config, $params);
-	}
-
-
 	private static function getSchema(string $type): Schema
 	{
 		static $cache;
-		$cache = $cache ?: [
+		$cache ??= [
 			Definitions\ServiceDefinition::class => self::getServiceSchema(),
 			Definitions\AccessorDefinition::class => self::getAccessorSchema(),
 			Definitions\FactoryDefinition::class => self::getFactorySchema(),
@@ -206,7 +170,7 @@ class DefinitionSchema implements Schema
 	{
 		return Expect::structure([
 			'type' => Expect::type('string'),
-			'create' => Expect::type('callable|Nette\DI\Definitions\Statement'),
+			'create' => Expect::type('callable|Nette\DI\Definitions\Statement|Nette\DI\Definitions\Reference'),
 			'arguments' => Expect::array(),
 			'setup' => Expect::listOf('callable|Nette\DI\Definitions\Statement|array:1'),
 			'inject' => Expect::bool(),
@@ -214,6 +178,7 @@ class DefinitionSchema implements Schema
 			'tags' => Expect::array(),
 			'reset' => Expect::array(),
 			'alteration' => Expect::bool(),
+			'lazy' => Expect::bool(),
 		]);
 	}
 
@@ -238,7 +203,6 @@ class DefinitionSchema implements Schema
 			'implement' => Expect::string(),
 			'arguments' => Expect::array(),
 			'setup' => Expect::listOf('callable|Nette\DI\Definitions\Statement|array:1'),
-			'parameters' => Expect::array(),
 			'references' => Expect::array(),
 			'tagged' => Expect::string(),
 			'inject' => Expect::bool(),

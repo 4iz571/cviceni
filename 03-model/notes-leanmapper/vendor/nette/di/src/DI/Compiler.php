@@ -1,16 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI;
 
 use Nette;
 use Nette\Schema;
+use function count, is_array, sprintf;
 
 
 /**
@@ -18,38 +17,27 @@ use Nette\Schema;
  */
 class Compiler
 {
-	use Nette\SmartObject;
-
 	private const
 		Services = 'services',
 		Parameters = 'parameters',
 		DI = 'di';
 
 	/** @var CompilerExtension[] */
-	private $extensions = [];
+	private array $extensions = [];
 
-	/** @var ContainerBuilder */
-	private $builder;
+	/** @var array<string, mixed> */
+	private array $config = [];
 
-	/** @var array */
-	private $config = [];
-
-	/** @var array [section => array[]] */
-	private $configs = [];
-
-	/** @var string */
-	private $sources = '';
-
-	/** @var DependencyChecker */
-	private $dependencies;
-
-	/** @var string */
-	private $className = 'Container';
+	/** @var array<string, array<mixed[]>> [section => array[]] */
+	private array $configs = [];
+	private string $sources = '';
+	private DependencyChecker $dependencies;
+	private string $className = 'Container';
 
 
-	public function __construct(?ContainerBuilder $builder = null)
-	{
-		$this->builder = $builder ?: new ContainerBuilder;
+	public function __construct(
+		private readonly ContainerBuilder $builder = new ContainerBuilder,
+	) {
 		$this->dependencies = new DependencyChecker;
 		$this->addExtension(self::Services, new Extensions\ServicesExtension);
 		$this->addExtension(self::Parameters, new Extensions\ParametersExtension($this->configs));
@@ -57,10 +45,9 @@ class Compiler
 
 
 	/**
-	 * Add custom configurator extension.
-	 * @return static
+	 * Adds a compiler extension. Pass null as name to auto-assign a name.
 	 */
-	public function addExtension(?string $name, CompilerExtension $extension)
+	public function addExtension(?string $name, CompilerExtension $extension): static
 	{
 		if ($name === null) {
 			$name = '_' . count($this->extensions);
@@ -74,7 +61,7 @@ class Compiler
 				throw new Nette\InvalidArgumentException(sprintf(
 					"Name of extension '%s' has the same name as '%s' in a case-insensitive manner.",
 					$name,
-					$nm
+					$nm,
 				));
 			}
 		}
@@ -84,10 +71,16 @@ class Compiler
 	}
 
 
+	/**
+	 * Returns all registered extensions, optionally filtered by class or interface.
+	 * @template T of object
+	 * @param  class-string<T>|null  $type
+	 * @return ($type is null ? array<string, CompilerExtension> : array<string, CompilerExtension&T>)
+	 */
 	public function getExtensions(?string $type = null): array
 	{
 		return $type
-			? array_filter($this->extensions, function ($item) use ($type): bool { return $item instanceof $type; })
+			? array_filter($this->extensions, fn($item): bool => $item instanceof $type)
 			: $this->extensions;
 	}
 
@@ -98,8 +91,10 @@ class Compiler
 	}
 
 
-	/** @return static */
-	public function setClassName(string $className)
+	/**
+	 * Sets the class name of the generated container.
+	 */
+	public function setClassName(string $className): static
 	{
 		$this->className = $className;
 		return $this;
@@ -108,9 +103,9 @@ class Compiler
 
 	/**
 	 * Adds new configuration.
-	 * @return static
+	 * @param  array<string, mixed>  $config
 	 */
-	public function addConfig(array $config)
+	public function addConfig(array $config): static
 	{
 		foreach ($config as $section => $data) {
 			$this->configs[$section][] = $data;
@@ -123,13 +118,12 @@ class Compiler
 
 	/**
 	 * Adds new configuration from file.
-	 * @return static
 	 */
-	public function loadConfig(string $file, ?Config\Loader $loader = null)
+	public function loadConfig(string $file, ?Config\Loader $loader = null): static
 	{
 		$sources = $this->sources . "// source: $file\n";
-		$loader = $loader ?: new Config\Loader;
-		foreach ($loader->load($file, false) as $data) {
+		$loader ??= new Config\Loader;
+		foreach ($loader->load($file, merge: false) as $data) {
 			$this->addConfig($data);
 		}
 
@@ -141,6 +135,7 @@ class Compiler
 
 	/**
 	 * Returns configuration.
+	 * @return array<string, mixed>
 	 * @deprecated
 	 */
 	public function getConfig(): array
@@ -151,9 +146,9 @@ class Compiler
 
 	/**
 	 * Sets the names of dynamic parameters.
-	 * @return static
+	 * @param  string[]  $names
 	 */
-	public function setDynamicParameterNames(array $names)
+	public function setDynamicParameterNames(array $names): static
 	{
 		assert($this->extensions[self::Parameters] instanceof Extensions\ParametersExtension);
 		$this->extensions[self::Parameters]->dynamicParams = $names;
@@ -163,10 +158,9 @@ class Compiler
 
 	/**
 	 * Adds dependencies to the list.
-	 * @param  array  $deps  of ReflectionClass|\ReflectionFunctionAbstract|string
-	 * @return static
+	 * @param array<\ReflectionClass<object>|\ReflectionFunctionAbstract|string>  $deps
 	 */
-	public function addDependencies(array $deps)
+	public function addDependencies(array $deps): static
 	{
 		$this->dependencies->add(array_filter($deps));
 		return $this;
@@ -175,6 +169,7 @@ class Compiler
 
 	/**
 	 * Exports dependencies.
+	 * @return array{int, array<string, int|false>, array<string, int|false>, string[], string[], string}
 	 */
 	public function exportDependencies(): array
 	{
@@ -182,8 +177,10 @@ class Compiler
 	}
 
 
-	/** @return static */
-	public function addExportedTag(string $tag)
+	/**
+	 * Adds a tag to export from the container.
+	 */
+	public function addExportedTag(string $tag): static
 	{
 		if (isset($this->extensions[self::DI])) {
 			assert($this->extensions[self::DI] instanceof Extensions\DIExtension);
@@ -194,8 +191,11 @@ class Compiler
 	}
 
 
-	/** @return static */
-	public function addExportedType(string $type)
+	/**
+	 * Adds a type to export from the container.
+	 * @param  class-string  $type
+	 */
+	public function addExportedType(string $type): static
 	{
 		if (isset($this->extensions[self::DI])) {
 			assert($this->extensions[self::DI] instanceof Extensions\DIExtension);
@@ -206,6 +206,9 @@ class Compiler
 	}
 
 
+	/**
+	 * Compiles the container and returns the generated PHP code.
+	 */
 	public function compile(): string
 	{
 		$this->processExtensions();
@@ -250,14 +253,14 @@ class Compiler
 		if ($extra = array_diff_key($this->extensions, $extensions, $first, [self::Services => 1])) {
 			throw new Nette\DeprecatedException(sprintf(
 				"Extensions '%s' were added while container was being compiled.",
-				implode("', '", array_keys($extra))
+				implode("', '", array_keys($extra)),
 			));
 
 		} elseif ($extra = key(array_diff_key($this->configs, $this->extensions))) {
 			$hint = Nette\Utils\Helpers::getSuggestion(array_keys($this->extensions), $extra);
 			throw new InvalidConfigurationException(
 				sprintf("Found section '%s' in configuration, but corresponding extension is missing", $extra)
-				. ($hint ? ", did you mean '$hint'?" : '.')
+				. ($hint ? ", did you mean '$hint'?" : '.'),
 			);
 		}
 	}
@@ -269,7 +272,9 @@ class Compiler
 
 		foreach ($this->extensions as $extension) {
 			$extension->beforeCompile();
-			$this->dependencies->add([(new \ReflectionClass($extension))->getFileName()]);
+			if ($file = (new \ReflectionClass($extension))->getFileName()) {
+				$this->dependencies->add([$file]);
+			}
 		}
 
 		$this->builder->complete();
@@ -278,9 +283,10 @@ class Compiler
 
 	/**
 	 * Merges and validates configurations against scheme.
-	 * @return array|object
+	 * @param  array<mixed[]>  $configs
+	 * @return array<string, mixed>|object
 	 */
-	private function processSchema(Schema\Schema $schema, array $configs, $name = null)
+	private function processSchema(Schema\Schema $schema, array $configs, ?string $name = null): array|object
 	{
 		$processor = new Schema\Processor;
 		$processor->onNewContext[] = function (Schema\Context $context) use ($name) {
@@ -288,7 +294,7 @@ class Compiler
 			$context->dynamics = &$this->extensions[self::Parameters]->dynamicValidators;
 		};
 		try {
-			$res = $processor->processMultiple($schema, $configs);
+			$res = $processor->processMultiple($schema, array_values($configs));
 		} catch (Schema\ValidationException $e) {
 			throw new Nette\DI\InvalidConfigurationException($e->getMessage());
 		}
@@ -319,12 +325,16 @@ class Compiler
 
 	/**
 	 * Loads list of service definitions from configuration.
+	 * @param  array<mixed>  $configList
 	 */
 	public function loadDefinitionsFromConfig(array $configList): void
 	{
+		$configList = Helpers::expand($configList, $this->builder->parameters);
 		$extension = $this->extensions[self::Services];
 		assert($extension instanceof Extensions\ServicesExtension);
-		$extension->loadDefinitions($this->processSchema($extension->getConfigSchema(), [$configList]));
+		$config = $this->processSchema($extension->getConfigSchema(), [$configList]);
+		assert(is_array($config));
+		$extension->loadDefinitions($config);
 	}
 
 

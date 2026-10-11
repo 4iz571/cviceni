@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\FormsLatte\Nodes;
 
@@ -15,13 +13,14 @@ use Latte\Compiler\Nodes\Php\Expression\ArrayNode;
 use Latte\Compiler\Nodes\Php\ExpressionNode;
 use Latte\Compiler\Nodes\Php\Scalar\StringNode;
 use Latte\Compiler\Nodes\StatementNode;
-use Latte\Compiler\Position;
 use Latte\Compiler\PrintContext;
 use Latte\Compiler\Tag;
 
 
 /**
- * {label ...} ... {/label}
+ * {label name[:part] [, attributes]} ... {/label}
+ * {label name /}
+ * Renders form control label.
  */
 class LabelNode extends StatementNode
 {
@@ -30,10 +29,9 @@ class LabelNode extends StatementNode
 	public ArrayNode $attributes;
 	public AreaNode $content;
 	public bool $void;
-	public ?Position $endLine;
 
 
-	/** @return \Generator<int, ?array, array{AreaNode, ?Tag}, static|AreaNode> */
+	/** @return \Generator<int, ?list<string>, array{AreaNode, ?Tag}, static> */
 	public static function create(Tag $tag): \Generator
 	{
 		if ($tag->isNAttribute()) {
@@ -54,8 +52,7 @@ class LabelNode extends StatementNode
 		$tag->parser->stream->tryConsume(',');
 		$node->attributes = $tag->parser->parseArguments();
 		$node->void = $tag->void;
-		[$node->content, $endTag] = yield;
-		$node->endLine = $endTag?->position;
+		[$node->content] = yield;
 		return $node;
 	}
 
@@ -63,7 +60,7 @@ class LabelNode extends StatementNode
 	public function print(PrintContext $context): string
 	{
 		return $context->format(
-			'echo ($ʟ_label = Nette\Bridges\FormsLatte\Runtime::item(%node, $this->global)->'
+			'echo ($ʟ_label = $this->global->forms->get(%node)->'
 			. ($this->part ? 'getLabelPart(%node)' : 'getLabel()')
 			. ')'
 			. ($this->attributes->items ? '?->addAttributes(%2.node)' : '')
@@ -73,7 +70,7 @@ class LabelNode extends StatementNode
 			$this->attributes,
 			$this->position,
 			$this->content,
-			$this->endLine,
+			end($this->tagRanges),
 		);
 	}
 

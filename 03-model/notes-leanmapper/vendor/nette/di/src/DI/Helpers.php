@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\DI;
 
@@ -14,6 +12,7 @@ use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
 use Nette\Utils\Reflection;
 use Nette\Utils\Type;
+use function array_key_exists, is_array, is_scalar, is_string, sprintf, strlen;
 
 
 /**
@@ -26,12 +25,11 @@ final class Helpers
 
 	/**
 	 * Expands %placeholders%.
-	 * @param  mixed  $var
-	 * @param  bool|array  $recursive
-	 * @return mixed
+	 * @param  array<string, mixed>  $params
+	 * @param  bool|array<string, int>  $recursive
 	 * @throws Nette\InvalidArgumentException
 	 */
-	public static function expand($var, array $params, $recursive = false)
+	public static function expand(mixed $var, array $params, bool|array $recursive = false): mixed
 	{
 		if (is_array($var)) {
 			$res = [];
@@ -43,10 +41,11 @@ final class Helpers
 		} elseif ($var instanceof Statement) {
 			return new Statement(
 				self::expand($var->getEntity(), $params, $recursive),
-				self::expand($var->arguments, $params, $recursive)
+				self::expand($var->arguments, $params, $recursive),
 			);
 
 		} elseif ($var === '%parameters%' && !array_key_exists('parameters', $params)) {
+			trigger_error('%parameters% is deprecated, use @container::getParameters()', E_USER_DEPRECATED);
 			return $recursive
 				? self::expand($params, $params, $recursive)
 				: $params;
@@ -63,9 +62,16 @@ final class Helpers
 
 	/**
 	 * Expands %placeholders% in string
+	 * @param  array<string, mixed>  $params
+	 * @param  ?array<string, int>  $recursive
 	 * @throws Nette\InvalidArgumentException
 	 */
-	private static function expandString(string $string, array $params, ?array $recursive, bool $onlyString = false)
+	private static function expandString(
+		string $string,
+		array $params,
+		?array $recursive,
+		bool $onlyString = false,
+	): mixed
 	{
 		$parts = preg_split('#%([\w.-]*)%#i', $string, -1, PREG_SPLIT_DELIM_CAPTURE);
 		$res = [];
@@ -88,12 +94,21 @@ final class Helpers
 		}
 
 		return $dynamic
-			? new Statement('::implode', ['', $res])
+			? new Statement('::implode', [$res])
 			: implode('', $res);
 	}
 
 
-	private static function expandParameter(string $parameter, array $params, ?array $recursive, bool $onlyString)
+	/**
+	 * @param  array<string, mixed>  $params
+	 * @param  ?array<string, int>  $recursive
+	 */
+	private static function expandParameter(
+		string $parameter,
+		array $params,
+		?array $recursive,
+		bool $onlyString,
+	): mixed
 	{
 		$val = $params;
 		$path = [];
@@ -109,10 +124,10 @@ final class Helpers
 					}
 					$val = $fullExpand
 						? self::expand($val, $params, $recursive + [$pathStr => 1])
-						: self::expandString($val, $params, $recursive + [$pathStr => 1], true);
+						: self::expandString($val, $params, $recursive + [$pathStr => 1], onlyString: true);
 				}
 			} elseif ($val instanceof DynamicParameter) {
-				$val = new DynamicParameter($val . '[' . var_export($key, true) . ']');
+				$val = new DynamicParameter($val . '[' . var_export($key, return: true) . ']');
 			} elseif ($val instanceof Statement) {
 				$val = new Statement('(?)[?]', [$val, $key]);
 			} else {
@@ -125,10 +140,8 @@ final class Helpers
 
 	/**
 	 * Escapes '%' and '@'
-	 * @param  mixed  $value
-	 * @return mixed
 	 */
-	public static function escape($value)
+	public static function escape(mixed $value): mixed
 	{
 		if (is_array($value)) {
 			$res = [];
@@ -147,21 +160,14 @@ final class Helpers
 
 
 	/**
-	 * Process constants recursively.
+	 * Converts @service strings to Reference objects recursively.
+	 * @param  array<mixed>  $args
+	 * @return array<mixed>
 	 */
 	public static function filterArguments(array $args): array
 	{
 		foreach ($args as $k => $v) {
-			if (
-				PHP_VERSION_ID >= 80100
-				&& is_string($v)
-				&& preg_match('#^([\w\\\\]+)::\w+$#D', $v, $m)
-				&& enum_exists($m[1])
-			) {
-				$args[$k] = new Nette\PhpGenerator\PhpLiteral($v);
-			} elseif (is_string($v) && preg_match('#^[\w\\\\]*::[A-Z][a-zA-Z0-9_]*$#D', $v)) {
-				$args[$k] = new Nette\PhpGenerator\PhpLiteral(ltrim($v, ':'));
-			} elseif (is_string($v) && preg_match('#^@[\w\\\\]+$#D', $v)) {
+			if (is_string($v) && preg_match('#^@[\w\\\]+$#D', $v)) {
 				$args[$k] = new Reference(substr($v, 1));
 			} elseif (is_array($v)) {
 				$args[$k] = self::filterArguments($v);
@@ -177,10 +183,8 @@ final class Helpers
 
 	/**
 	 * Replaces @extension with real extension name in service definition.
-	 * @param  mixed  $config
-	 * @return mixed
 	 */
-	public static function prefixServiceName($config, string $namespace)
+	public static function prefixServiceName(mixed $config, string $namespace): mixed
 	{
 		if (is_string($config)) {
 			if (strncmp($config, '@extension.', 10) === 0) {
@@ -193,7 +197,7 @@ final class Helpers
 		} elseif ($config instanceof Statement) {
 			return new Statement(
 				self::prefixServiceName($config->getEntity(), $namespace),
-				self::prefixServiceName($config->arguments, $namespace)
+				self::prefixServiceName($config->arguments, $namespace),
 			);
 		} elseif (is_array($config)) {
 			foreach ($config as &$val) {
@@ -207,9 +211,12 @@ final class Helpers
 
 	/**
 	 * Returns an annotation value.
-	 * @param  \ReflectionFunctionAbstract|\ReflectionProperty|\ReflectionClass  $ref
+	 * @param  \ReflectionClass<object>|\ReflectionFunctionAbstract|\ReflectionProperty  $ref
 	 */
-	public static function parseAnnotation(\Reflector $ref, string $name): ?string
+	public static function parseAnnotation(
+		\ReflectionFunctionAbstract|\ReflectionProperty|\ReflectionClass $ref,
+		string $name,
+	): ?string
 	{
 		if (!Reflection::areCommentsAvailable()) {
 			throw new Nette\InvalidStateException('You have to enable phpDoc comments in opcode cache.');
@@ -224,6 +231,9 @@ final class Helpers
 	}
 
 
+	/**
+	 * Returns return type from @return annotation, or null if not found or not a class type.
+	 */
 	public static function getReturnTypeAnnotation(\ReflectionFunctionAbstract $func): ?Type
 	{
 		$type = preg_replace('#[|\s].*#', '', (string) self::parseAnnotation($func, 'return'));
@@ -238,6 +248,11 @@ final class Helpers
 	}
 
 
+	/**
+	 * Validates that the type is a non-nullable class type and returns the class name.
+	 * @return class-string
+	 * @throws ServiceCreationException
+	 */
 	public static function ensureClassType(?Type $type, string $hint, bool $allowNullable = false): string
 	{
 		if (!$type) {
@@ -247,7 +262,9 @@ final class Helpers
 		}
 
 		$class = $type->getSingleName();
-		if (!class_exists($class) && !interface_exists($class)) {
+		if ($class === null) {
+			throw new ServiceCreationException(sprintf('%s is not declared.', ucfirst($hint)));
+		} elseif (!class_exists($class) && !interface_exists($class)) {
 			throw new ServiceCreationException(sprintf("Class '%s' not found.\nCheck the %s.", $class, $hint));
 		}
 
@@ -255,6 +272,10 @@ final class Helpers
 	}
 
 
+	/**
+	 * Normalizes class name to its canonical form using reflection.
+	 * @return class-string
+	 */
 	public static function normalizeClass(string $type): string
 	{
 		return class_exists($type) || interface_exists($type)
@@ -265,11 +286,9 @@ final class Helpers
 
 	/**
 	 * Non data-loss type conversion.
-	 * @param  mixed  $value
-	 * @return mixed
 	 * @throws Nette\InvalidStateException
 	 */
-	public static function convertType($value, string $type)
+	public static function convertType(mixed $value, string $type): mixed
 	{
 		if (is_scalar($value)) {
 			$norm = ($value === false ? '0' : (string) $value);
@@ -277,17 +296,22 @@ final class Helpers
 				$norm = preg_replace('#\.0*$#D', '', $norm);
 			}
 
-			$orig = $norm;
-			settype($norm, $type);
-			if ($orig === ($norm === false ? '0' : (string) $norm)) {
-				return $norm;
+			$converted = match ($type) {
+				'bool' => (bool) $norm,
+				'int' => (int) $norm,
+				'float' => (float) $norm,
+				'string' => $norm,
+				default => null,
+			};
+			if ($converted !== null && $norm === ($converted === false ? '0' : (string) $converted)) {
+				return $converted;
 			}
 		}
 
 		throw new Nette\InvalidStateException(sprintf(
 			'Cannot convert %s to %s.',
-			is_scalar($value) ? "'$value'" : gettype($value),
-			$type
+			is_scalar($value) ? "'$value'" : get_debug_type($value),
+			$type,
 		));
 	}
 }

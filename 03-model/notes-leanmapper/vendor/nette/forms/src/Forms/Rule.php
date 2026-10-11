@@ -1,41 +1,30 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms;
 
 use Nette;
+use Stringable;
+use function is_string;
 
 
 /**
  * Single validation rule or condition represented as value object.
  */
-class Rule
+final class Rule
 {
-	use Nette\SmartObject;
+	public Control $control;
 
-	/** @var Control */
-	public $control;
-
-	/** @var mixed */
-	public $validator;
-
-	/** @var mixed */
-	public $arg;
-
-	/** @var bool */
-	public $isNegative = false;
-
-	/** @var string|null */
-	public $message;
-
-	/** @var Rules|null  for conditions */
-	public $branch;
+	/** @var (callable(Control, mixed): bool)|string */
+	public mixed $validator;
+	public mixed $arg = null;
+	public bool $isNegative = false;
+	public string|Stringable|null $message;
+	public ?Rules $branch = null;
 
 
 	/** @internal */

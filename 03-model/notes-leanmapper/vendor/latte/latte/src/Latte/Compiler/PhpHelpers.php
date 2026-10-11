@@ -1,130 +1,96 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
+namespace Latte\Compiler;
 
-namespace Latte;
+use Latte\CompileException;
+use function bindec, chr, count, explode, fclose, fwrite, hexdec, in_array, is_array, is_resource, max, octdec, preg_match, preg_replace, preg_replace_callback, proc_close, proc_open, str_repeat, str_replace, stream_get_contents, strip_tags, stripslashes, strlen, strpbrk, substr, substr_count, substr_replace, token_get_all, trim, var_export;
+use const T_CATCH, T_CLOSE_TAG, T_COMMENT, T_CONSTANT_ENCAPSED_STRING, T_CURLY_OPEN, T_DOC_COMMENT, T_DOLLAR_OPEN_CURLY_BRACES, T_ECHO, T_ELSE, T_ELSEIF, T_FINALLY, T_OBJECT_OPERATOR, T_OPEN_TAG, T_WHITESPACE;
 
 
 /**
  * PHP helpers.
  * @internal
  */
-class PhpHelpers
+final class PhpHelpers
 {
 	/**
 	 * Optimizes code readability.
 	 */
 	public static function reformatCode(string $source): string
 	{
-		$res = $php = '';
+		$res = '';
 		$lastChar = ';';
 		$tokens = new \ArrayIterator(token_get_all($source));
-		$level = $openLevel = 0;
-		$lineLength = 100;
-		$specialBrace = false;
+		$level = 0;
 
 		foreach ($tokens as $n => $token) {
 			$next = $tokens[$n + 1] ?? [null, ''];
 
 			if (is_array($token)) {
-				[$name, $token] = ($tmp = $token);
-				if ($name === T_INLINE_HTML) {
-					$res .= $token;
-
-				} elseif ($name === T_OPEN_TAG) {
-					$openLevel = $level;
-
-				} elseif ($name === T_CLOSE_TAG) {
-					if ($next[0] === T_OPEN_TAG) { // remove ?)<?php
-						if (!strspn($lastChar, ';{:/' . ($specialBrace ? '' : '}'))) {
-							$php = rtrim($php) . ($lastChar = ';') . "\n" . str_repeat("\t", $level);
-						} elseif (substr($next[1], -1) === "\n") {
-							$php .= "\n" . str_repeat("\t", $level);
-						}
-
-						$tokens->next();
-
-					} else {
-						if (trim($php) !== '' || substr($res, -1) === '<') { // skip <?php ?) but preserve <<?php
-							$inline = strpos($php, "\n") === false && strlen($res) - strrpos($res, "\n") < $lineLength;
-							$res .= '<?php' . ($inline ? ' ' : "\n" . str_repeat("\t", $openLevel));
-							if (strpos($next[1], "\n") === false) {
-								$token = rtrim($token, "\n");
-							} else {
-								$php = rtrim($php, "\t");
-							}
-
-							$res .= $php . $token;
-						}
-
-						$php = '';
-						$lastChar = ';';
-					}
-				} elseif ($name === T_ELSE || $name === T_ELSEIF) {
+				[$name, $token] = $token;
+				if ($name === T_ELSE || $name === T_ELSEIF) {
 					if ($next === ':' && $lastChar === '}') {
-						$php .= ';'; // semicolon needed in if(): ... if() ... else:
+						$res .= ';'; // semicolon needed in if(): ... if() ... else:
 					}
 
 					$lastChar = '';
-					$php .= $token;
+					$res .= $token;
 
 				} elseif ($name === T_DOC_COMMENT || $name === T_COMMENT) {
-					$php .= preg_replace("#\n[ \t]*+(?!\n)#", "\n" . str_repeat("\t", $level), $token);
+					$res .= preg_replace("#\n[ \t]*+(?!\n)#", "\n" . str_repeat("\t", $level), $token);
 
 				} elseif ($name === T_WHITESPACE) {
 					$prev = $tokens[$n - 1];
 					$lines = substr_count($token, "\n");
-					if ($prev === '}' && in_array($next[0], [T_ELSE, T_ELSEIF, T_CATCH, T_FINALLY], true)) {
+					if ($prev === '}' && in_array($next[0], [T_ELSE, T_ELSEIF, T_CATCH, T_FINALLY], strict: true)) {
 						$token = ' ';
 					} elseif ($prev === '{' || $prev === '}' || $prev === ';' || $lines) {
 						$token = str_repeat("\n", max(1, $lines)) . str_repeat("\t", $level); // indent last line
-					} elseif ($prev[0] === T_OPEN_TAG) {
+					} elseif (is_array($prev) && $prev[0] === T_OPEN_TAG) {
 						$token = '';
 					}
 
-					$php .= $token;
+					$res .= $token;
 
 				} elseif ($name === T_OBJECT_OPERATOR) {
 					$lastChar = '->';
-					$php .= $token;
+					$res .= $token;
+
+				} elseif ($name === T_OPEN_TAG) {
+					$res .= $next[0] === T_DECLARE ? '<?php ' : "<?php\n";
+
+				} elseif ($name === T_CLOSE_TAG) {
+					throw new \LogicException('Unexpected token');
 
 				} else {
-					if (in_array($name, [T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES], true)) {
+					if (in_array($name, [T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES], strict: true)) {
 						$level++;
 					}
 
 					$lastChar = '';
-					$php .= $token;
+					$res .= $token;
 				}
 			} else {
 				if ($token === '{' || $token === '[') {
 					$level++;
-					if ($lastChar === '->' || $lastChar === '$') {
-						$specialBrace = true;
-					}
 				} elseif ($token === '}' || $token === ']') {
 					$level--;
-					$php .= "\x08";
+					$res .= "\x08";
 
 				} elseif ($token === ';') {
-					$specialBrace = false;
 					if ($next[0] !== T_WHITESPACE) {
 						$token .= "\n" . str_repeat("\t", $level); // indent last line
 					}
 				}
 
 				$lastChar = $token;
-				$php .= $token;
+				$res .= $token;
 			}
-		}
-
-		if ($php) {
-			$res .= "<?php\n" . str_repeat("\t", $openLevel) . $php;
 		}
 
 		$res = str_replace(["\t\x08", "\x08"], '', $res);
@@ -133,12 +99,12 @@ class PhpHelpers
 
 
 	/**
-	 * @param  mixed  $value
+	 * Exports value to PHP code representation.
 	 */
-	public static function dump($value, bool $multiline = false): string
+	public static function dump(mixed $value, bool $multiline = false): string
 	{
 		if (is_array($value)) {
-			$indexed = $value && array_keys($value) === range(0, count($value) - 1);
+			$indexed = array_is_list($value);
 			$s = '';
 			foreach ($value as $k => $v) {
 				$s .= $multiline
@@ -150,48 +116,164 @@ class PhpHelpers
 		} elseif ($value === null) {
 			return 'null';
 		} else {
-			return var_export($value, true);
+			return var_export($value, return: true);
 		}
 	}
 
 
-	public static function inlineHtmlToEcho(string $source): string
+	/**
+	 * Optimizes consecutive echo statements into single call.
+	 */
+	public static function optimizeEcho(string $source): string
 	{
 		$res = '';
 		$tokens = token_get_all($source);
+		$start = null;
+		$str = '';
 
-		for ($i = 0; $i < \count($tokens); $i++) {
+		for ($i = 0; $i < count($tokens); $i++) {
 			$token = $tokens[$i];
-			if (is_array($token)) {
-				if ($token[0] === T_INLINE_HTML) {
-					$str = $token[1];
-					$n = $i + 1;
-					while (isset($tokens[$n])) {
-						if ($tokens[$n][0] === T_INLINE_HTML) {
-							$str .= $tokens[$n][1];
-							$i = $n;
-						} elseif (
-							$tokens[$n][0] !== T_OPEN_TAG
-							&& $tokens[$n][0] !== T_CLOSE_TAG
-							&& $tokens[$n][0] !== T_WHITESPACE
-						) {
-							break;
-						}
-
-						$n++;
-					}
-
-					$export = $str === "\n" ? '"\n"' : var_export($str, true);
-					$res .= "<?php echo $export ?>";
-					continue;
+			if ($token[0] === T_ECHO) {
+				if ($start === null) {
+					$str = '';
+					$start = strlen($res);
 				}
 
-				$res .= $token[1];
-			} else {
-				$res .= $token;
+			} elseif ($start !== null && $token[0] === T_CONSTANT_ENCAPSED_STRING && $token[1][0] === "'") {
+				$str .= stripslashes(substr($token[1], 1, -1));
+
+			} elseif ($start !== null && $token === ';') {
+				if ($str !== '') {
+					$res = substr_replace(
+						$res,
+						'echo ' . ($str === "\n" ? '"\n"' : var_export($str, return: true)),
+						$start,
+						strlen($res) - $start,
+					);
+				}
+
+			} elseif ($token[0] !== T_WHITESPACE) {
+				$start = null;
 			}
+
+			$res .= is_array($token) ? $token[1] : $token;
 		}
 
 		return $res;
+	}
+
+
+	/**
+	 * Decodes number string to int or float value.
+	 */
+	public static function decodeNumber(string $str, ?int &$base = null): int|float|null
+	{
+		$str = str_replace('_', '', $str);
+
+		if ($str[0] !== '0' || $str === '0') {
+			$base = 10;
+			return $str + 0;
+		} elseif ($str[1] === 'x' || $str[1] === 'X') {
+			$base = 16;
+			return hexdec($str);
+		} elseif ($str[1] === 'b' || $str[1] === 'B') {
+			$base = 2;
+			return bindec($str);
+		} elseif (strpbrk($str, '89')) {
+			return null;
+		} else {
+			$base = 8;
+			return octdec($str);
+		}
+	}
+
+
+	/**
+	 * Decodes PHP string escape sequences (e.g. \n, \x1B, \u{1F600}).
+	 * Pass $quote to also unescape the given quote character.
+	 */
+	public static function decodeEscapeSequences(string $str, ?string $quote): string
+	{
+		if ($quote !== null) {
+			$str = str_replace('\\' . $quote, $quote, $str);
+		}
+
+		return preg_replace_callback(
+			'~\\\([\\\$nrtfve]|[xX][0-9a-fA-F]{1,2}|[0-7]{1,3}|u\{[0-9a-fA-F]+\})~',
+			function ($matches) {
+				$ch = $matches[1];
+				$replacements = [
+					'\\' => '\\',
+					'$' => '$',
+					'n' => "\n",
+					'r' => "\r",
+					't' => "\t",
+					'f' => "\f",
+					'v' => "\v",
+					'e' => "\x1B",
+				];
+				if (isset($replacements[$ch])) {
+					return $replacements[$ch];
+				} elseif ($ch[0] === 'x' || $ch[0] === 'X') {
+					return chr((int) hexdec(substr($ch, 1)));
+				} elseif ($ch[0] === 'u') {
+					return self::codePointToUtf8((int) hexdec(substr($ch, 2, -1)));
+				} else {
+					$num = (int) octdec($ch);
+					if ($num > 255) {
+						throw new CompileException("Octal escape sequence \\$ch is greater than \\377");
+					}
+					return chr($num);
+				}
+			},
+			$str,
+		);
+	}
+
+
+	private static function codePointToUtf8(int $num): string
+	{
+		return match (true) {
+			$num <= 0x7F => chr($num),
+			$num <= 0x7FF => chr(($num >> 6) + 0xC0) . chr(($num & 0x3F) + 0x80),
+			$num <= 0xFFFF => chr(($num >> 12) + 0xE0) . chr((($num >> 6) & 0x3F) + 0x80) . chr(($num & 0x3F) + 0x80),
+			$num <= 0x1FFFFF => chr(($num >> 18) + 0xF0) . chr((($num >> 12) & 0x3F) + 0x80)
+				. chr((($num >> 6) & 0x3F) + 0x80) . chr(($num & 0x3F) + 0x80),
+			default => throw new CompileException('Invalid UTF-8 codepoint escape sequence: Codepoint too large'),
+		};
+	}
+
+
+	/**
+	 * Validates the generated PHP code using the given PHP binary as a linter.
+	 * Throws CompileException if the code contains syntax errors.
+	 */
+	public static function checkCode(string $phpBinary, string $code, string $name): void
+	{
+		$process = proc_open(
+			[$phpBinary, '-l', '-n'],
+			[['pipe', 'r'], ['pipe', 'w'], ['pipe', 'w']],
+			$pipes,
+			null,
+			null,
+			['bypass_shell' => true],
+		);
+		if (!is_resource($process)) {
+			throw new CompileException('Unable to check that the generated PHP is correct.');
+		}
+
+		fwrite($pipes[0], $code);
+		fclose($pipes[0]);
+		$error = stream_get_contents($pipes[1]);
+		if (!proc_close($process)) {
+			return;
+		}
+		$error = strip_tags(explode("\n", $error)[1]);
+		$position = preg_match('~ on line (\d+)~', $error, $m)
+			? new Position((int) $m[1], 0)
+			: null;
+		$error = preg_replace('~(^Fatal error: | in Standard input code| on line \d+)~', '', $error);
+		throw (new CompileException('Error in generated code: ' . trim($error), $position))
+			->setSource($code, $name);
 	}
 }

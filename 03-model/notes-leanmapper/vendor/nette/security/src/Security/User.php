@@ -1,26 +1,25 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Security;
 
 use Nette;
 use Nette\Utils\Arrays;
+use function func_get_args;
 
 
 /**
  * User authentication and authorization.
  *
  * @property-read bool $loggedIn
- * @property-read IIdentity $identity
- * @property-read mixed $id
- * @property-read array $roles
- * @property-read int $logoutReason
+ * @property-read ?IIdentity $identity
+ * @property-read string|int|null $id
+ * @property-read list<string> $roles
+ * @property-read ?int $logoutReason
  * @property   IAuthenticator $authenticator
  * @property   Authorizator $authorizator
  */
@@ -28,70 +27,54 @@ class User
 {
 	use Nette\SmartObject;
 
-	/** @deprecated */
-	public const
-		MANUAL = IUserStorage::MANUAL,
-		INACTIVITY = IUserStorage::INACTIVITY;
-
 	/** Log-out reason */
 	public const
-		LogoutManual = UserStorage::LogoutManual,
-		LogoutInactivity = UserStorage::LogoutInactivity;
+		LogoutManual = 1,
+		LogoutInactivity = 2;
 
+	/** @deprecated use User::LogoutManual */
 	public const LOGOUT_MANUAL = self::LogoutManual;
+
+	/** @deprecated use User::LogoutManual */
+	public const MANUAL = self::LogoutManual;
+
+	/** @deprecated use User::LogoutInactivity */
 	public const LOGOUT_INACTIVITY = self::LogoutInactivity;
 
-	/** @var string  default role for unauthenticated user */
-	public $guestRole = 'guest';
+	/** @deprecated use User::LogoutInactivity */
+	public const INACTIVITY = self::LogoutInactivity;
 
-	/** @var string  default role for authenticated user without own identity */
-	public $authenticatedRole = 'authenticated';
+	/** role for an unauthenticated user, unless a guest identity provides its own roles */
+	public string $guestRole = 'guest';
 
-	/** @var callable[]  function (User $sender): void; Occurs when the user is successfully logged in */
-	public $onLoggedIn = [];
+	/** default role for authenticated user without own identity */
+	public string $authenticatedRole = 'authenticated';
 
-	/** @var callable[]  function (User $sender): void; Occurs when the user is logged out */
-	public $onLoggedOut = [];
+	/** keep identity available (via getIdentity() and getId()) after logout or expiration; depends on the storage implementation */
+	public bool $persistIdentity = true;
 
-	/** @var UserStorage|IUserStorage  Session storage for current user */
-	private $storage;
+	/** @var array<callable(static): void>  Occurs when the user is successfully logged in */
+	public array $onLoggedIn = [];
 
-	/** @var IAuthenticator|null */
-	private $authenticator;
+	/** @var array<callable(static): void>  Occurs when the user is logged out */
+	public array $onLoggedOut = [];
 
-	/** @var Authorizator|null */
-	private $authorizator;
-
-	/** @var IIdentity|null */
-	private $identity;
-
-	/** @var bool|null */
-	private $authenticated;
-
-	/** @var int|null */
-	private $logoutReason;
+	private ?IIdentity $identity = null;
+	private ?bool $authenticated = null;
+	private ?int $logoutReason = null;
+	private ?IIdentity $guestIdentity = null;
+	private bool $guestIdentityResolved = false;
 
 
 	public function __construct(
-		?IUserStorage $legacyStorage = null,
-		?IAuthenticator $authenticator = null,
-		?Authorizator $authorizator = null,
-		?UserStorage $storage = null
+		private readonly UserStorage $storage,
+		private ?IAuthenticator $authenticator = null,
+		private ?Authorizator $authorizator = null,
 	) {
-		$this->storage = $storage ?? $legacyStorage; // back compatibility
-		if (!$this->storage) {
-			throw new Nette\InvalidStateException('UserStorage has not been set.');
-		}
-
-		$this->authenticator = $authenticator;
-		$this->authorizator = $authorizator;
 	}
 
 
-	/**
-	 * @return UserStorage|IUserStorage
-	 */
-	final public function getStorage()
+	final public function getStorage(): UserStorage
 	{
 		return $this->storage;
 	}
@@ -101,19 +84,19 @@ class User
 
 
 	/**
-	 * Conducts the authentication process. Parameters are optional.
-	 * @param  string|IIdentity  $user  name or Identity
+	 * Authenticates the user. Accepts username and password, or an IIdentity directly.
+	 * @param  string|IIdentity  $username  username or identity
 	 * @throws AuthenticationException if authentication was not successful
 	 */
 	public function login(
-		$user,
+		string|IIdentity $username,
 		#[\SensitiveParameter]
-		?string $password = null
+		?string $password = null,
 	): void
 	{
-		$this->logout(true);
-		if ($user instanceof IIdentity) {
-			$this->identity = $user;
+		$this->logout(clearIdentity: true);
+		if ($username instanceof IIdentity) {
+			$this->identity = $username;
 		} else {
 			$authenticator = $this->getAuthenticator();
 			$this->identity = $authenticator instanceof Authenticator
@@ -124,13 +107,8 @@ class User
 		$id = $this->authenticator instanceof IdentityHandler
 			? $this->authenticator->sleepIdentity($this->identity)
 			: $this->identity;
-		if ($this->storage instanceof UserStorage) {
-			$this->storage->saveAuthentication($id);
-		} else {
-			$this->storage->setIdentity($id);
-			$this->storage->setAuthenticated(true);
-		}
 
+		$this->storage->saveAuthentication($id);
 		$this->authenticated = true;
 		$this->logoutReason = null;
 		Arrays::invoke($this->onLoggedIn, $this);
@@ -138,23 +116,20 @@ class User
 
 
 	/**
-	 * Logs out the user from the current session.
+	 * Logs out the user from the current session. The identity is kept available afterwards,
+	 * unless $clearIdentity is set or the $persistIdentity property is disabled.
 	 */
 	final public function logout(bool $clearIdentity = false): void
 	{
+		$clearIdentity = $clearIdentity || !$this->persistIdentity;
 		$logged = $this->isLoggedIn();
-
-		if ($this->storage instanceof UserStorage) {
+		// the last condition covers a stored authentication vetoed by wakeupIdentity(); otherwise there is nothing to change
+		if ($logged || $clearIdentity || $this->storage->getState()[0]) {
 			$this->storage->clearAuthentication($clearIdentity);
-		} else {
-			$this->storage->setAuthenticated(false);
-			if ($clearIdentity) {
-				$this->storage->setIdentity(null);
-			}
+			$this->logoutReason = self::LogoutManual;
 		}
 
 		$this->authenticated = false;
-		$this->logoutReason = self::MANUAL;
 		if ($logged) {
 			Arrays::invoke($this->onLoggedOut, $this);
 		}
@@ -164,76 +139,85 @@ class User
 
 
 	/**
-	 * Is this user authenticated?
+	 * Checks whether the user is authenticated.
 	 */
 	final public function isLoggedIn(): bool
 	{
-		if ($this->authenticated === null) {
-			$this->getStoredData();
-		}
-
-		return $this->authenticated;
+		$this->loadStoredData();
+		return (bool) $this->authenticated;
 	}
 
 
 	/**
-	 * Returns current user identity, if any.
+	 * Returns the user identity. When not logged in, this is the retained identity (unless $persistIdentity
+	 * is disabled) or a guest identity if the authenticator provides one; null otherwise.
 	 */
 	final public function getIdentity(): ?IIdentity
 	{
-		if ($this->authenticated === null) {
-			$this->getStoredData();
-		}
-
-		return $this->identity;
+		$this->loadStoredData();
+		return $this->identity ?? $this->resolveGuestIdentity();
 	}
 
 
-	private function getStoredData(): void
+	private function loadStoredData(): void
 	{
-		if ($this->storage instanceof UserStorage) {
-			(function (bool $state, ?IIdentity $id, ?int $reason) use (&$identity) {
-				$identity = $id;
-				$this->authenticated = $state;
-				$this->logoutReason = $reason;
-			})(...$this->storage->getState());
-		} else {
-			$identity = $this->storage->getIdentity();
-			$this->authenticated = $this->storage->isAuthenticated();
-			$this->logoutReason = $this->storage->getLogoutReason();
+		if ($this->authenticated !== null) {
+			return;
 		}
 
-		$this->identity = $identity && $this->authenticator instanceof IdentityHandler
+		[$this->authenticated, $identity, $this->logoutReason] = $this->storage->getState();
+
+		$identity = $identity && $this->authenticator instanceof IdentityHandler
 			? $this->authenticator->wakeupIdentity($identity)
 			: $identity;
-		$this->authenticated = $this->authenticated && $this->identity;
+		$this->authenticated = $this->authenticated && $identity !== null;
+		$this->identity = !$this->authenticated && !$this->persistIdentity ? null : $identity;
+	}
+
+
+	/** Returns the guest identity provided by the IdentityHandler authenticator, or null. */
+	private function resolveGuestIdentity(): ?IIdentity
+	{
+		if (!$this->guestIdentityResolved) {
+			$this->guestIdentityResolved = true;
+			$this->guestIdentity = $this->authenticator instanceof IdentityHandler && method_exists($this->authenticator, 'getGuestIdentity')
+				? $this->authenticator->getGuestIdentity()
+				: null;
+		}
+
+		return $this->guestIdentity;
 	}
 
 
 	/**
-	 * Returns current user ID, if any.
-	 * @return mixed
+	 * Returns the ID of the identity returned by getIdentity(), so it may be the retained or guest
+	 * identity's ID even when not logged in; null if there is no identity.
 	 */
-	public function getId()
+	public function getId(): string|int|null
 	{
 		$identity = $this->getIdentity();
-		return $identity ? $identity->getId() : null;
+		return $identity?->getId();
 	}
 
 
+	/**
+	 * Discards the cached authentication state and identity, forcing a reload on next access.
+	 */
 	final public function refreshStorage(): void
 	{
 		$this->identity = $this->authenticated = $this->logoutReason = null;
+		$this->guestIdentity = null;
+		$this->guestIdentityResolved = false;
 	}
 
 
 	/**
 	 * Sets authentication handler.
-	 * @return static
 	 */
-	public function setAuthenticator(IAuthenticator $handler)
+	public function setAuthenticator(IAuthenticator $handler): static
 	{
 		$this->authenticator = $handler;
+		$this->guestIdentityResolved = false;
 		return $this;
 	}
 
@@ -241,14 +225,9 @@ class User
 	/**
 	 * Returns authentication handler.
 	 */
-	final public function getAuthenticator(): ?IAuthenticator
+	final public function getAuthenticator(): IAuthenticator
 	{
-		if (func_num_args()) {
-			trigger_error(__METHOD__ . '() parameter $throw is deprecated, use getAuthenticatorIfExists()', E_USER_DEPRECATED);
-			$throw = func_get_arg(0);
-		}
-
-		if (($throw ?? true) && !$this->authenticator) {
+		if (!$this->authenticator) {
 			throw new Nette\InvalidStateException('Authenticator has not been set.');
 		}
 
@@ -257,7 +236,7 @@ class User
 
 
 	/**
-	 * Returns authentication handler.
+	 * Returns authentication handler, or null if none is set.
 	 */
 	final public function getAuthenticatorIfExists(): ?IAuthenticator
 	{
@@ -273,32 +252,18 @@ class User
 
 
 	/**
-	 * Enables log out after inactivity (like '20 minutes').
-	 * @param  string|null  $expire
-	 * @param  int|bool  $clearIdentity
-	 * @return static
+	 * Enables log out after inactivity (like '20 minutes'). The identity is kept available afterwards,
+	 * unless $clearIdentity is set or the $persistIdentity property is disabled.
 	 */
-	public function setExpiration($expire, $clearIdentity = null)
+	public function setExpiration(?string $expire, bool $clearIdentity = false): static
 	{
-		if ($expire !== null && !is_string($expire)) {
-			trigger_error("Expiration should be a string like '20 minutes' etc.", E_USER_DEPRECATED);
-		}
-
-		if (func_num_args() > 2) {
-			$clearIdentity = $clearIdentity || func_get_arg(2);
-			trigger_error(__METHOD__ . '() third parameter is deprecated, use second one: setExpiration($time, true|false)', E_USER_DEPRECATED);
-		}
-
-		$arg = $this->storage instanceof UserStorage
-			? (bool) $clearIdentity
-			: ($clearIdentity ? IUserStorage::CLEAR_IDENTITY : 0);
-		$this->storage->setExpiration($expire, $arg);
+		$this->storage->setExpiration($expire, $clearIdentity || !$this->persistIdentity);
 		return $this;
 	}
 
 
 	/**
-	 * Why was user logged out? Returns LOGOUT_MANUAL or LOGOUT_INACTIVITY.
+	 * Returns the logout reason: LogoutManual or LogoutInactivity, or null if not applicable.
 	 */
 	final public function getLogoutReason(): ?int
 	{
@@ -310,21 +275,23 @@ class User
 
 
 	/**
-	 * Returns a list of effective roles that a user has been granted.
+	 * Returns effective roles derived from the login state, not from the (possibly retained) identity.
+	 * Logged in: the identity's roles, or authenticatedRole. Otherwise: the guest identity's roles, or guestRole.
+	 * @return list<string>
 	 */
 	public function getRoles(): array
 	{
 		if (!$this->isLoggedIn()) {
-			return [$this->guestRole];
+			return $this->resolveGuestIdentity()?->getRoles() ?? [$this->guestRole];
 		}
 
 		$identity = $this->getIdentity();
-		return $identity && $identity->getRoles() ? $identity->getRoles() : [$this->authenticatedRole];
+		return $identity?->getRoles() ?? [$this->authenticatedRole];
 	}
 
 
 	/**
-	 * Is a user in the specified effective role?
+	 * Checks whether the user has the specified effective role.
 	 */
 	final public function isInRole(string $role): bool
 	{
@@ -339,10 +306,10 @@ class User
 
 
 	/**
-	 * Has a user effective access to the Resource?
-	 * If $resource is null, then the query applies to all resources.
+	 * Checks whether the user has access to the given resource and privilege.
+	 * Null means all resources or all privileges.
 	 */
-	public function isAllowed($resource = Authorizator::All, $privilege = Authorizator::All): bool
+	public function isAllowed(mixed $resource = Authorizator::All, mixed $privilege = Authorizator::All): bool
 	{
 		foreach ($this->getRoles() as $role) {
 			if ($this->getAuthorizator()->isAllowed($role, $resource, $privilege)) {
@@ -356,9 +323,8 @@ class User
 
 	/**
 	 * Sets authorization handler.
-	 * @return static
 	 */
-	public function setAuthorizator(Authorizator $handler)
+	public function setAuthorizator(Authorizator $handler): static
 	{
 		$this->authorizator = $handler;
 		return $this;
@@ -368,14 +334,9 @@ class User
 	/**
 	 * Returns current authorization handler.
 	 */
-	final public function getAuthorizator(): ?Authorizator
+	final public function getAuthorizator(): Authorizator
 	{
-		if (func_num_args()) {
-			trigger_error(__METHOD__ . '() parameter $throw is deprecated, use getAuthorizatorIfExists()', E_USER_DEPRECATED);
-			$throw = func_get_arg(0);
-		}
-
-		if (($throw ?? true) && !$this->authorizator) {
+		if (!$this->authorizator) {
 			throw new Nette\InvalidStateException('Authorizator has not been set.');
 		}
 
@@ -384,7 +345,7 @@ class User
 
 
 	/**
-	 * Returns current authorization handler.
+	 * Returns authorization handler, or null if none is set.
 	 */
 	final public function getAuthorizatorIfExists(): ?Authorizator
 	{

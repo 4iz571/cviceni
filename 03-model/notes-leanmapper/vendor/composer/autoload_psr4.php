@@ -7,7 +7,9 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Vojir\\LeanMapper\\Mappers\\' => array($vendorDir . '/vojir/leanmapper-mappers/src'),
-    'Nette\\' => array($vendorDir . '/nette/php-generator/src'),
+    'Tracy\\' => array($vendorDir . '/tracy/tracy/src'),
+    'Nette\\' => array($vendorDir . '/nette/security/src', $vendorDir . '/nette/mail/src', $vendorDir . '/nette/forms/src', $vendorDir . '/nette/caching/src', $vendorDir . '/nette/bootstrap/src', $vendorDir . '/nette/assets/src', $vendorDir . '/nette/application/src', $vendorDir . '/nette/routing/src', $vendorDir . '/nette/di/src', $vendorDir . '/nette/schema/src', $vendorDir . '/nette/robot-loader/src', $vendorDir . '/nette/php-generator/src', $vendorDir . '/nette/neon/src', $vendorDir . '/nette/component-model/src', $vendorDir . '/nette/http/src', $vendorDir . '/nette/utils/src'),
+    'Latte\\' => array($vendorDir . '/latte/latte/src/Latte'),
     'Dibi\\' => array($vendorDir . '/dibi/dibi/src/Dibi'),
     'App\\' => array($baseDir . '/app'),
 );

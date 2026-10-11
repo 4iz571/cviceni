@@ -1,39 +1,30 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI\Definitions;
 
 use Nette;
-use Nette\Utils\Strings;
+use function is_array, is_string;
 
 
 /**
  * Assignment or calling statement.
  *
- * @property string|array|Definition|Reference|null $entity
+ * @property string|array{string|Reference|Statement,string}|Definition|Reference|null $entity
  */
 final class Statement implements Nette\Schema\DynamicParameter
 {
 	use Nette\SmartObject;
 
-	/** @var array */
-	public $arguments;
-
-	/** @var string|array|Definition|Reference|null */
-	private $entity;
-
-
-	/**
-	 * @param  string|array|Definition|Reference|null  $entity
-	 */
-	public function __construct($entity, array $arguments = [])
-	{
+	public function __construct(
+		private string|array|Definition|Reference|null $entity,
+		/** @var array<mixed> */
+		public array $arguments = [],
+	) {
 		if (
 			$entity !== null
 			&& !is_string($entity) // Class, @service, not, tags, types, PHP literal, entity::member
@@ -50,23 +41,22 @@ final class Statement implements Nette\Schema\DynamicParameter
 		}
 
 		// normalize Class::method to [Class, method]
-		if (is_string($entity) && Strings::contains($entity, '::') && !Strings::contains($entity, '?')) {
+		if (is_string($entity) && str_contains($entity, '::') && !str_contains($entity, '?')) {
 			$entity = explode('::', $entity, 2);
 		}
 
-		if (is_string($entity) && substr($entity, 0, 1) === '@') { // normalize @service to Reference
+		if (is_string($entity) && str_starts_with($entity, '@')) { // normalize @service to Reference
 			$entity = new Reference(substr($entity, 1));
-		} elseif (is_array($entity) && is_string($entity[0]) && substr($entity[0], 0, 1) === '@') {
+		} elseif (is_array($entity) && is_string($entity[0]) && str_starts_with($entity[0], '@')) {
 			$entity[0] = new Reference(substr($entity[0], 1));
 		}
 
 		$this->entity = $entity;
-		$this->arguments = $arguments;
 	}
 
 
-	/** @return string|array|Definition|Reference|null */
-	public function getEntity()
+	/** @return string|array{string|Reference|Statement, string}|Definition|Reference|null */
+	public function getEntity(): string|array|Definition|Reference|null
 	{
 		return $this->entity;
 	}

@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Application\UI;
 
@@ -17,22 +15,14 @@ use Nette;
  */
 class Form extends Nette\Forms\Form implements SignalReceiver
 {
-	/** @var array<callable(self): void>  Occurs when form is attached to presenter */
-	public $onAnchor = [];
-
-	/** @var bool */
-	protected $crossOrigin = false;
+	/** @var array<callable(static): void>  Occurs when form is attached to presenter */
+	public array $onAnchor = [];
 
 
-	/**
-	 * Application form constructor.
-	 */
 	public function __construct(?Nette\ComponentModel\IContainer $parent = null, ?string $name = null)
 	{
 		parent::__construct();
-		if ($parent !== null) {
-			$parent->addComponent($this, $name);
-		}
+		$parent?->addComponent($this, $name);
 	}
 
 
@@ -64,32 +54,29 @@ class Form extends Nette\Forms\Form implements SignalReceiver
 
 
 	/**
-	 * Returns the presenter where this component belongs to.
+	 * Returns the presenter where this component belongs to. Throws if not attached.
+	 * @return ($throw is true ? Presenter : ?Presenter)
 	 */
-	final public function getPresenter(): ?Presenter
+	final public function getPresenter(bool $throw = true): ?Presenter
 	{
-		if (func_num_args()) {
-			trigger_error(__METHOD__ . '() parameter $throw is deprecated, use getPresenterIfExists()', E_USER_DEPRECATED);
-			$throw = func_get_arg(0);
-		}
-
-		return $this->lookup(Presenter::class, $throw ?? true);
+		return $this->lookup(Presenter::class, $throw);
 	}
 
 
 	/**
-	 * Returns the presenter where this component belongs to.
+	 * Returns the presenter where this component belongs to, or null if not attached.
+	 * @deprecated
 	 */
 	final public function getPresenterIfExists(): ?Presenter
 	{
-		return $this->lookup(Presenter::class, false);
+		return $this->lookup(Presenter::class, throw: false);
 	}
 
 
 	/** @deprecated */
 	public function hasPresenter(): bool
 	{
-		return (bool) $this->lookup(Presenter::class, false);
+		return (bool) $this->lookup(Presenter::class, throw: false);
 	}
 
 
@@ -98,23 +85,14 @@ class Form extends Nette\Forms\Form implements SignalReceiver
 	 */
 	public function isAnchored(): bool
 	{
-		return $this->hasPresenter();
+		return (bool) $this->getPresenter(throw: false);
 	}
 
 
-	/**
-	 * Disables CSRF protection using a SameSite cookie.
-	 */
-	public function allowCrossOrigin(): void
-	{
-		$this->crossOrigin = true;
-	}
-
-
-	/** @deprecated  use allowCrossOrigin() */
+	#[\Deprecated('use allowCrossOrigin()')]
 	public function disableSameSiteProtection(): void
 	{
-		$this->crossOrigin = true;
+		$this->allowCrossOrigin();
 	}
 
 
@@ -139,12 +117,12 @@ class Form extends Nette\Forms\Form implements SignalReceiver
 	}
 
 
-	protected function beforeRender()
+	protected function beforeRender(): void
 	{
 		parent::beforeRender();
 		$key = ($this->isMethod('post') ? '_' : '') . Presenter::SignalKey;
-		if (!isset($this[$key])) {
-			$do = $this->lookupPath(Presenter::class) . self::NAME_SEPARATOR . 'submit';
+		if (!isset($this[$key]) && $this->getAction() !== '') {
+			$do = $this->lookupPath(Presenter::class) . self::NameSeparator . 'submit';
 			$this[$key] = (new Nette\Forms\Controls\HiddenField($do))->setOmitted();
 		}
 	}
@@ -158,14 +136,15 @@ class Form extends Nette\Forms\Form implements SignalReceiver
 	 */
 	public function signalReceived(string $signal): void
 	{
+		$presenter = $this->getPresenter();
 		if ($signal !== 'submit') {
 			$class = static::class;
 			throw new BadSignalException("Missing handler for signal '$signal' in $class.");
 
-		} elseif (!$this->crossOrigin && !$this->getPresenter()->getHttpRequest()->isSameSite()) {
-			$this->getPresenter()->detectedCsrf();
+		} elseif (!$this->crossOrigin && !$presenter->getHttpRequest()->isFrom(Nette\Http\FetchSite::SameOrigin)) {
+			$presenter->detectedCsrf();
 
-		} elseif (!$this->getPresenter()->getRequest()->hasFlag(Nette\Application\Request::RESTORED)) {
+		} elseif (!$presenter->getRequest()->hasFlag(Nette\Application\Request::RESTORED)) {
 			$this->fireEvents();
 		}
 	}

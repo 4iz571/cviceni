@@ -1,23 +1,24 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Presenters;
 
 use App\Model\Facades\CategoriesFacade;
 use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
 
-class CategoryPresenter extends \Nette\Application\UI\Presenter {
+class CategoryPresenter extends \Nette\Application\UI\Presenter{
   private CategoriesFacade $categoriesFacade;
 
-  public function actionDefault():void {
+  public function actionDefault():void{
     $this->redirect('list');
   }
 
   /**
    * Akce pro zobrazení seznamu dostupných kategorií
    */
-  public function renderList():void {
+  public function renderList():void{
     $this->template->categories=$this->categoriesFacade->findCategories(['order'=>'title']);
   }
 
@@ -26,22 +27,23 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
    * @param int $id
    * @throws \Nette\Application\BadRequestException
    */
-  public function renderShow(int $id):void {
+  public function renderShow(int $id):void{
     try{
       $this->template->category=$this->categoriesFacade->getCategory($id);
-    }catch (\Exception $e){
+    }catch(\Exception $e){
       $this->error('Požadovaná kategorie nebyla nalezena', 404);
     }
   }
+
   /**
    * Akce pro úpravu jedné kategorie
    * @param int $id
    * @throws \Nette\Application\BadRequestException
    */
-  public function renderEdit(int $id):void {
+  public function renderEdit(int $id):void{
     try{
       $category=$this->categoriesFacade->getCategory($id);
-    }catch (\Exception $e){
+    }catch(\Exception $e){
       $this->error('Požadovaná kategorie nebyla nalezena', 404);
     }
     $form=$this->getComponent('categoryEditForm');
@@ -57,40 +59,40 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
    * Formulář na editaci kategorií
    * @return Form
    */
-  public function createComponentCategoryEditForm():Form {
-    $form = new Form();
+  public function createComponentCategoryEditForm():Form{
+    $form=new Form();
     $form->addHidden('category_id');
-    $form->addText('title','Název kategorie')
+    $form->addText('title', 'Název kategorie')
       ->setRequired('Musíte zadat název kategorie');
-    $form->addTextArea('description','Popis kategorie')
+    $form->addTextArea('description', 'Popis kategorie')
       ->setRequired(false);
-    $form->addSubmit('save','uložit')
-      ->setHtmlAttribute('class','btn btn-primary')
+    $form->addSubmit('save', 'uložit')
+      ->setHtmlAttribute('class', 'btn btn-primary')
       ->onClick[]=function(SubmitButton $button){
-        //hodnoty z formuláře získáme v podobě pole
-        /** @var array $values */
-        $values=$button->form->getValues(true);
+      //hodnoty z formuláře získáme v podobě pole
+      /** @var array $values */
+      $values=$button->form->getValues('array');
 
-        //provedení potřebné akce
-        if (!empty($values['category_id'])){
-          //TODO načtení kategorie z databáze a její aktualizace
-        }else{
-          //TODO vytvoření nové kategorie
-        }
+      //provedení potřebné akce
+      if(!empty($values['category_id'])){
+        //TODO načtení kategorie z databáze a její aktualizace
+      }else{
+        //TODO vytvoření nové kategorie
+      }
 
-        //přesměrování na seznam kategorií
-        $this->redirect('list');
-      };
-    $form->addSubmit('storno','zrušit')
-      ->setHtmlAttribute('class','btn btn-light')
+      //přesměrování na seznam kategorií
+      $this->redirect('list');
+    };
+    $form->addSubmit('storno', 'zrušit')
+      ->setHtmlAttribute('class', 'btn btn-light')
       ->setValidationScope([])
       ->onClick[]=function(SubmitButton $button){
-        $this->redirect('list');
-      };
+      $this->redirect('list');
+    };
     return $form;
   }
 
-  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade):void {
+  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade):void{
     $this->categoriesFacade=$categoriesFacade;
   }
 }

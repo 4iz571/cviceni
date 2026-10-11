@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bootstrap\Extensions;
 
@@ -14,7 +12,7 @@ use Nette\Schema\Expect;
 
 
 /**
- * PHP directives definition.
+ * Sets PHP ini directives from configuration.
  */
 final class PhpExtension extends Nette\DI\CompilerExtension
 {
@@ -29,7 +27,7 @@ final class PhpExtension extends Nette\DI\CompilerExtension
 
 	public function loadConfiguration(): void
 	{
-		foreach ($this->getConfig() as $name => $value) {
+		foreach ((array) $this->config as $name => $value) {
 			if (!function_exists('ini_set')) {
 				throw new Nette\NotSupportedException('Required function ini_set() is disabled.');
 			}

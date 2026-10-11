@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Application\Responses;
 
@@ -17,25 +15,13 @@ use Nette;
  */
 final class TextResponse implements Nette\Application\Response
 {
-	use Nette\SmartObject;
-
-	/** @var mixed */
-	private $source;
-
-
-	/**
-	 * @param  mixed  $source
-	 */
-	public function __construct($source)
-	{
-		$this->source = $source;
+	public function __construct(
+		private readonly mixed $source,
+	) {
 	}
 
 
-	/**
-	 * @return mixed
-	 */
-	public function getSource()
+	public function getSource(): mixed
 	{
 		return $this->source;
 	}

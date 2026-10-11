@@ -1,53 +1,70 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\SecurityDI;
 
 use Nette;
 use Nette\Schema\Expect;
 use Tracy;
+use function array_pad, is_array;
 
 
 /**
  * Security extension for Nette DI.
+ *
+ * @property object{
+ *     debugger: bool|null,
+ *     users: array<string, string|array{password: string, roles?: string|list<string>, data?: array<string, mixed>}>,
+ *     roles: array<string, string|list<string>|null>,
+ *     resources: array<string, string|null>,
+ *     rules: object{allow: list<string|list<string|list<string>|null>>, deny: list<string|list<string|list<string>|null>>},
+ *     authentication: object{
+ *         storage: 'session'|'cookie',
+ *         expiration: string|null,
+ *         persistIdentity: bool,
+ *         cookieName: string|null,
+ *         cookieDomain: string|null,
+ *         cookieSamesite: 'Lax'|'Strict'|'None'|null,
+ *     },
+ * } $config
  */
 class SecurityExtension extends Nette\DI\CompilerExtension
 {
-	/** @var bool */
-	private $debugMode;
-
-
-	public function __construct(bool $debugMode = false)
-	{
-		$this->debugMode = $debugMode;
+	public function __construct(
+		private readonly bool $debugMode = false,
+	) {
 	}
 
 
 	public function getConfigSchema(): Nette\Schema\Schema
 	{
+		$rule = Expect::anyOf(Expect::string(), Expect::listOf('string|array|null')->max(3));
 		return Expect::structure([
 			'debugger' => Expect::bool(),
 			'users' => Expect::arrayOf(
 				Expect::anyOf(
-					Expect::string(), // user => password
+					Expect::string()->dynamic(), // user => password (plain or hash)
 					Expect::structure([ // user => password + roles + data
-						'password' => Expect::string(),
+						'password' => Expect::string()->dynamic(),
 						'roles' => Expect::anyOf(Expect::string(), Expect::listOf('string')),
 						'data' => Expect::array(),
-					])->castTo('array')
-				)
+					])->castTo('array'),
+				),
 			),
 			'roles' => Expect::arrayOf('string|array|null'), // role => parent(s)
 			'resources' => Expect::arrayOf('string|null'), // resource => parent
+			'rules' => Expect::structure([ // [role(s), resource(s), privilege(s)] or just role(s)
+				'allow' => Expect::listOf($rule),
+				'deny' => Expect::listOf($rule),
+			]),
 			'authentication' => Expect::structure([
 				'storage' => Expect::anyOf('session', 'cookie')->default('session'),
 				'expiration' => Expect::string()->dynamic(),
+				'persistIdentity' => Expect::bool(true),
 				'cookieName' => Expect::string(),
 				'cookieDomain' => Expect::string(),
 				'cookieSamesite' => Expect::anyOf('Lax', 'Strict', 'None'),
@@ -56,9 +73,8 @@ class SecurityExtension extends Nette\DI\CompilerExtension
 	}
 
 
-	public function loadConfiguration()
+	public function loadConfiguration(): void
 	{
-		/** @var object{debugger: bool, users: array, roles: array, resources: array} $config */
 		$config = $this->config;
 		$builder = $this->getContainerBuilder();
 
@@ -74,22 +90,22 @@ class SecurityExtension extends Nette\DI\CompilerExtension
 			][$auth->storage]);
 
 		if ($auth->storage === 'cookie') {
-			if ($auth->cookieDomain === 'domain') {
-				$auth->cookieDomain = $builder::literal('$this->getByType(Nette\Http\IRequest::class)->getUrl()->getDomain(2)');
-			}
+			$cookieDomain = $auth->cookieDomain === 'domain'
+				? $builder::literal('$this->getByType(Nette\Http\IRequest::class)->getUrl()->getDomain(2)')
+				: $auth->cookieDomain;
 
-			$storage->addSetup('setCookieParameters', [$auth->cookieName, $auth->cookieDomain, $auth->cookieSamesite]);
+			$storage->addSetup('setCookieParameters', [$auth->cookieName, $cookieDomain, $auth->cookieSamesite]);
 		}
-
-		$builder->addDefinition($this->prefix('legacyUserStorage')) // deprecated
-			->setType(Nette\Security\IUserStorage::class)
-			->setFactory(Nette\Http\UserStorage::class);
 
 		$user = $builder->addDefinition($this->prefix('user'))
 			->setFactory(Nette\Security\User::class);
 
 		if ($auth->expiration) {
 			$user->addSetup('setExpiration', [$auth->expiration]);
+		}
+
+		if (!$auth->persistIdentity) {
+			$user->addSetup('$persistIdentity', [false]);
 		}
 
 		if ($config->users) {
@@ -110,7 +126,7 @@ class SecurityExtension extends Nette\DI\CompilerExtension
 			}
 		}
 
-		if ($config->roles || $config->resources) {
+		if ($config->roles || $config->resources || $config->rules->allow || $config->rules->deny) {
 			$authorizator = $builder->addDefinition($this->prefix('authorizator'))
 				->setType(Nette\Security\Authorizator::class)
 				->setFactory(Nette\Security\Permission::class);
@@ -121,6 +137,12 @@ class SecurityExtension extends Nette\DI\CompilerExtension
 
 			foreach ($config->resources as $resource => $parents) {
 				$authorizator->addSetup('addResource', [$resource, $parents]);
+			}
+
+			foreach (['allow', 'deny'] as $type) {
+				foreach ($config->rules->$type as $rule) {
+					$authorizator->addSetup($type, array_pad(is_array($rule) ? $rule : [$rule], 3, null));
+				}
 			}
 
 			if ($this->name === 'security') {
@@ -135,7 +157,7 @@ class SecurityExtension extends Nette\DI\CompilerExtension
 	}
 
 
-	public function beforeCompile()
+	public function beforeCompile(): void
 	{
 		$builder = $this->getContainerBuilder();
 
@@ -143,7 +165,9 @@ class SecurityExtension extends Nette\DI\CompilerExtension
 			$this->debugMode &&
 			($this->config->debugger ?? $builder->getByType(Tracy\Bar::class))
 		) {
-			$builder->getDefinition($this->prefix('user'))->addSetup('@Tracy\Bar::addPanel', [
+			$definition = $builder->getDefinition($this->prefix('user'));
+			assert($definition instanceof Nette\DI\Definitions\ServiceDefinition);
+			$definition->addSetup('@Tracy\Bar::addPanel', [
 				new Nette\DI\Definitions\Statement(Nette\Bridges\SecurityTracy\UserPanel::class),
 			]);
 		}

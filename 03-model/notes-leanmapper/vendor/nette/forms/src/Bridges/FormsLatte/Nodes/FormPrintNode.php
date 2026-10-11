@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\FormsLatte\Nodes;
 
@@ -16,8 +14,9 @@ use Latte\Compiler\Tag;
 
 
 /**
- * {formPrint [ClassName]}
- * {formClassPrint [ClassName]}
+ * {formPrint [name]}
+ * {formClassPrint [name]}
+ * Generates Latte template or data class blueprint for form.
  */
 class FormPrintNode extends StatementNode
 {
@@ -42,7 +41,7 @@ class FormPrintNode extends StatementNode
 			'Nette\Forms\Blueprint::%raw('
 			. ($this->name
 				? 'is_object($ʟ_tmp = %node) ? $ʟ_tmp : $this->global->uiControl[$ʟ_tmp]'
-				: 'end($this->global->formsStack)')
+				: '$this->global->forms->getScope()')
 			. ') %2.line; exit;',
 			$this->mode === 'formPrint' ? 'latte' : 'dataClass',
 			$this->name,

@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\SecurityHttp;
 
@@ -13,6 +11,8 @@ use Nette;
 use Nette\Http\Session;
 use Nette\Http\SessionSection;
 use Nette\Security\IIdentity;
+use Nette\Security\User;
+use function is_bool, time;
 
 
 /**
@@ -20,27 +20,15 @@ use Nette\Security\IIdentity;
  */
 final class SessionStorage implements Nette\Security\UserStorage
 {
-	use Nette\SmartObject;
-
-	/** @var string */
-	private $namespace = '';
-
-	/** @var Session */
-	private $sessionHandler;
-
-	/** @var SessionSection */
-	private $sessionSection;
-
-	/** @var ?int */
-	private $expireTime;
-
-	/** @var bool */
-	private $expireIdentity = false;
+	private string $namespace = '';
+	private ?SessionSection $sessionSection = null;
+	private ?int $expireTime = null;
+	private bool $expireIdentity = false;
 
 
-	public function __construct(Session $sessionHandler)
-	{
-		$this->sessionHandler = $sessionHandler;
+	public function __construct(
+		private readonly Session $sessionHandler,
+	) {
 	}
 
 
@@ -62,7 +50,7 @@ final class SessionStorage implements Nette\Security\UserStorage
 	{
 		$section = $this->getSessionSection();
 		$section->set('authenticated', false);
-		$section->set('reason', self::LogoutManual);
+		$section->set('reason', User::LogoutManual);
 		$section->set('authTime', null);
 		if ($clearIdentity === true) {
 			$section->set('identity', null);
@@ -76,9 +64,7 @@ final class SessionStorage implements Nette\Security\UserStorage
 	public function getState(): array
 	{
 		$section = $this->getSessionSection();
-		return $section
-			? [(bool) $section->get('authenticated'), $section->get('identity'), $section->get('reason')]
-			: [false, null, null];
+		return [(bool) $section->get('authenticated'), $section->get('identity'), $section->get('reason')];
 	}
 
 
@@ -95,6 +81,7 @@ final class SessionStorage implements Nette\Security\UserStorage
 
 	private function setupExpiration(): void
 	{
+		assert($this->sessionSection !== null);
 		$section = $this->sessionSection;
 		if ($this->expireTime) {
 			$section->set('expireTime', $this->expireTime);
@@ -104,15 +91,16 @@ final class SessionStorage implements Nette\Security\UserStorage
 		}
 
 		$section->set('expireIdentity', $this->expireIdentity);
-		$section->setExpiration((string) $this->expireTime, 'foo'); // time check
+		// expiration is bound to a dummy variable 'foo', so nette/http checks the time against session.gc_maxlifetime
+		// but never wipes the section itself; expiration is handled manually in getSessionSection()
+		$section->setExpiration($this->expireTime === null ? null : '@' . $this->expireTime, 'foo');
 	}
 
 
 	/**
 	 * Changes namespace; allows more users to share a session.
-	 * @return static
 	 */
-	public function setNamespace(string $namespace)
+	public function setNamespace(string $namespace): static
 	{
 		if ($this->namespace !== $namespace) {
 			$this->namespace = $namespace;
@@ -135,7 +123,7 @@ final class SessionStorage implements Nette\Security\UserStorage
 	/**
 	 * Returns and initializes $this->sessionSection.
 	 */
-	protected function getSessionSection(): ?SessionSection
+	private function getSessionSection(): SessionSection
 	{
 		if ($this->sessionSection !== null) {
 			return $this->sessionSection;
@@ -149,14 +137,14 @@ final class SessionStorage implements Nette\Security\UserStorage
 
 		if ($section->get('authenticated') && $section->get('expireDelta') > 0) { // check time expiration
 			if ($section->get('expireTime') < time()) {
-				$section->set('reason', self::LogoutInactivity);
+				$section->set('reason', User::LogoutInactivity);
 				$section->set('authenticated', false);
 				if ($section->get('expireIdentity')) {
 					$section->remove('identity');
 				}
+			} else {
+				$section->set('expireTime', time() + $section->get('expireDelta')); // sliding expiration
 			}
-
-			$section->set('expireTime', time() + $section->expireDelta); // sliding expiration
 		}
 
 		if (!$section->get('authenticated')) {

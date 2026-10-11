@@ -1,42 +1,37 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Security;
 
-use Nette;
+use function ctype_digit, in_array, is_string, iterator_to_array;
 
 
 /**
  * @deprecated  use Nette\Security\SimpleIdentity
- * @property   mixed $id
- * @property   array $roles
- * @property   array $data
+ * @property   string|int $id
+ * @property   list<string> $roles
+ * @property   array<string,mixed> $data
  */
 class Identity implements IIdentity
 {
-	use Nette\SmartObject {
-		__get as private parentGet;
-		__set as private parentSet;
-		__isset as private parentIsSet;
-	}
+	private string|int $id;
 
-	/** @var mixed */
-	private $id;
+	/** @var list<string> */
+	private array $roles;
 
-	/** @var array */
-	private $roles;
-
-	/** @var array */
-	private $data;
+	/** @var array<string, mixed> */
+	private array $data;
 
 
-	public function __construct($id, $roles = null, ?iterable $data = null)
+	/**
+	 * @param  string|list<string>|null  $roles
+	 * @param  ?iterable<string, mixed>  $data
+	 */
+	public function __construct(string|int $id, string|array|null $roles = null, ?iterable $data = null)
 	{
 		$this->setId($id);
 		$this->setRoles((array) $roles);
@@ -48,25 +43,18 @@ class Identity implements IIdentity
 
 	/**
 	 * Sets the ID of user.
-	 * @param  string|int  $id
-	 * @return static
 	 */
-	public function setId($id)
+	public function setId(string|int $id): static
 	{
-		if (!is_string($id) && !is_int($id)) {
-			throw new Nette\InvalidArgumentException('Identity identifier must be string|int, but type "' . gettype($id) . '" given.');
-		}
-
-		$this->id = is_numeric($id) && !is_float($tmp = $id * 1) ? $tmp : $id;
+		$this->id = is_string($id) && ctype_digit($id) && (string) ($tmp = (int) $id) === $id ? $tmp : $id;
 		return $this;
 	}
 
 
 	/**
 	 * Returns the ID of user.
-	 * @return mixed
 	 */
-	public function getId()
+	public function getId(): string|int
 	{
 		return $this->id;
 	}
@@ -74,9 +62,9 @@ class Identity implements IIdentity
 
 	/**
 	 * Sets a list of roles that the user is a member of.
-	 * @return static
+	 * @param  list<string>  $roles
 	 */
-	public function setRoles(array $roles)
+	public function setRoles(array $roles): static
 	{
 		$this->roles = $roles;
 		return $this;
@@ -85,6 +73,7 @@ class Identity implements IIdentity
 
 	/**
 	 * Returns a list of roles that the user is a member of.
+	 * @return list<string>
 	 */
 	public function getRoles(): array
 	{
@@ -93,7 +82,8 @@ class Identity implements IIdentity
 
 
 	/**
-	 * Returns a user data.
+	 * Returns user data.
+	 * @return array<string, mixed>
 	 */
 	public function getData(): array
 	{
@@ -104,25 +94,25 @@ class Identity implements IIdentity
 	/**
 	 * Sets user data value.
 	 */
-	public function __set(string $key, $value): void
+	public function __set(string $key, mixed $value): void
 	{
-		if ($this->parentIsSet($key)) {
-			$this->parentSet($key, $value);
-
-		} else {
-			$this->data[$key] = $value;
-		}
+		match ($key) {
+			'id' => $this->setId($value),
+			'roles' => $this->setRoles($value),
+			'data' => $this->data = $value,
+			default => $this->data[$key] = $value,
+		};
 	}
 
 
 	/**
 	 * Returns user data value.
-	 * @return mixed
 	 */
-	public function &__get(string $key)
+	public function &__get(string $key): mixed
 	{
-		if ($this->parentIsSet($key)) {
-			return $this->parentGet($key);
+		if (in_array($key, ['id', 'roles', 'data'], strict: true)) {
+			$res = $this->{'get' . ucfirst($key)}();
+			return $res;
 
 		} else {
 			return $this->data[$key];
@@ -132,6 +122,6 @@ class Identity implements IIdentity
 
 	public function __isset(string $key): bool
 	{
-		return isset($this->data[$key]) || $this->parentIsSet($key);
+		return isset($this->data[$key]) || in_array($key, ['id', 'roles', 'data'], strict: true);
 	}
 }

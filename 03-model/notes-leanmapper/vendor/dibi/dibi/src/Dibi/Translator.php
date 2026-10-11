@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
@@ -20,6 +18,8 @@ final class Translator
 	private readonly Connection $connection;
 	private readonly Driver $driver;
 	private int $cursor = 0;
+
+	/** @var list<mixed>  SQL arguments */
 	private array $args;
 
 	/** @var string[] */
@@ -42,6 +42,7 @@ final class Translator
 
 	/**
 	 * Generates SQL. Can be called only once.
+	 * @param  mixed[]  $args
 	 * @throws Exception
 	 */
 	public function translate(array $args): string
@@ -290,7 +291,7 @@ final class Translator
 					return implode(', ', $vx);
 
 				case 'ex!':
-					trigger_error('Use Dibi\Expression instead of array: ' . implode(', ', array_filter($value, 'is_scalar')), E_USER_WARNING);
+					trigger_error('Use Dibi\Expression instead of array: ' . implode(', ', array_filter($value, is_scalar(...))), E_USER_WARNING);
 					// break omitted
 				case 'ex':
 				case 'sql':
@@ -511,6 +512,7 @@ final class Translator
 
 	/**
 	 * PREG callback from translate() or formatValue().
+	 * @param  array<int, string>  $matches
 	 */
 	private function cb(array $matches): string
 	{

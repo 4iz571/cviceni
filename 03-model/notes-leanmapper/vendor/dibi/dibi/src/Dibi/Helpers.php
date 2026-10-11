@@ -1,15 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Dibi;
 
-use function array_map, array_unique, explode, fclose, fgets, fopen, fstat, getenv, htmlspecialchars, is_float, is_int, is_string, levenshtein, max, mb_strlen, ob_end_flush, ob_get_clean, ob_start, preg_match, preg_replace, preg_replace_callback, rtrim, set_time_limit, str_ends_with, str_repeat, str_starts_with, strlen, strtoupper, substr, trim, wordwrap;
+use function array_map, array_unique, explode, fclose, fgets, fopen, fstat, getenv, htmlspecialchars, is_float, is_int, is_string, levenshtein, max, mb_strlen, ob_end_flush, ob_get_clean, ob_start, preg_match, preg_replace, preg_replace_callback, rtrim, set_time_limit, str_ends_with, str_repeat, str_starts_with, strlen, strtoupper, strval, substr, trim, wordwrap;
 use const PHP_SAPI;
 
 
@@ -30,14 +28,14 @@ class Helpers
 			foreach ($sql as $i => $row) {
 				if ($i === 0) {
 					foreach ($row as $col => $foo) {
-						$len = mb_strlen($col);
+						$len = mb_strlen((string) $col);
 						$maxLen = max($len, $maxLen);
 					}
 				}
 
 				echo $hasColors ? "\033[1;37m#row: $i\033[0m\n" : "#row: $i\n";
 				foreach ($row as $col => $val) {
-					$spaces = $maxLen - mb_strlen($col) + 2;
+					$spaces = $maxLen - mb_strlen((string) $col) + 2;
 					echo "$col" . str_repeat(' ', $spaces) . "$val\n";
 				}
 
@@ -101,7 +99,7 @@ class Helpers
 						} elseif (!empty($m[3])) { // most important keywords
 							return "\033[1;34m" . $m[3] . "\033[0m";
 
-						} elseif (!empty($m[4])) { // other keywords
+						} elseif ($m[4] !== '') { // other keywords
 							return "\033[1;32m" . $m[4] . "\033[0m";
 						}
 					}, $sql);
@@ -121,7 +119,7 @@ class Helpers
 					} elseif (!empty($m[3])) { // most important keywords
 						return '<strong style="color:blue">' . $m[3] . '</strong>';
 
-					} elseif (!empty($m[4])) { // other keywords
+					} elseif ($m[4] !== '') { // other keywords
 						return '<strong style="color:green">' . $m[4] . '</strong>';
 					}
 				}, $sql);
@@ -140,13 +138,14 @@ class Helpers
 
 	/**
 	 * Finds the best suggestion.
+	 * @param  string[]  $items
 	 * @internal
 	 */
 	public static function getSuggestion(array $items, string $value): ?string
 	{
 		$best = null;
 		$min = (strlen($value) / 4 + 1) * 10 + .1;
-		$items = array_map('strval', $items);
+		$items = array_map(strval(...), $items);
 		foreach (array_unique($items) as $item) {
 			if (($len = levenshtein($item, $value, 10, 11, 10)) > 0 && $len < $min) {
 				$min = $len;
@@ -159,7 +158,7 @@ class Helpers
 
 
 	/** @internal */
-	public static function escape(Driver $driver, $value, string $type): string
+	public static function escape(Driver $driver, mixed $value, string $type): string
 	{
 		$types = [
 			Type::Text => 'text',
@@ -220,6 +219,7 @@ class Helpers
 
 	/**
 	 * Apply configuration alias or default values.
+	 * @param  array<string, mixed>  $config
 	 */
 	public static function alias(array &$config, string $key, string $alias): void
 	{
@@ -238,6 +238,7 @@ class Helpers
 	/**
 	 * Import SQL dump from file.
 	 * Returns count of sql commands
+	 * @param  (callable(int, float|null): void)|null  $onProgress
 	 */
 	public static function loadFromFile(Connection $connection, string $file, ?callable $onProgress = null): int
 	{
@@ -264,7 +265,7 @@ class Helpers
 				$sql = '';
 				$count++;
 				if ($onProgress) {
-					$onProgress($count, isset($stat['size']) ? $size * 100 / $stat['size'] : null);
+					$onProgress($count, $stat ? $size * 100 / $stat['size'] : null);
 				}
 			} else {
 				$sql .= $s;
@@ -275,7 +276,7 @@ class Helpers
 			$driver->query($sql);
 			$count++;
 			if ($onProgress) {
-				$onProgress($count, isset($stat['size']) ? 100 : null);
+				$onProgress($count, $stat ? 100 : null);
 			}
 		}
 

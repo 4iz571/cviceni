@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\FormsLatte\Nodes;
 
@@ -13,6 +11,7 @@ use Latte\Compiler\Nodes\AreaNode;
 use Latte\Compiler\Nodes\AuxiliaryNode;
 use Latte\Compiler\Nodes\Html\AttributeNode;
 use Latte\Compiler\Nodes\Html\ElementNode;
+use Latte\Compiler\Nodes\Html\ExpressionAttributeNode;
 use Latte\Compiler\Nodes\NopNode;
 use Latte\Compiler\Nodes\Php\ExpressionNode;
 use Latte\Compiler\Nodes\Php\Scalar\StringNode;
@@ -32,6 +31,7 @@ final class FieldNNameNode extends StatementNode
 	public AreaNode $content;
 
 
+	/** @return \Generator<int, ?list<string>, array{AreaNode, ?Tag}, static> */
 	public static function create(Tag $tag): \Generator
 	{
 		$tag->expectArguments();
@@ -57,14 +57,15 @@ final class FieldNNameNode extends StatementNode
 	}
 
 
-	private function init(Tag $tag)
+	private function init(Tag $tag): void
 	{
 		$el = $tag->htmlElement;
+		assert($el !== null);
 		$usedAttributes = self::findUsedAttributes($el);
 		$elName = strtolower($el->name);
 
 		$tag->replaceNAttribute(new AuxiliaryNode(fn(PrintContext $context) => $context->format(
-			'echo ($ʟ_elem = Nette\Bridges\FormsLatte\Runtime::item(%node, $this->global)'
+			'echo ($ʟ_elem = $this->global->forms->get(%node)'
 			. ($elName === 'label' ? '->getLabelPart(%node))' : '->getControlPart(%node))')
 			. ($usedAttributes ? '->addAttributes(%dump)' : '')
 			. '->attributes() %3.line;',
@@ -84,7 +85,7 @@ final class FieldNNameNode extends StatementNode
 		} elseif ($elName === 'button') {
 			if ($el->content instanceof NopNode) {
 				$el->content = new AuxiliaryNode(fn(PrintContext $context) => $context->format(
-					'echo %escape($ʟ_elem->value) %line;',
+					'echo %escape($ʟ_elem->getValue()) %line;',
 					$this->position,
 				));
 			}
@@ -97,13 +98,18 @@ final class FieldNNameNode extends StatementNode
 	}
 
 
-	/** @internal */
+	/**
+	 * @internal
+	 * @return string[]
+	 */
 	public static function findUsedAttributes(ElementNode $el): array
 	{
 		$res = [];
-		foreach ($el->attributes?->children as $child) {
+		foreach ($el->attributes->children as $child) {
 			if ($child instanceof AttributeNode && $child->name instanceof TextNode) {
 				$res[] = $child->name->content;
+			} elseif ($child instanceof ExpressionAttributeNode) {
+				$res[] = $child->name;
 			}
 		}
 

@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\DI;
 
@@ -13,7 +11,7 @@ use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
 use Nette\PhpGenerator as Php;
-use Nette\Utils\Strings;
+use function is_array, is_object, is_string, sprintf;
 
 
 /**
@@ -21,18 +19,12 @@ use Nette\Utils\Strings;
  */
 class PhpGenerator
 {
-	use Nette\SmartObject;
-
-	/** @var ContainerBuilder */
-	private $builder;
-
-	/** @var string */
-	private $className;
+	private ?string $className = null;
 
 
-	public function __construct(ContainerBuilder $builder)
-	{
-		$this->builder = $builder;
+	public function __construct(
+		private readonly ContainerBuilder $builder,
+	) {
 	}
 
 
@@ -44,14 +36,13 @@ class PhpGenerator
 		$this->className = $className;
 		$class = new Php\ClassType($this->className);
 		$class->setExtends(Container::class);
-		$class->addMethod('__construct')
-			->addBody('parent::__construct($params);')
-			->addParameter('params', [])
-				->setType('array');
+		$manipulator = new Php\ClassManipulator($class);
+		$manipulator->inheritMethod('__construct')
+			->addBody('parent::__construct($params);');
 
 		foreach ($this->builder->exportMeta() as $key => $value) {
-			$class->addProperty($key)
-				->setProtected()
+			$manipulator->inheritProperty($key)
+				->setComment(null)
 				->setValue($value);
 		}
 
@@ -63,11 +54,9 @@ class PhpGenerator
 		}
 
 		$class->getMethod(Container::getMethodName(ContainerBuilder::ThisContainer))
-			->setReturnType($className)
 			->setBody('return $this;');
 
-		$class->addMethod('initialize')
-			->setReturnType('void');
+		$manipulator->inheritMethod('initialize');
 
 		return $class;
 	}
@@ -75,11 +64,13 @@ class PhpGenerator
 
 	public function toString(Php\ClassType $class): string
 	{
-		return '/** @noinspection PhpParamsInspection,PhpMethodMayBeStaticInspection */
+		return <<<'XX'
+			/** @noinspection PhpParamsInspection,PhpMethodMayBeStaticInspection */
 
-declare(strict_types=1);
+			declare(strict_types=1);
 
-' . $class->__toString();
+
+			XX . $class->__toString();
 	}
 
 
@@ -97,6 +88,7 @@ declare(strict_types=1);
 	public function generateMethod(Definitions\Definition $def): Php\Method
 	{
 		$name = $def->getName();
+		assert($name !== null);
 		try {
 			$method = new Php\Method(Container::getMethodName($name));
 			$method->setPublic();
@@ -119,7 +111,7 @@ declare(strict_types=1);
 		$arguments = $statement->arguments;
 
 		switch (true) {
-			case is_string($entity) && Strings::contains($entity, '?'): // PHP literal
+			case is_string($entity) && str_contains($entity, '?'): // PHP literal
 				return $this->formatPhp($entity, $arguments);
 
 			case is_string($entity): // create class
@@ -131,7 +123,7 @@ declare(strict_types=1);
 				switch (true) {
 					case $entity[1][0] === '$': // property getter, setter or appender
 						$name = substr($entity[1], 1);
-						if ($append = (substr($name, -2) === '[]')) {
+						if ($append = (str_ends_with($name, '[]'))) {
 							$name = substr($name, 0, -2);
 						}
 
@@ -144,7 +136,7 @@ declare(strict_types=1);
 
 					case $entity[0] instanceof Statement:
 						$inner = $this->formatPhp('?', [$entity[0]]);
-						if (substr($inner, 0, 4) === 'new ') {
+						if (str_starts_with($inner, 'new ')) {
 							$inner = "($inner)";
 						}
 
@@ -167,6 +159,7 @@ declare(strict_types=1);
 
 	/**
 	 * Formats PHP statement.
+	 * @param  array<mixed>  $args
 	 * @internal
 	 */
 	public function formatPhp(string $statement, array $args): string
@@ -175,6 +168,10 @@ declare(strict_types=1);
 	}
 
 
+	/**
+	 * @param  array<mixed>  $args
+	 * @return array<mixed>
+	 */
 	public function convertArguments(array $args): array
 	{
 		array_walk_recursive($args, function (&$val): void {
@@ -190,32 +187,15 @@ declare(strict_types=1);
 				} else {
 					$val = ContainerBuilder::literal('$this->getService(?)', [$name]);
 				}
+			} elseif (
+				is_object($val)
+				&& !$val instanceof Php\Literal && !$val instanceof \DateTimeInterface
+				&& (new \ReflectionObject($val))->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED)
+			) {
+				trigger_error(sprintf('Nette DI: suspicious dumping of objects %s when generating the container', $val::class));
 			}
 		});
 		return $args;
-	}
-
-
-	/**
-	 * Converts parameters from Definition to PhpGenerator.
-	 * @return Php\Parameter[]
-	 */
-	public function convertParameters(array $parameters): array
-	{
-		$res = [];
-		foreach ($parameters as $k => $v) {
-			$tmp = explode(' ', is_int($k) ? $v : $k);
-			$param = $res[] = new Php\Parameter(end($tmp));
-			if (!is_int($k)) {
-				$param->setDefaultValue($v);
-			}
-
-			if (isset($tmp[1])) {
-				$param->setType($tmp[0]);
-			}
-		}
-
-		return $res;
 	}
 
 

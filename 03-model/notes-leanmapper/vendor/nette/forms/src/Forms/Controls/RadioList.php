@@ -1,16 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms\Controls;
 
 use Nette;
 use Nette\Utils\Html;
+use Stringable;
+use function array_key_first, array_merge, func_num_args, in_array, is_array;
 
 
 /**
@@ -22,23 +22,14 @@ use Nette\Utils\Html;
  */
 class RadioList extends ChoiceControl
 {
-	/** @var bool */
-	public $generateId = false;
-
-	/** @var Html  separator element template */
-	protected $separator;
-
-	/** @var Html  container element template */
-	protected $container;
-
-	/** @var Html  item label template */
-	protected $itemLabel;
+	public bool $generateId = false;
+	protected Html $separator;
+	protected Html $container;
+	protected Html $itemLabel;
 
 
-	/**
-	 * @param  string|object  $label
-	 */
-	public function __construct($label = null, ?array $items = null)
+	/** @param  ?mixed[]  $items */
+	public function __construct(string|Stringable|null $label = null, ?array $items = null)
 	{
 		parent::__construct($label, $items);
 		$this->control->type = 'radio';
@@ -53,6 +44,9 @@ class RadioList extends ChoiceControl
 	{
 		$input = parent::getControl();
 		$items = $this->getItems();
+		if (!$items) {
+			return Html::el();
+		}
 		$ids = [];
 		if ($this->generateId) {
 			foreach ($items as $value => $label) {
@@ -67,11 +61,11 @@ class RadioList extends ChoiceControl
 					'id:' => $ids,
 					'checked?' => $this->value,
 					'disabled:' => $this->disabled,
-					'data-nette-rules:' => [key($items) => $input->attrs['data-nette-rules']],
+					'data-nette-rules:' => [array_key_first($items) => $input->attrs['data-nette-rules']],
 				]),
 				['for:' => $ids] + $this->itemLabel->attrs,
-				$this->separator
-			)
+				$this->separator,
+			),
 		);
 	}
 
@@ -82,23 +76,29 @@ class RadioList extends ChoiceControl
 	}
 
 
+	/**
+	 * Returns the HTML input element for a specific radio button item by key.
+	 */
 	public function getControlPart($key = null): Html
 	{
-		$key = key([(string) $key => null]);
+		$this->getItem($key);
 		return parent::getControl()->addAttributes([
 			'id' => $this->getHtmlId() . '-' . $key,
-			'checked' => in_array($key, (array) $this->value, true),
+			'checked' => in_array($key, (array) $this->value, strict: true),
 			'disabled' => is_array($this->disabled) ? isset($this->disabled[$key]) : $this->disabled,
 			'value' => $key,
 		]);
 	}
 
 
+	/**
+	 * Returns the label element for the whole radio list, or the item label for a specific key.
+	 */
 	public function getLabelPart($key = null): Html
 	{
 		$itemLabel = clone $this->itemLabel;
 		return func_num_args()
-			? $itemLabel->setText($this->translate($this->items[$key]))->for($this->getHtmlId() . '-' . $key)
+			? $itemLabel->setText($this->translate($this->getItem($key)))->for($this->getHtmlId() . '-' . $key)
 			: $this->getLabel();
 	}
 

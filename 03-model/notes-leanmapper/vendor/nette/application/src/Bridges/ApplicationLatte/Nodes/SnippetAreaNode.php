@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\ApplicationLatte\Nodes;
 
@@ -23,7 +21,8 @@ use Nette\Bridges\ApplicationLatte\SnippetRuntime;
 
 
 /**
- * {snippetArea [name]}
+ * {snippetArea name} ... {/snippetArea}
+ * Container for dynamic snippets in loops.
  */
 class SnippetAreaNode extends StatementNode
 {
@@ -31,7 +30,7 @@ class SnippetAreaNode extends StatementNode
 	public AreaNode $content;
 
 
-	/** @return \Generator<int, ?array, array{AreaNode, ?Tag}, static> */
+	/** @return \Generator<int, ?list<string>, array{AreaNode, ?Tag}, static> */
 	public static function create(Tag $tag, TemplateParser $parser): \Generator
 	{
 		$node = $tag->node = new static;

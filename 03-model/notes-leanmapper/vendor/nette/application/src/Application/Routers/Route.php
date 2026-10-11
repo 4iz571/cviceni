@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Application\Routers;
 
 use Nette;
+use function is_string, lcfirst, preg_replace, rawurlencode, str_replace, strlen, strncmp, strrpos, strtolower, strtr, substr, ucwords;
 
 
 /**
@@ -24,31 +23,28 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 
 	private const UIMeta = [
 		'module' => [
-			self::PATTERN => '[a-z][a-z0-9.-]*',
-			self::FILTER_IN => [self::class, 'path2presenter'],
-			self::FILTER_OUT => [self::class, 'presenter2path'],
+			self::Pattern => '[a-z][a-z0-9.-]*',
+			self::FilterIn => [self::class, 'path2presenter'],
+			self::FilterOut => [self::class, 'presenter2path'],
 		],
 		'presenter' => [
-			self::PATTERN => '[a-z][a-z0-9.-]*',
-			self::FILTER_IN => [self::class, 'path2presenter'],
-			self::FILTER_OUT => [self::class, 'presenter2path'],
+			self::Pattern => '[a-z][a-z0-9.-]*',
+			self::FilterIn => [self::class, 'path2presenter'],
+			self::FilterOut => [self::class, 'presenter2path'],
 		],
 		'action' => [
-			self::PATTERN => '[a-z][a-z0-9-]*',
-			self::FILTER_IN => [self::class, 'path2action'],
-			self::FILTER_OUT => [self::class, 'action2path'],
+			self::Pattern => '[a-z][a-z0-9-]*',
+			self::FilterIn => [self::class, 'path2action'],
+			self::FilterOut => [self::class, 'action2path'],
 		],
 	];
-
-	/** @var int */
-	private $flags;
 
 
 	/**
 	 * @param  string  $mask  e.g. '<presenter>/<action>/<id \d{1,3}>'
-	 * @param  array|string|\Closure  $metadata  default values or metadata or callback for NetteModule\MicroPresenter
+	 * @param  array<string, mixed>|string|\Closure(Nette\Http\IRequest, Nette\Http\IResponse): Nette\Application\Response  $metadata  default values or metadata or callback for NetteModule\MicroPresenter
 	 */
-	public function __construct(string $mask, $metadata = [], int $flags = 0)
+	public function __construct(string $mask, array|string|\Closure $metadata = [])
 	{
 		if (is_string($metadata)) {
 			[$presenter, $action] = Nette\Application\Helpers::splitName($metadata);
@@ -67,12 +63,7 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 			];
 		}
 
-		if ($flags) {
-			trigger_error(__METHOD__ . '() parameter $flags is deprecated, use RouteList::addRoute(..., ..., $flags) instead.', E_USER_DEPRECATED);
-		}
-
 		$this->defaultMeta += self::UIMeta;
-		$this->flags = $flags;
 		parent::__construct($mask, $metadata);
 	}
 
@@ -94,7 +85,7 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 
 		$presenter = $params[self::PresenterKey] ?? null;
 		if (isset($this->getMetadata()[self::ModuleKey], $params[self::ModuleKey]) && is_string($presenter)) {
-			$params[self::PresenterKey] = $params[self::ModuleKey] . ':' . $params[self::PresenterKey];
+			$params[self::PresenterKey] = $params[self::ModuleKey] . ':' . $presenter;
 		}
 
 		unset($params[self::ModuleKey]);
@@ -105,23 +96,20 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 
 	/**
 	 * Constructs absolute URL from array.
+	 * @param  array<string, mixed>  $params
 	 */
 	public function constructUrl(array $params, Nette\Http\UrlScript $refUrl): ?string
 	{
-		if ($this->flags & self::ONE_WAY) {
-			return null;
-		}
-
 		$metadata = $this->getMetadata();
 		if (isset($metadata[self::ModuleKey])) { // try split into module and [submodule:]presenter parts
 			$presenter = $params[self::PresenterKey];
 			$module = $metadata[self::ModuleKey];
-			$a = isset($module['fixity'], $module[self::VALUE])
-				&& strncmp($presenter, $module[self::VALUE] . ':', strlen($module[self::VALUE]) + 1) === 0
-				? strlen($module[self::VALUE])
+			$a = isset($module['fixity'], $module[self::Value])
+				&& strncmp($presenter, $module[self::Value] . ':', strlen($module[self::Value]) + 1) === 0
+				? strlen($module[self::Value])
 				: strrpos($presenter, ':');
 			if ($a === false) {
-				$params[self::ModuleKey] = isset($module[self::VALUE]) ? '' : null;
+				$params[self::ModuleKey] = isset($module[self::Value]) ? '' : null;
 			} else {
 				$params[self::ModuleKey] = substr($presenter, 0, $a);
 				$params[self::PresenterKey] = substr($presenter, $a + 1);
@@ -132,7 +120,10 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 	}
 
 
-	/** @internal */
+	/**
+	 * @return array<string, mixed>
+	 * @internal
+	 */
 	public function getConstantParameters(): array
 	{
 		$res = parent::getConstantParameters();
@@ -144,14 +135,6 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 
 		unset($res[self::ModuleKey]);
 		return $res;
-	}
-
-
-	/** @deprecated */
-	public function getFlags(): int
-	{
-		trigger_error(__METHOD__ . '() is deprecated.', E_USER_DEPRECATED);
-		return $this->flags;
 	}
 
 
@@ -207,6 +190,3 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 		return $s;
 	}
 }
-
-
-interface_exists(Nette\Application\IRouter::class);
