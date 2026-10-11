@@ -1,46 +1,31 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database\Conventions;
 
-use Nette;
 use Nette\Database\Conventions;
+use function preg_match, preg_quote, sprintf, str_replace;
 
 
 /**
- * Conventions based on static definition.
+ * Defines naming conventions for database structure using static patterns.
  */
 class StaticConventions implements Conventions
 {
-	use Nette\SmartObject;
-
-	/** @var string */
-	protected $primary;
-
-	/** @var string */
-	protected $foreign;
-
-	/** @var string */
-	protected $table;
-
-
 	/**
-	 * Create static conventional structure.
 	 * @param  string  $primary  %s stands for table name
 	 * @param  string  $foreign  %1$s stands for key used after ->, %2$s for table name
 	 * @param  string  $table  %1$s stands for key used after ->, %2$s for table name
 	 */
-	public function __construct(string $primary = 'id', string $foreign = '%s_id', string $table = '%s')
-	{
-		$this->primary = $primary;
-		$this->foreign = $foreign;
-		$this->table = $table;
+	public function __construct(
+		protected readonly string $primary = 'id',
+		protected readonly string $foreign = '%s_id',
+		protected readonly string $table = '%s',
+	) {
 	}
 
 

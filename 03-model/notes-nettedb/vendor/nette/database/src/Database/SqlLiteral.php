@@ -1,38 +1,33 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database;
-
-use Nette;
 
 
 /**
- * SQL literal value.
+ * SQL literal that will not be escaped.
  */
 class SqlLiteral
 {
-	use Nette\SmartObject;
-
-	/** @var string */
-	private $value;
-
-	/** @var array */
-	private $parameters;
-
-
-	public function __construct(string $value, array $parameters = [])
-	{
-		$this->value = $value;
-		$this->parameters = $parameters;
+	public function __construct(
+		private readonly string $value,
+		/** @var  mixed[] */
+		private readonly array $parameters = [],
+	) {
 	}
 
 
+	public function getSql(): string
+	{
+		return $this->value;
+	}
+
+
+	/** @return mixed[] */
 	public function getParameters(): array
 	{
 		return $this->parameters;

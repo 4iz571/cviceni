@@ -1,26 +1,24 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms\Rendering;
 
 use Nette;
 use Nette\HtmlStringable;
 use Nette\Utils\Html;
+use function array_merge, count, explode, implode, parse_url, preg_split, str_replace, strtolower, urldecode;
+use const PHP_URL_QUERY;
 
 
 /**
- * Converts a Form into the HTML output.
+ * Converts a form into HTML output using a table-based layout configurable via the $wrappers array.
  */
 class DefaultFormRenderer implements Nette\Forms\FormRenderer
 {
-	use Nette\SmartObject;
-
 	/**
 	 *  /--- form.container
 	 *
@@ -56,8 +54,9 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 	 *      \---
 	 *    \---
 	 *  \--
-	 * @var array of HTML tags */
-	public $wrappers = [
+	 * @var array<string, array<string, Html|string|null>>
+	 */
+	public array $wrappers = [
 		'form' => [
 			'container' => null,
 		],
@@ -118,16 +117,13 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 		],
 	];
 
-	/** @var Nette\Forms\Form */
-	protected $form;
-
-	/** @var int */
-	protected $counter;
+	protected Nette\Forms\Form $form;
+	protected int $counter = 0;
 
 
 	/**
 	 * Provides complete form rendering.
-	 * @param  string  $mode  'begin', 'errors', 'ownerrors', 'body', 'end' or empty to render all
+	 * @param  ?string  $mode  'begin', 'errors', 'ownerrors', 'body', 'end' or empty to render all
 	 */
 	public function render(Nette\Forms\Form $form, ?string $mode = null): string
 	{
@@ -142,7 +138,7 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 			$s .= $this->renderErrors();
 
 		} elseif ($mode === 'errors') {
-			$s .= $this->renderErrors(null, false);
+			$s .= $this->renderErrors(own: false);
 		}
 
 		if (!$mode || $mode === 'body') {
@@ -223,6 +219,7 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 	}
 
 
+	/** @param  list<string|\Stringable>  $errors */
 	private function doRenderErrors(array $errors, bool $control): string
 	{
 		if (!$errors) {
@@ -230,10 +227,10 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 		}
 
 		$container = $this->getWrapper($control ? 'control errorcontainer' : 'error container');
-		$item = $this->getWrapper($control ? 'control erroritem' : 'error item');
+		$itemPrototype = $this->getWrapper($control ? 'control erroritem' : 'error item');
 
 		foreach ($errors as $error) {
-			$item = clone $item;
+			$item = clone $itemPrototype;
 			if ($error instanceof HtmlStringable) {
 				$item->addHtml($error);
 			} else {
@@ -319,14 +316,9 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 
 	/**
 	 * Renders group of controls.
-	 * @param  Nette\Forms\Container|Nette\Forms\ControlGroup  $parent
 	 */
-	public function renderControls($parent): string
+	public function renderControls(Nette\Forms\Container|Nette\Forms\ControlGroup $parent): string
 	{
-		if (!($parent instanceof Nette\Forms\Container || $parent instanceof Nette\Forms\ControlGroup)) {
-			throw new Nette\InvalidArgumentException('Argument must be Nette\Forms\Container or Nette\Forms\ControlGroup instance.');
-		}
-
 		$container = $this->getWrapper('controls container');
 
 		$buttons = null;
@@ -392,10 +384,6 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 	{
 		$s = [];
 		foreach ($controls as $control) {
-			if (!$control instanceof Nette\Forms\Control) {
-				throw new Nette\InvalidArgumentException('Argument must be array of Nette\Forms\Control instances.');
-			}
-
 			$description = $control->getOption('description');
 			if ($description instanceof HtmlStringable) {
 				$description = ' ' . $description;
@@ -502,6 +490,7 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 
 		if ($nextTo = $control->getOption('nextTo')) {
 			$control = $control->getForm()->getComponent($nextTo);
+			assert($control instanceof Nette\Forms\Control);
 			$body->class($this->getValue('control .multi'), true);
 			goto renderControl;
 		}
@@ -510,20 +499,21 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 	}
 
 
-	/** @return string|Html|null */
-	protected function renderLabelElement(Nette\Forms\Control $control)
+	protected function renderLabelElement(Nette\Forms\Control $control): Html|string|null
 	{
 		return $control->getLabel();
 	}
 
 
-	/** @return string|Html */
-	protected function renderControlElement(Nette\Forms\Control $control)
+	protected function renderControlElement(Nette\Forms\Control $control): Html|string
 	{
 		return $control->getControl();
 	}
 
 
+	/**
+	 * Returns a clone of the wrapper element specified by 'section key' (e.g. 'control errorcontainer').
+	 */
 	public function getWrapper(string $name): Html
 	{
 		$data = $this->getValue($name);
@@ -531,11 +521,9 @@ class DefaultFormRenderer implements Nette\Forms\FormRenderer
 	}
 
 
-	/** @return mixed */
-	protected function getValue(string $name)
+	protected function getValue(string $name): mixed
 	{
 		$name = explode(' ', $name);
-		$data = &$this->wrappers[$name[0]][$name[1]];
-		return $data;
+		return $this->wrappers[$name[0]][$name[1]] ?? null;
 	}
 }

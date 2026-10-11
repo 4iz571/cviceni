@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Routing;
 
 use Nette;
+use function http_build_query, ini_get, is_scalar;
 
 
 /**
@@ -17,21 +16,14 @@ use Nette;
  */
 class SimpleRouter implements Router
 {
-	use Nette\SmartObject;
-
-	/** @var array */
-	private $defaults;
-
-
-	public function __construct(array $defaults = [])
-	{
-		$this->defaults = $defaults;
+	public function __construct(
+		/** @var array<string, mixed> */
+		private readonly array $defaults = [],
+	) {
 	}
 
 
-	/**
-	 * Maps HTTP request to an array.
-	 */
+	/** @return ?array<string, mixed> */
 	public function match(Nette\Http\IRequest $httpRequest): ?array
 	{
 		return $httpRequest->getUrl()->getPathInfo() === ''
@@ -40,9 +32,7 @@ class SimpleRouter implements Router
 	}
 
 
-	/**
-	 * Constructs absolute URL from array.
-	 */
+	/** @param array<string, mixed>  $params */
 	public function constructUrl(array $params, Nette\Http\UrlScript $refUrl): ?string
 	{
 		// remove default values; null values are retain
@@ -65,9 +55,7 @@ class SimpleRouter implements Router
 	}
 
 
-	/**
-	 * Returns default values.
-	 */
+	/** @return array<string, mixed> */
 	public function getDefaults(): array
 	{
 		return $this->defaults;

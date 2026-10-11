@@ -1,25 +1,24 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Application;
 
 use Nette;
+use function func_num_args, strcasecmp;
 
 
 /**
  * Presenter request.
  *
- * @property string $presenterName
- * @property array $parameters
- * @property array $post
- * @property array $files
- * @property string|null $method
+ * @property-deprecated string $presenterName
+ * @property-deprecated array<string,mixed> $parameters
+ * @property-deprecated array<string,mixed> $post
+ * @property-deprecated array<string,mixed> $files
+ * @property-deprecated ?string $method
  */
 final class Request
 {
@@ -29,58 +28,31 @@ final class Request
 	public const FORWARD = 'FORWARD';
 
 	/** flag */
-	public const SECURED = 'secured';
-
-	/** flag */
 	public const RESTORED = 'restored';
 
 	/** flag */
 	public const VARYING = 'varying';
 
-	/** @var string|null */
-	private $method;
 
-	/** @var array */
-	private $flags = [];
-
-	/** @var string */
-	private $name;
-
-	/** @var array */
-	private $params;
-
-	/** @var array */
-	private $post;
-
-	/** @var array */
-	private $files;
-
-
-	/**
-	 * @param  string  $name  presenter name (module:module:presenter)
-	 */
 	public function __construct(
-		string $name,
-		?string $method = null,
-		array $params = [],
-		array $post = [],
-		array $files = [],
-		array $flags = []
+		private string $name,
+		private ?string $method = null,
+		/** @var array<string, mixed> */
+		private array $params = [],
+		/** @var array<string, mixed> */
+		private array $post = [],
+		/** @var array<string, mixed> */
+		private array $files = [],
+		/** @var array<string, bool> */
+		private array $flags = [],
 	) {
-		$this->name = $name;
-		$this->method = $method;
-		$this->params = $params;
-		$this->post = $post;
-		$this->files = $files;
-		$this->flags = $flags;
 	}
 
 
 	/**
 	 * Sets the presenter name.
-	 * @return static
 	 */
-	public function setPresenterName(string $name)
+	public function setPresenterName(string $name): static
 	{
 		$this->name = $name;
 		return $this;
@@ -88,7 +60,7 @@ final class Request
 
 
 	/**
-	 * Retrieve the presenter name.
+	 * Returns the presenter name.
 	 */
 	public function getPresenterName(): string
 	{
@@ -98,9 +70,9 @@ final class Request
 
 	/**
 	 * Sets variables provided to the presenter.
-	 * @return static
+	 * @param  array<string, mixed>  $params
 	 */
-	public function setParameters(array $params)
+	public function setParameters(array $params): static
 	{
 		$this->params = $params;
 		return $this;
@@ -109,6 +81,7 @@ final class Request
 
 	/**
 	 * Returns all variables provided to the presenter (usually via URL).
+	 * @return array<string, mixed>
 	 */
 	public function getParameters(): array
 	{
@@ -118,9 +91,8 @@ final class Request
 
 	/**
 	 * Returns a parameter provided to the presenter.
-	 * @return mixed
 	 */
-	public function getParameter(string $key)
+	public function getParameter(string $key): mixed
 	{
 		return $this->params[$key] ?? null;
 	}
@@ -128,9 +100,9 @@ final class Request
 
 	/**
 	 * Sets variables provided to the presenter via POST.
-	 * @return static
+	 * @param  array<string, mixed>  $params
 	 */
-	public function setPost(array $params)
+	public function setPost(array $params): static
 	{
 		$this->post = $params;
 		return $this;
@@ -140,21 +112,20 @@ final class Request
 	/**
 	 * Returns a variable provided to the presenter via POST.
 	 * If no key is passed, returns the entire array.
-	 * @return mixed
 	 */
-	public function getPost(?string $key = null)
+	public function getPost(?string $key = null): mixed
 	{
 		return func_num_args() === 0
 			? $this->post
-			: ($this->post[$key] ?? null);
+			: ($this->post[(string) $key] ?? null);
 	}
 
 
 	/**
 	 * Sets all uploaded files.
-	 * @return static
+	 * @param  array<string, mixed>  $files
 	 */
-	public function setFiles(array $files)
+	public function setFiles(array $files): static
 	{
 		$this->files = $files;
 		return $this;
@@ -163,6 +134,7 @@ final class Request
 
 	/**
 	 * Returns all uploaded files.
+	 * @return array<string, mixed>
 	 */
 	public function getFiles(): array
 	{
@@ -172,9 +144,8 @@ final class Request
 
 	/**
 	 * Sets the method.
-	 * @return static
 	 */
-	public function setMethod(?string $method)
+	public function setMethod(?string $method): static
 	{
 		$this->method = $method;
 		return $this;
@@ -195,15 +166,14 @@ final class Request
 	 */
 	public function isMethod(string $method): bool
 	{
-		return strcasecmp((string) $this->method, $method) === 0;
+		return strcasecmp($this->method ?? '', $method) === 0;
 	}
 
 
 	/**
 	 * Sets the flag.
-	 * @return static
 	 */
-	public function setFlag(string $flag, bool $value = true)
+	public function setFlag(string $flag, bool $value = true): static
 	{
 		$this->flags[$flag] = $value;
 		return $this;
@@ -219,6 +189,7 @@ final class Request
 	}
 
 
+	/** @return array<string, mixed> */
 	public function toArray(): array
 	{
 		$params = $this->params;

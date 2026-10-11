@@ -1,26 +1,22 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Localization;
 
 
 /**
- * Translator adapter.
+ * Translation provider.
  */
 interface Translator
 {
 	/**
 	 * Translates the given string.
-	 * @param  mixed  $message
-	 * @param  mixed  ...$parameters
 	 */
-	function translate($message, ...$parameters): string;
+	function translate(string|\Stringable $message, mixed ...$parameters): string|\Stringable;
 }
 
 

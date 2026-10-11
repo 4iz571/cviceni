@@ -1,16 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI;
 
 use Nette;
 use Nette\DI\Definitions\Definition;
+use function is_int, sprintf;
 
 
 /**
@@ -18,8 +17,6 @@ use Nette\DI\Definitions\Definition;
  */
 class ContainerBuilder
 {
-	use Nette\SmartObject;
-
 	public const
 		ThisService = 'self',
 		ThisContainer = 'container';
@@ -30,26 +27,23 @@ class ContainerBuilder
 	/** @deprecated use ContainerBuilder::ThisContainer */
 	public const THIS_CONTAINER = self::ThisContainer;
 
-	/** @var array */
-	public $parameters = [];
+	/** @var array<string, mixed> */
+	public array $parameters = [];
 
-	/** @var Definition[] */
-	private $definitions = [];
+	/** @var array<string, Definition> */
+	private array $definitions = [];
 
-	/** @var array of alias => service */
-	private $aliases = [];
+	/** @var array<string, string> lowercase name => service name */
+	private array $lowerNames = [];
 
-	/** @var Autowiring */
-	private $autowiring;
+	/** @var array<string, string> alias => service name */
+	private array $aliases = [];
+	private Autowiring $autowiring;
+	private bool $needsResolve = true;
+	private bool $resolving = false;
 
-	/** @var bool */
-	private $needsResolve = true;
-
-	/** @var bool */
-	private $resolving = false;
-
-	/** @var array */
-	private $dependencies = [];
+	/** @var list<\ReflectionClass<object>|\ReflectionFunctionAbstract|string> */
+	private array $dependencies = [];
 
 
 	public function __construct()
@@ -61,7 +55,9 @@ class ContainerBuilder
 
 	/**
 	 * Adds new service definition.
-	 * @return Definitions\ServiceDefinition
+	 * @template TDef of Definition
+	 * @param  TDef|null  $definition
+	 * @return ($definition is null ? Definitions\ServiceDefinition : TDef)
 	 */
 	public function addDefinition(?string $name, ?Definition $definition = null): Definition
 	{
@@ -77,29 +73,26 @@ class ContainerBuilder
 		} elseif (is_int(key([$name => 1])) || !preg_match('#^\w+(\.\w+)*$#D', $name)) {
 			throw new Nette\InvalidArgumentException(sprintf("Service name must be a alpha-numeric string and not a number, '%s' given.", $name));
 
+		} elseif ($name === self::ThisService) {
+			throw new Nette\InvalidArgumentException("Service name 'self' is reserved for references to the current service.");
+
 		} else {
 			$name = $this->aliases[$name] ?? $name;
 			if (isset($this->definitions[$name])) {
 				throw new Nette\InvalidStateException(sprintf("Service '%s' has already been added.", $name));
 			}
 
-			$lname = strtolower($name);
-			foreach ($this->definitions as $nm => $foo) {
-				if ($lname === strtolower($nm)) {
-					throw new Nette\InvalidStateException(sprintf(
-						"Service '%s' has the same name as '%s' in a case-insensitive manner.",
-						$name,
-						$nm
-					));
-				}
+			if ($similar = $this->lowerNames[strtolower($name)] ?? null) {
+				throw new Nette\InvalidStateException("Service '$name' has the same name as '$similar' in a case-insensitive manner.");
 			}
 		}
 
-		$definition = $definition ?: new Definitions\ServiceDefinition;
+		$definition ??= new Definitions\ServiceDefinition;
 		$definition->setName($name);
 		$definition->setNotifier(function (): void {
 			$this->needsResolve = true;
 		});
+		$this->lowerNames[strtolower($name)] = $name;
 		return $this->definitions[$name] = $definition;
 	}
 
@@ -135,7 +128,7 @@ class ContainerBuilder
 	{
 		$this->needsResolve = true;
 		$name = $this->aliases[$name] ?? $name;
-		unset($this->definitions[$name]);
+		unset($this->definitions[$name], $this->lowerNames[strtolower($name)]);
 	}
 
 
@@ -155,7 +148,7 @@ class ContainerBuilder
 
 	/**
 	 * Gets all service definitions.
-	 * @return Definition[]
+	 * @return array<string, Definition>
 	 */
 	public function getDefinitions(): array
 	{
@@ -192,9 +185,6 @@ class ContainerBuilder
 	}
 
 
-	/**
-	 * Removes the specified alias.
-	 */
 	public function removeAlias(string $alias): void
 	{
 		unset($this->aliases[$alias]);
@@ -203,6 +193,7 @@ class ContainerBuilder
 
 	/**
 	 * Gets all service aliases.
+	 * @return array<string, string>
 	 */
 	public function getAliases(): array
 	{
@@ -211,10 +202,10 @@ class ContainerBuilder
 
 
 	/**
-	 * @param  string[]  $types
-	 * @return static
+	 * Excludes classes from autowiring.
+	 * @param  class-string[]  $types
 	 */
-	public function addExcludedClasses(array $types)
+	public function addExcludedClasses(array $types): static
 	{
 		$this->needsResolve = true;
 		$this->autowiring->addExcludedClasses($types);
@@ -224,9 +215,10 @@ class ContainerBuilder
 
 	/**
 	 * Resolves autowired service name by type.
-	 * @param  bool  $throw exception if service doesn't exist?
+	 * @param  class-string  $type
 	 * @return ($throw is true ? string : ?string)
 	 * @throws MissingServiceException
+	 * @throws NotAllowedDuringResolvingException
 	 */
 	public function getByType(string $type, bool $throw = false): ?string
 	{
@@ -237,17 +229,20 @@ class ContainerBuilder
 
 	/**
 	 * Gets autowired service definition of the specified type.
+	 * @param  class-string  $type
 	 * @throws MissingServiceException
 	 */
 	public function getDefinitionByType(string $type): Definition
 	{
-		return $this->getDefinition($this->getByType($type, true));
+		return $this->getDefinition($this->getByType($type, throw: true));
 	}
 
 
 	/**
 	 * Gets the autowired service names and definitions of the specified type.
-	 * @return Definition[]  service name is key
+	 * @param  class-string  $type
+	 * @return array<string, Definition>
+	 * @throws NotAllowedDuringResolvingException
 	 * @internal
 	 */
 	public function findAutowired(string $type): array
@@ -259,14 +254,16 @@ class ContainerBuilder
 
 	/**
 	 * Gets the service names and definitions of the specified type.
-	 * @return Definition[]  service name is key
+	 * @param  class-string  $type
+	 * @return array<string, Definition>
+	 * @throws NotAllowedDuringResolvingException
 	 */
 	public function findByType(string $type): array
 	{
 		$this->needResolved();
 		$found = [];
 		foreach ($this->definitions as $name => $def) {
-			if (is_a($def->getType(), $type, true)) {
+			if ($def->getType() !== null && is_a($def->getType(), $type, allow_string: true)) {
 				$found[$name] = $def;
 			}
 		}
@@ -277,7 +274,7 @@ class ContainerBuilder
 
 	/**
 	 * Gets the service names and tag values.
-	 * @return array of [service name => tag attributes]
+	 * @return array<string, mixed>  service name => tag value
 	 */
 	public function findByTag(string $tag): array
 	{
@@ -296,7 +293,7 @@ class ContainerBuilder
 
 
 	/**
-	 * Checks services, resolves types and rebuilts autowiring classlist.
+	 * Resolves service types and rebuilds the autowiring class list.
 	 */
 	public function resolve(): void
 	{
@@ -327,6 +324,9 @@ class ContainerBuilder
 	}
 
 
+	/**
+	 * Completes all service definitions by resolving and wiring arguments.
+	 */
 	public function complete(): void
 	{
 		$this->resolve();
@@ -343,11 +343,10 @@ class ContainerBuilder
 
 	/**
 	 * Adds item to the list of dependencies.
-	 * @param  \ReflectionClass|\ReflectionFunctionAbstract|string  $dep
-	 * @return static
+	 * @param  \ReflectionClass<object>|\ReflectionFunctionAbstract|string  $dep
 	 * @internal
 	 */
-	public function addDependency($dep)
+	public function addDependency(\ReflectionClass|\ReflectionFunctionAbstract|string $dep): static
 	{
 		$this->dependencies[] = $dep;
 		return $this;
@@ -356,6 +355,7 @@ class ContainerBuilder
 
 	/**
 	 * Returns the list of dependencies.
+	 * @return list<\ReflectionClass<object>|\ReflectionFunctionAbstract|string>
 	 */
 	public function getDependencies(): array
 	{
@@ -363,16 +363,15 @@ class ContainerBuilder
 	}
 
 
-	/** @internal */
+	/**
+	 * @return array{tags?: array<string, array<string, mixed>>, aliases: array<string, string>, wiring: array<class-string, array<int, list<string>>>}
+	 * @internal
+	 */
 	public function exportMeta(): array
 	{
 		$defs = $this->definitions;
 		ksort($defs);
 		foreach ($defs as $name => $def) {
-			if ($def instanceof Definitions\ImportedDefinition) {
-				$meta['types'][$name] = $def->getType();
-			}
-
 			foreach ($def->getTags() as $tag => $value) {
 				$meta['tags'][$tag][$name] = $value;
 			}
@@ -403,15 +402,22 @@ class ContainerBuilder
 	}
 
 
-	public static function literal(string $code, ?array $args = null): Nette\PhpGenerator\PhpLiteral
+	/**
+	 * Creates a PHP literal value, optionally formatted with arguments.
+	 * @param  array<mixed>|null  $args
+	 */
+	public static function literal(string $code, ?array $args = null): Nette\PhpGenerator\Literal
 	{
-		return new Nette\PhpGenerator\PhpLiteral(
-			$args === null ? $code : (new Nette\PhpGenerator\Dumper)->format($code, ...$args)
+		return new Nette\PhpGenerator\Literal(
+			$args === null ? $code : (new Nette\PhpGenerator\Dumper)->format($code, ...$args),
 		);
 	}
 
 
-	/** @deprecated */
+	/**
+	 * @param  array<mixed>  $args
+	 * @deprecated
+	 */
 	public function formatPhp(string $statement, array $args): string
 	{
 		array_walk_recursive($args, function (&$val): void {
@@ -419,6 +425,7 @@ class ContainerBuilder
 				$val = (new Resolver($this))->completeStatement($val);
 
 			} elseif ($val instanceof Definition) {
+				assert($val->getName() !== null);
 				$val = new Definitions\Reference($val->getName());
 			}
 		});

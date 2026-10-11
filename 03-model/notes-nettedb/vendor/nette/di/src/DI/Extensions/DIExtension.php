@@ -1,16 +1,17 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI\Extensions;
 
 use Nette;
+use Nette\DI\Definitions\ServiceDefinition;
 use Tracy;
+use function is_array;
+use const PHP_VERSION_ID;
 
 
 /**
@@ -18,58 +19,65 @@ use Tracy;
  */
 final class DIExtension extends Nette\DI\CompilerExtension
 {
-	/** @var array */
-	public $exportedTags = [];
+	/** @var array<string, true> */
+	public array $exportedTags = [];
 
-	/** @var array */
-	public $exportedTypes = [];
+	/** @var array<string, true> */
+	public array $exportedTypes = [];
 
-	/** @var bool */
-	private $debugMode;
-
-	/** @var float */
-	private $time;
+	/** @var object{debugger: ?bool, excluded: list<class-string>, parentClass: ?string, export: object{parameters: bool, tags: list<string>|bool|null, types: list<string>|bool|null}, lazy: bool} */
+	protected $config = [];
+	private bool $debugMode;
+	private float $time;
 
 
 	public function __construct(bool $debugMode = false)
 	{
 		$this->debugMode = $debugMode;
-		$this->time = microtime(true);
+		$this->time = microtime(as_float: true);
 
 		$this->config = new class {
-			/** @var ?bool */
-			public $debugger;
+			public ?bool $debugger = null;
 
 			/** @var string[] */
-			public $excluded = [];
-
-			/** @var ?string */
-			public $parentClass;
-
-			/** @var object */
-			public $export;
+			public array $excluded = [];
+			public ?string $parentClass = null;
+			public object $export;
+			public bool $lazy = false;
 		};
 		$this->config->export = new class {
-			/** @var bool */
-			public $parameters = true;
+			public bool $parameters = true;
 
 			/** @var string[]|bool|null */
-			public $tags = true;
+			public array|bool|null $tags = true;
 
 			/** @var string[]|bool|null */
-			public $types = true;
+			public array|bool|null $types = true;
 		};
 	}
 
 
-	public function loadConfiguration()
+	public function loadConfiguration(): void
 	{
 		$builder = $this->getContainerBuilder();
 		$builder->addExcludedClasses($this->config->excluded);
 	}
 
 
-	public function afterCompile(Nette\PhpGenerator\ClassType $class)
+	public function beforeCompile(): void
+	{
+		if ($this->config->lazy && PHP_VERSION_ID >= 80400) {
+			$builder = $this->getContainerBuilder();
+			foreach ($builder->getDefinitions() as $def) {
+				if ($def instanceof ServiceDefinition) {
+					$def->lazy ??= true;
+				}
+			}
+		}
+	}
+
+
+	public function afterCompile(Nette\PhpGenerator\ClassType $class): void
 	{
 		if ($this->config->parentClass) {
 			$class->setExtends($this->config->parentClass);
@@ -119,7 +127,7 @@ final class DIExtension extends Nette\DI\CompilerExtension
 		$prop = $class->getProperty('wiring');
 		$prop->setValue(array_intersect_key(
 			$prop->getValue(),
-			$this->exportedTypes + (is_array($option) ? array_flip($option) : [])
+			$this->exportedTypes + (is_array($option) ? array_flip($option) : []),
 		));
 	}
 
@@ -130,7 +138,7 @@ final class DIExtension extends Nette\DI\CompilerExtension
 		$this->initialization->addBody($this->getContainerBuilder()->formatPhp('?;', [
 			new Nette\DI\Definitions\Statement(
 				'@Tracy\Bar::addPanel',
-				[new Nette\DI\Definitions\Statement(Nette\Bridges\DITracy\ContainerPanel::class)]
+				[new Nette\DI\Definitions\Statement(Nette\Bridges\DITracy\ContainerPanel::class)],
 			),
 		]));
 	}

@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Database;
 
@@ -14,63 +12,51 @@ use Nette;
 use Nette\Utils\Arrays;
 use PDO;
 use PDOException;
+use function str_replace, ucfirst;
 
 
 /**
- * Represents a connection between PHP and a database server.
+ * Manages database connection and executes SQL queries.
  */
 class Connection
 {
-	use Nette\SmartObject;
-
 	/** @var array<callable(self): void>  Occurs after connection is established */
-	public $onConnect = [];
+	public array $onConnect = [];
 
 	/** @var array<callable(self, ResultSet|DriverException): void>  Occurs after query is executed */
-	public $onQuery = [];
+	public array $onQuery = [];
+	private Driver $driver;
+	private SqlPreprocessor $preprocessor;
+	private ?PDO $pdo = null;
 
-	/** @var array */
-	private $params;
-
-	/** @var array */
-	private $options;
-
-	/** @var Driver */
-	private $driver;
-
-	/** @var SqlPreprocessor */
-	private $preprocessor;
-
-	/** @var PDO|null */
-	private $pdo;
-
-	/** @var callable(array, ResultSet): array */
-	private $rowNormalizer = [Helpers::class, 'normalizeRow'];
-
-	/** @var string|null */
-	private $sql;
-
-	/** @var int */
-	private $transactionDepth = 0;
+	/** @var ?\Closure(array<string, mixed>, ResultSet): array<string, mixed> */
+	private ?\Closure $rowNormalizer;
+	private ?string $sql = null;
+	private int $transactionDepth = 0;
 
 
+	/** @param array<mixed> $options */
 	public function __construct(
-		string $dsn,
+		private readonly string $dsn,
 		#[\SensitiveParameter]
-		?string $user = null,
+		private readonly ?string $user = null,
 		#[\SensitiveParameter]
-		?string $password = null,
-		?array $options = null
+		private readonly ?string $password = null,
+		private readonly array $options = [],
 	) {
-		$this->params = [$dsn, $user, $password];
-		$this->options = (array) $options;
-
+		$this->rowNormalizer = !empty($options['newDateTime'])
+			? fn(array $row, ResultSet $resultSet): array => Helpers::normalizeRow($row, $resultSet, DateTime::class)
+			: Helpers::normalizeRow(...);
 		if (empty($options['lazy'])) {
 			$this->connect();
 		}
 	}
 
 
+	/**
+	 * Connects to the database server if not already connected.
+	 * @throws ConnectionException
+	 */
 	public function connect(): void
 	{
 		if ($this->pdo) {
@@ -78,8 +64,7 @@ class Connection
 		}
 
 		try {
-			$this->pdo = new PDO($this->params[0], $this->params[1], $this->params[2], $this->options);
-			$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$this->pdo = new PDO($this->dsn, $this->user, $this->password, $this->options);
 		} catch (PDOException $e) {
 			throw ConnectionException::from($e);
 		}
@@ -87,13 +72,20 @@ class Connection
 		$class = empty($this->options['driverClass'])
 			? 'Nette\Database\Drivers\\' . ucfirst(str_replace('sql', 'Sql', $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME))) . 'Driver'
 			: $this->options['driverClass'];
-		$this->driver = new $class;
+		$driver = new $class;
+		if (!$driver instanceof Driver) {
+			throw new Nette\InvalidStateException("Driver class '$class' does not implement " . Driver::class . '.');
+		}
+		$this->driver = $driver;
 		$this->preprocessor = new SqlPreprocessor($this);
 		$this->driver->initialize($this, $this->options);
 		Arrays::invoke($this->onConnect, $this);
 	}
 
 
+	/**
+	 * Disconnects and connects to database again.
+	 */
 	public function reconnect(): void
 	{
 		$this->disconnect();
@@ -101,6 +93,9 @@ class Connection
 	}
 
 
+	/**
+	 * Disconnects from database.
+	 */
 	public function disconnect(): void
 	{
 		$this->pdo = null;
@@ -109,14 +104,14 @@ class Connection
 
 	public function getDsn(): string
 	{
-		return $this->params[0];
+		return $this->dsn;
 	}
 
 
 	public function getPdo(): PDO
 	{
 		$this->connect();
-		return $this->pdo;
+		return $this->pdo ?? throw new Nette\ShouldNotHappenException;
 	}
 
 
@@ -135,13 +130,26 @@ class Connection
 	}
 
 
-	public function setRowNormalizer(?callable $normalizer): self
+	public function getReflection(): Reflection
 	{
-		$this->rowNormalizer = $normalizer;
+		return new Reflection($this->getDriver());
+	}
+
+
+	/**
+	 * Sets a callback for normalizing each result row (e.g., type conversion). Pass null to disable.
+	 * @param ?(callable(array<mixed>, ResultSet): array<mixed>) $normalizer
+	 */
+	public function setRowNormalizer(?callable $normalizer): static
+	{
+		$this->rowNormalizer = $normalizer ? $normalizer(...) : null;
 		return $this;
 	}
 
 
+	/**
+	 * Returns the ID of the last inserted row, or the last value from a sequence.
+	 */
 	public function getInsertId(?string $sequence = null): string
 	{
 		try {
@@ -153,6 +161,9 @@ class Connection
 	}
 
 
+	/**
+	 * Quotes string for use in SQL.
+	 */
 	public function quote(string $string, int $type = PDO::PARAM_STR): string
 	{
 		try {
@@ -163,6 +174,10 @@ class Connection
 	}
 
 
+	/**
+	 * Starts a transaction.
+	 * @throws \LogicException  when called inside a transaction
+	 */
 	public function beginTransaction(): void
 	{
 		if ($this->transactionDepth !== 0) {
@@ -173,6 +188,10 @@ class Connection
 	}
 
 
+	/**
+	 * Commits current transaction.
+	 * @throws \LogicException  when called inside a transaction
+	 */
 	public function commit(): void
 	{
 		if ($this->transactionDepth !== 0) {
@@ -183,6 +202,10 @@ class Connection
 	}
 
 
+	/**
+	 * Rolls back current transaction.
+	 * @throws \LogicException  when called inside a transaction
+	 */
 	public function rollBack(): void
 	{
 		if ($this->transactionDepth !== 0) {
@@ -194,9 +217,10 @@ class Connection
 
 
 	/**
-	 * @return mixed
+	 * Executes callback inside a transaction. Supports nesting.
+	 * @param  callable(static): mixed  $callback
 	 */
-	public function transaction(callable $callback)
+	public function transaction(callable $callback): mixed
 	{
 		if ($this->transactionDepth === 0) {
 			$this->beginTransaction();
@@ -208,7 +232,7 @@ class Connection
 		} catch (\Throwable $e) {
 			$this->transactionDepth--;
 			if ($this->transactionDepth === 0) {
-				$this->rollback();
+				$this->rollBack();
 			}
 
 			throw $e;
@@ -227,12 +251,7 @@ class Connection
 	 * Generates and executes SQL query.
 	 * @param  literal-string  $sql
 	 */
-	public function query(
-		#[Language('SQL')]
-		string $sql,
-		#[Language('GenericSQL')]
-		...$params
-	): ResultSet
+	public function query(#[Language('SQL')] string $sql, #[Language('GenericSQL')] mixed ...$params): ResultSet
 	{
 		[$this->sql, $params] = $this->preprocess($sql, ...$params);
 		try {
@@ -247,7 +266,11 @@ class Connection
 	}
 
 
-	/** @deprecated  use query() */
+	/**
+	 * @deprecated  use query()
+	 * @param  literal-string  $sql
+	 * @param  array<mixed>  $params
+	 */
 	public function queryArgs(string $sql, array $params): ResultSet
 	{
 		return $this->query($sql, ...$params);
@@ -255,10 +278,11 @@ class Connection
 
 
 	/**
+	 * Preprocesses SQL query with parameter substitution and returns the resulting SQL and bound parameters.
 	 * @param  literal-string  $sql
-	 * @return array{string, array}
+	 * @return array{string, array<mixed>}
 	 */
-	public function preprocess(string $sql, ...$params): array
+	public function preprocess(string $sql, mixed ...$params): array
 	{
 		$this->connect();
 		return $params
@@ -277,81 +301,84 @@ class Connection
 
 
 	/**
-	 * Shortcut for query()->fetch()
+	 * Executes SQL query and returns the first row, or null if no rows were returned.
 	 * @param  literal-string  $sql
 	 */
-	public function fetch(
-		#[Language('SQL')]
-		string $sql,
-		#[Language('GenericSQL')]
-		...$params
-	): ?Row
+	public function fetch(#[Language('SQL')] string $sql, #[Language('GenericSQL')] mixed ...$params): ?Row
 	{
 		return $this->query($sql, ...$params)->fetch();
 	}
 
 
 	/**
-	 * Shortcut for query()->fetchField()
+	 * Executes SQL query and returns the first row as an associative array, or null.
 	 * @param  literal-string  $sql
-	 * @return mixed
+	 * @return ?array<mixed>
 	 */
-	public function fetchField(
-		#[Language('SQL')]
-		string $sql,
-		#[Language('GenericSQL')]
-		...$params
-	) {
+	public function fetchAssoc(#[Language('SQL')] string $sql, #[Language('GenericSQL')] mixed ...$params): ?array
+	{
+		return $this->query($sql, ...$params)->fetchAssoc();
+	}
+
+
+	/**
+	 * Executes SQL query and returns the first field of the first row, or null.
+	 * @param  literal-string  $sql
+	 */
+	public function fetchField(#[Language('SQL')] string $sql, #[Language('GenericSQL')] mixed ...$params): mixed
+	{
 		return $this->query($sql, ...$params)->fetchField();
 	}
 
 
 	/**
-	 * Shortcut for query()->fetchFields()
+	 * Executes SQL query and returns the first row as an indexed array, or null.
 	 * @param  literal-string  $sql
+	 * @return ?list<mixed>
 	 */
-	public function fetchFields(
-		#[Language('SQL')]
-		string $sql,
-		#[Language('GenericSQL')]
-		...$params
-	): ?array
+	public function fetchList(#[Language('SQL')] string $sql, #[Language('GenericSQL')] mixed ...$params): ?array
 	{
-		return $this->query($sql, ...$params)->fetchFields();
+		return $this->query($sql, ...$params)->fetchList();
 	}
 
 
 	/**
-	 * Shortcut for query()->fetchPairs()
+	 * Executes SQL query and returns the first row as an indexed array, or null.
 	 * @param  literal-string  $sql
+	 * @return ?list<mixed>
 	 */
-	public function fetchPairs(
-		#[Language('SQL')]
-		string $sql,
-		#[Language('GenericSQL')]
-		...$params
-	): array
+	public function fetchFields(#[Language('SQL')] string $sql, #[Language('GenericSQL')] mixed ...$params): ?array
+	{
+		return $this->query($sql, ...$params)->fetchList();
+	}
+
+
+	/**
+	 * Executes SQL query and returns rows as key-value pairs.
+	 * @param  literal-string  $sql
+	 * @return array<mixed, mixed>
+	 */
+	public function fetchPairs(#[Language('SQL')] string $sql, #[Language('GenericSQL')] mixed ...$params): array
 	{
 		return $this->query($sql, ...$params)->fetchPairs();
 	}
 
 
 	/**
-	 * Shortcut for query()->fetchAll()
+	 * Executes SQL query and returns all rows as an array of Row objects.
 	 * @param  literal-string  $sql
+	 * @return list<Row>
 	 */
-	public function fetchAll(
-		#[Language('SQL')]
-		string $sql,
-		#[Language('GenericSQL')]
-		...$params
-	): array
+	public function fetchAll(#[Language('SQL')] string $sql, #[Language('GenericSQL')] mixed ...$params): array
 	{
 		return $this->query($sql, ...$params)->fetchAll();
 	}
 
 
-	public static function literal(string $value, ...$params): SqlLiteral
+	/**
+	 * Creates SQL literal value.
+	 */
+	public static function literal(string $value, mixed ...$params): SqlLiteral
 	{
 		return new SqlLiteral($value, $params);
 	}

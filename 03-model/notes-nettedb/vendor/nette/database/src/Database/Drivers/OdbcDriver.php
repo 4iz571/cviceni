@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database\Drivers;
 
 use Nette;
+use function preg_replace, str_replace, strtr;
 
 
 /**
@@ -17,10 +16,14 @@ use Nette;
  */
 class OdbcDriver implements Nette\Database\Driver
 {
-	use Nette\SmartObject;
-
 	public function initialize(Nette\Database\Connection $connection, array $options): void
 	{
+	}
+
+
+	public function isSupported(string $feature): bool
+	{
+		return false;
 	}
 
 
@@ -105,11 +108,5 @@ class OdbcDriver implements Nette\Database\Driver
 	public function getColumnTypes(\PDOStatement $statement): array
 	{
 		return [];
-	}
-
-
-	public function isSupported(string $item): bool
-	{
-		return $item === self::SUPPORT_SUBSELECT;
 	}
 }

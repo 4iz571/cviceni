@@ -1,16 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Application\Routers;
 
 use Nette;
 use Nette\Application;
+use function is_string;
 
 
 /**
@@ -18,15 +17,11 @@ use Nette\Application;
  */
 final class SimpleRouter extends Nette\Routing\SimpleRouter implements Nette\Routing\Router
 {
-	private const
-		PresenterKey = 'presenter',
-		ModuleKey = 'module';
-
-	/** @var int */
-	private $flags;
+	private const PresenterKey = 'presenter';
 
 
-	public function __construct($defaults = [], int $flags = 0)
+	/** @param  array<string, mixed>|string  $defaults */
+	public function __construct(array|string $defaults = [])
 	{
 		if (is_string($defaults)) {
 			[$presenter, $action] = Nette\Application\Helpers::splitName($defaults);
@@ -40,37 +35,6 @@ final class SimpleRouter extends Nette\Routing\SimpleRouter implements Nette\Rou
 			];
 		}
 
-		if (isset($defaults[self::ModuleKey])) {
-			throw new Nette\DeprecatedException(__METHOD__ . '() parameter module is deprecated, use RouteList::withModule() instead.');
-		} elseif ($flags) {
-			trigger_error(__METHOD__ . '() parameter $flags is deprecated, use RouteList::add(..., $flags) instead.', E_USER_DEPRECATED);
-		}
-
-		$this->flags = $flags;
 		parent::__construct($defaults);
 	}
-
-
-	/**
-	 * Constructs absolute URL from array.
-	 */
-	public function constructUrl(array $params, Nette\Http\UrlScript $refUrl): ?string
-	{
-		if ($this->flags & self::ONE_WAY) {
-			return null;
-		}
-
-		return parent::constructUrl($params, $refUrl);
-	}
-
-
-	/** @deprecated */
-	public function getFlags(): int
-	{
-		trigger_error(__METHOD__ . '() is deprecated.', E_USER_DEPRECATED);
-		return $this->flags;
-	}
 }
-
-
-interface_exists(Nette\Application\IRouter::class);

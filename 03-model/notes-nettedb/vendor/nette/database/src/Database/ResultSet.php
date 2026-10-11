@@ -1,73 +1,51 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database;
 
 use Nette;
+use Nette\Utils\Arrays;
 use PDO;
+use function array_values, count, gettype, is_int, iterator_to_array, microtime, reset, str_starts_with, substr;
 
 
 /**
- * Represents a result set.
+ * Represents a database result set.
+ * @implements \Iterator<int, Row>
  */
 class ResultSet implements \Iterator, IRowContainer
 {
-	use Nette\SmartObject;
+	private ?\PDOStatement $pdoStatement = null;
+	private Row|false|null $lastRow = null;
+	private int $lastRowKey = -1;
 
-	/** @var Connection */
-	private $connection;
+	/** @var list<Row> */
+	private array $rows;
+	private float $time;
 
-	/** @var \PDOStatement|null */
-	private $pdoStatement;
-
-	/** @var callable(array, ResultSet): array */
-	private $normalizer;
-
-	/** @var Row|false|null */
-	private $lastRow;
-
-	/** @var int */
-	private $lastRowKey = -1;
-
-	/** @var Row[] */
-	private $rows;
-
-	/** @var float */
-	private $time;
-
-	/** @var string */
-	private $queryString;
-
-	/** @var array */
-	private $params;
-
-	/** @var array */
-	private $types;
+	/** @var array<string, string> column name => type */
+	private array $types;
 
 
 	public function __construct(
-		Connection $connection,
-		string $queryString,
-		array $params,
-		?callable $normalizer = null
+		private readonly Connection $connection,
+		private readonly string $queryString,
+		/** @var  mixed[] */
+		private readonly array $params,
+		/** @var ?\Closure(array<string, mixed>, self): array<string, mixed> */
+		private readonly ?\Closure $normalizer = null,
 	) {
 		$time = microtime(true);
-		$this->connection = $connection;
-		$this->queryString = $queryString;
-		$this->params = $params;
-		$this->normalizer = $normalizer;
+		$types = ['boolean' => PDO::PARAM_BOOL, 'integer' => PDO::PARAM_INT, 'resource' => PDO::PARAM_LOB, 'NULL' => PDO::PARAM_NULL];
 
 		try {
-			if (substr($queryString, 0, 2) === '::') {
+			if (str_starts_with($queryString, '::')) {
 				$connection->getPdo()->{substr($queryString, 2)}();
-			} elseif ($queryString !== null) {
-				$types = ['boolean' => PDO::PARAM_BOOL, 'integer' => PDO::PARAM_INT, 'resource' => PDO::PARAM_LOB, 'NULL' => PDO::PARAM_NULL];
+			} else {
 				$this->pdoStatement = $connection->getPdo()->prepare($queryString);
 				foreach ($params as $key => $value) {
 					$type = gettype($value);
@@ -75,7 +53,7 @@ class ResultSet implements \Iterator, IRowContainer
 				}
 
 				$this->pdoStatement->setFetchMode(PDO::FETCH_ASSOC);
-				@$this->pdoStatement->execute(); // @ PHP generates warning when ATTR_ERRMODE = ERRMODE_EXCEPTION bug #73878
+				$this->pdoStatement->execute();
 			}
 		} catch (\PDOException $e) {
 			$e = $connection->getDriver()->convertException($e);
@@ -84,7 +62,7 @@ class ResultSet implements \Iterator, IRowContainer
 			throw $e;
 		}
 
-		$this->time = microtime(true) - $time;
+		$this->time = microtime(as_float: true) - $time;
 	}
 
 
@@ -95,9 +73,7 @@ class ResultSet implements \Iterator, IRowContainer
 	}
 
 
-	/**
-	 * @internal
-	 */
+	/** @internal */
 	public function getPdoStatement(): ?\PDOStatement
 	{
 		return $this->pdoStatement;
@@ -110,6 +86,7 @@ class ResultSet implements \Iterator, IRowContainer
 	}
 
 
+	/** @return mixed[] */
 	public function getParameters(): array
 	{
 		return $this->params;
@@ -128,12 +105,14 @@ class ResultSet implements \Iterator, IRowContainer
 	}
 
 
+	/** @return array<string, string> */
 	public function getColumnTypes(): array
 	{
-		if ($this->types === null) {
-			$this->types = $this->connection->getDriver()->getColumnTypes($this->pdoStatement);
+		if ($this->pdoStatement === null) {
+			return [];
 		}
 
+		$this->types ??= $this->connection->getDriver()->getColumnTypes($this->pdoStatement);
 		return $this->types;
 	}
 
@@ -144,7 +123,11 @@ class ResultSet implements \Iterator, IRowContainer
 	}
 
 
-	/** @internal */
+	/**
+	 * @internal
+	 * @param array<mixed> $row
+	 * @return array<mixed>
+	 */
 	public function normalizeRow(array $row): array
 	{
 		return $this->normalizer
@@ -157,7 +140,7 @@ class ResultSet implements \Iterator, IRowContainer
 
 
 	/**
-	 * Displays complete result set as HTML table for debug purposes.
+	 * Displays result set as HTML table.
 	 */
 	public function dump(): void
 	{
@@ -176,15 +159,13 @@ class ResultSet implements \Iterator, IRowContainer
 	}
 
 
-	#[\ReturnTypeWillChange]
-	public function current()
+	public function current(): Row|false|null
 	{
 		return $this->lastRow;
 	}
 
 
-	#[\ReturnTypeWillChange]
-	public function key()
+	public function key(): int
 	{
 		return $this->lastRowKey;
 	}
@@ -206,89 +187,100 @@ class ResultSet implements \Iterator, IRowContainer
 	}
 
 
+	/********************* fetch ****************d*g**/
+
+
 	/**
-	 * Fetches single row object.
+	 * Returns the next row as an associative array, or null if there are no more rows.
+	 * When $path is given, fetches all rows and restructures them using Arrays::associate().
+	 * @return ?array<mixed>
 	 */
-	public function fetch(): ?Row
+	public function fetchAssoc(?string $path = null): ?array
 	{
+		if ($path !== null) {
+			return Arrays::associate($this->fetchAll(), $path);
+		}
+
 		$data = $this->pdoStatement ? $this->pdoStatement->fetch() : null;
 		if (!$data) {
-			$this->pdoStatement->closeCursor();
+			$this->pdoStatement?->closeCursor();
 			return null;
 
 		} elseif ($this->lastRow === null && count($data) !== $this->pdoStatement->columnCount()) {
 			$duplicates = Helpers::findDuplicates($this->pdoStatement);
-			trigger_error("Found duplicate columns in database result set: $duplicates.", E_USER_NOTICE);
+			trigger_error("Found duplicate columns in database result set: $duplicates.");
 		}
 
-		$row = new Row;
-		foreach ($this->normalizeRow($data) as $key => $value) {
-			if ($key !== '') {
-				$row->$key = $value;
-			}
+		return $this->normalizeRow($data);
+	}
+
+
+	/**
+	 * Returns the next row as a Row object or null if there are no more rows.
+	 */
+	public function fetch(): ?Row
+	{
+		$data = $this->fetchAssoc();
+		if ($data === null) {
+			return null;
 		}
 
 		$this->lastRowKey++;
-		return $this->lastRow = $row;
+		return $this->lastRow = Arrays::toObject($data, new Row);
 	}
 
 
 	/**
-	 * Fetches single field.
-	 * @return mixed
+	 * Returns the first field of the next row or null if there are no more rows.
 	 */
-	public function fetchField($column = 0)
+	public function fetchField(): mixed
 	{
-		if (func_num_args()) {
-			trigger_error(__METHOD__ . '() argument is deprecated.', E_USER_DEPRECATED);
-		}
-
-		$row = $this->fetch();
-		return $row ? $row[$column] : null;
+		$row = $this->fetchAssoc();
+		return $row ? reset($row) : null;
 	}
 
 
 	/**
-	 * Fetches array of fields.
+	 * Returns the next row as indexed array or null if there are no more rows.
+	 * @return ?list<mixed>
+	 */
+	public function fetchList(): ?array
+	{
+		$row = $this->fetchAssoc();
+		return $row ? array_values($row) : null;
+	}
+
+
+	/**
+	 * Alias for fetchList().
+	 * @return ?list<mixed>
 	 */
 	public function fetchFields(): ?array
 	{
-		$row = $this->fetch();
-		return $row ? array_values((array) $row) : null;
+		return $this->fetchList();
 	}
 
 
 	/**
-	 * Fetches all rows as associative array.
-	 * @param  string|int  $key  column name used for an array key or null for numeric index
-	 * @param  string|int  $value  column name used for an array value or null for the whole row
+	 * Returns all rows as associative array, where first argument specifies key column and second value column.
+	 * For duplicate keys, the last value is used. When using null as key, array is indexed from zero.
+	 * Alternatively accepts callback returning value or key-value pairs.
+	 * @param  string|int|(\Closure(Row): array{0: mixed, 1?: mixed})|null  $keyOrCallback
+	 * @return array<mixed, mixed>
 	 */
-	public function fetchPairs($key = null, $value = null): array
+	public function fetchPairs(string|int|\Closure|null $keyOrCallback = null, string|int|null $value = null): array
 	{
-		return Helpers::toPairs($this->fetchAll(), $key, $value);
+		return Helpers::toPairs($this->fetchAll(), $keyOrCallback, $value);
 	}
 
 
 	/**
-	 * Fetches all rows.
-	 * @return Row[]
+	 * Returns all remaining rows as array of Row objects.
+	 * @return list<Row>
 	 */
 	public function fetchAll(): array
 	{
-		if ($this->rows === null) {
-			$this->rows = iterator_to_array($this);
-		}
-
+		$this->rows ??= iterator_to_array($this, preserve_keys: false);
 		return $this->rows;
-	}
-
-
-	/**
-	 * Fetches all rows and returns associative tree.
-	 * @param  string  $path  associative descriptor
-	 */
-	public function fetchAssoc(string $path): array
-	{
-		return Nette\Utils\Arrays::associate($this->fetchAll(), $path);
 	}
 }

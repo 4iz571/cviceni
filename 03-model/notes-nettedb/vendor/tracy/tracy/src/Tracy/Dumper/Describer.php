@@ -1,16 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Tracy (https://tracy.nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Tracy\Dumper;
 
-use Tracy;
 use Tracy\Helpers;
+use function array_map, array_slice, class_exists, count, file, get_debug_type, get_resource_type, htmlspecialchars, implode, interface_exists, is_array, is_bool, is_float, is_int, is_object, is_resource, is_string, is_subclass_of, json_encode, method_exists, preg_match, spl_object_id, str_replace, strlen, strpos, strtolower, trim, uksort;
 
 
 /**
@@ -22,7 +20,7 @@ final class Describer
 	public const HiddenValue = '*****';
 
 	// Number.MAX_SAFE_INTEGER
-	private const JsSafeInteger = 1 << 53 - 1;
+	private const JsSafeInteger = (1 << 53) - 1;
 
 	public int $maxDepth = 7;
 	public int $maxLength = 150;
@@ -31,35 +29,40 @@ final class Describer
 	/** @var Value[] */
 	public array $snapshot = [];
 	public bool $debugInfo = false;
+
+	/** @var array<string, int> */
 	public array $keysToHide = [];
 
-	/** @var (callable(string, mixed): bool)|null */
+	/** @var ?(callable(string $key, mixed $value, ?string $class): bool) */
 	public $scrubber;
 
 	public bool $location = false;
 
-	/** @var array<string, callable(resource): array> */
+	/** @var array<string, callable(resource): array<string, mixed>> */
 	public array $resourceExposers = [];
 
-	/** @var array<string, callable(object, Value, self): ?array> */
+	/** @var array<string, callable(object, Value, self): ?array<string, mixed>> */
 	public array $objectExposers = [];
 
 	/** @var array<string, array{bool, string[]}> */
 	public array $enumProperties = [];
 
-	/** @var (int|\stdClass)[] */
+	/** @var array<string, int> */
 	public array $references = [];
 
 
 	public function describe(mixed $var): \stdClass
 	{
-		uksort($this->objectExposers, fn($a, $b): int => $b === '' || (class_exists($a, false) && is_subclass_of($a, $b)) ? -1 : 1);
+		// exposers are sorted from the most specific type to the most general; '' acts as the universal supertype
+		$isSubtypeOf = fn(string $type, string $parent): bool => $parent === ''
+			|| ((class_exists($type, autoload: false) || interface_exists($type, autoload: false)) && is_subclass_of($type, $parent));
+		uksort($this->objectExposers, fn($a, $b): int => $isSubtypeOf($b, $a) <=> $isSubtypeOf($a, $b));
 
 		try {
 			return (object) [
 				'value' => $this->describeVar($var),
 				'snapshot' => $this->snapshot,
-				'location' => $this->location ? self::findLocation() : null,
+				'location' => $this->location ? self::findDumpCallSite() : null,
 			];
 
 		} finally {
@@ -72,12 +75,15 @@ final class Describer
 
 	private function describeVar(mixed $var, int $depth = 0, ?int $refId = null): mixed
 	{
-		if ($var === null || is_bool($var)) {
-			return $var;
-		}
-
-		$m = 'describe' . explode(' ', gettype($var))[0];
-		return $this->$m($var, $depth, $refId);
+		return match (true) {
+			$var === null, is_bool($var) => $var,
+			is_int($var) => $this->describeInteger($var),
+			is_float($var) => $this->describeDouble($var),
+			is_string($var) => $this->describeString($var, $depth),
+			is_array($var) => $this->describeArray($var, $depth, $refId),
+			is_object($var) => $this->describeObject($var, $depth),
+			default => $this->describeResource($var, $depth), // open or closed resource
+		};
 	}
 
 
@@ -91,8 +97,10 @@ final class Describer
 
 	private function describeDouble(float $num): Value|float
 	{
-		if (!is_finite($num)) {
-			return new Value(Value::TypeNumber, (string) $num);
+		if (is_nan($num)) {
+			return new Value(Value::TypeNumber, 'NAN');
+		} elseif (is_infinite($num)) {
+			return new Value(Value::TypeNumber, $num < 0 ? '-INF' : 'INF');
 		}
 
 		$js = json_encode($num);
@@ -115,6 +123,10 @@ final class Describer
 	}
 
 
+	/**
+	 * @param  mixed[]  $arr
+	 * @return Value|array<int, array{mixed, mixed, 2?: int}>
+	 */
 	private function describeArray(array $arr, int $depth = 0, ?int $refId = null): Value|array
 	{
 		if ($refId) {
@@ -178,7 +190,7 @@ final class Describer
 			$rc = $obj instanceof \Closure
 				? new \ReflectionFunction($obj)
 				: new \ReflectionClass($obj);
-			if ($rc->getFileName() && ($editor = Helpers::editorUri($rc->getFileName(), $rc->getStartLine()))) {
+			if ($rc->getFileName() && ($editor = Helpers::editorUri($rc->getFileName(), $rc->getStartLine() ?: null))) {
 				$value->editor = (object) ['file' => $rc->getFileName(), 'line' => $rc->getStartLine(), 'url' => $editor];
 			}
 		}
@@ -187,7 +199,10 @@ final class Describer
 			$value->items = [];
 			$props = $this->exposeObject($obj, $value);
 			foreach ($props ?? [] as $k => $v) {
-				$this->addPropertyTo($value, (string) $k, $v, Value::PropertyVirtual, $this->getReferenceId($props, $k));
+				$described = $this->isSensitive((string) $k, $v, get_debug_type($obj)) // props come from user callbacks (__debugInfo, custom exposers)
+					? new Value(Value::TypeText, self::hideValue($v))
+					: null;
+				$this->addPropertyTo($value, (string) $k, $v, Value::PropertyVirtual, $this->getReferenceId($props ?? [], $k), described: $described);
 			}
 		}
 
@@ -243,11 +258,11 @@ final class Describer
 	): void
 	{
 		if ($value->depth && $this->maxItems && count($value->items ?? []) >= $this->maxItems) {
-			$value->length = ($value->length ?? count($value->items)) + 1;
+			$value->length = ($value->length ?? count($value->items ?? [])) + 1;
 			return;
 		}
 
-		$class ??= $value->value;
+		$class ??= is_string($value->value) ? $value->value : null;
 		$value->items[] = [
 			$this->describeKey($k),
 			$type !== Value::PropertyVirtual && $this->isSensitive($k, $v, $class)
@@ -258,6 +273,7 @@ final class Describer
 	}
 
 
+	/** @return ?array<string, mixed> */
 	private function exposeObject(object $obj, Value $value): ?array
 	{
 		foreach ($this->objectExposers as $type => $dumper) {
@@ -294,9 +310,10 @@ final class Describer
 	}
 
 
+	/** @param class-string  $class */
 	public function describeEnumProperty(string $class, string $property, mixed $value): ?Value
 	{
-		[$set, $constants] = $this->enumProperties["$class::$property"] ?? null;
+		[$set, $constants] = $this->enumProperties["$class::$property"] ?? [false, []];
 		if (!is_int($value)
 			|| !$constants
 			|| !($constants = Helpers::decomposeFlags($value, $set, $constants))
@@ -309,6 +326,7 @@ final class Describer
 	}
 
 
+	/** @param  mixed[]  $arr */
 	public function getReferenceId(array $arr, string|int $key): ?int
 	{
 		return ($rr = \ReflectionReference::fromArrayElement($arr, $key))
@@ -318,43 +336,21 @@ final class Describer
 
 
 	/**
-	 * Finds the location where dump was called. Returns [file, line, code]
+	 * Finds the location where dump() was called and extracts the call's source snippet.
+	 * @return ?array{string, int, string}
 	 */
-	private static function findLocation(): ?array
+	private static function findDumpCallSite(): ?array
 	{
-		foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $item) {
-			if (isset($item['class']) && ($item['class'] === self::class || $item['class'] === Tracy\Dumper::class)) {
-				$location = $item;
-				continue;
-			} elseif (isset($item['function'])) {
-				try {
-					$reflection = isset($item['class'])
-						? new \ReflectionMethod($item['class'], $item['function'])
-						: new \ReflectionFunction($item['function']);
-					if (
-						$reflection->isInternal()
-						|| preg_match('#\s@tracySkipLocation\s#', (string) $reflection->getDocComment())
-					) {
-						$location = $item;
-						continue;
-					}
-				} catch (\ReflectionException) {
-				}
-			}
-
-			break;
+		$location = Helpers::findCallerLocation();
+		if (!$location || !($lines = @file($location['file']))) { // @ - file may not be readable
+			return null;
 		}
 
-		if (isset($location['file'], $location['line']) && @is_file($location['file'])) { // @ - may trigger error
-			$lines = file($location['file']);
-			$line = $lines[$location['line'] - 1];
-			return [
-				$location['file'],
-				$location['line'],
-				trim(preg_match('#\w*dump(er::\w+)?\(.*\)#i', $line, $m) ? $m[0] : $line),
-			];
-		}
-
-		return null;
+		$line = $lines[$location['line'] - 1];
+		return [
+			$location['file'],
+			$location['line'],
+			trim(preg_match('#\w*dump(er::\w+)?\(.*\)#i', $line, $m) ? $m[0] : $line),
+		];
 	}
 }

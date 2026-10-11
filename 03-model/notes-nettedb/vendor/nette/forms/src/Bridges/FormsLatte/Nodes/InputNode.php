@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\FormsLatte\Nodes;
 
@@ -18,7 +16,8 @@ use Latte\Compiler\Tag;
 
 
 /**
- * {input ...}
+ * {input name[:part] [, attributes]}
+ * Renders form control HTML.
  */
 class InputNode extends StatementNode
 {
@@ -48,7 +47,7 @@ class InputNode extends StatementNode
 	public function print(PrintContext $context): string
 	{
 		return $context->format(
-			'echo Nette\Bridges\FormsLatte\Runtime::item(%node, $this->global)->'
+			'echo $this->global->forms->get(%node)->'
 			. ($this->part ? ('getControlPart(%node)') : 'getControl()')
 			. ($this->attributes->items ? '->addAttributes(%2.node)' : '')
 			. ' %3.line;',

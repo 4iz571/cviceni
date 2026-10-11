@@ -27,8 +27,8 @@ class CategoriesRepository{
    * @return Row
    * @throws \Exception
    */
-  public function getCategory(int $id):Row {
-    if ($category=$this->database->fetch('SELECT * FROM category WHERE category_id=?', $id)){
+  public function getCategory(int $id):Row{
+    if($category=$this->database->fetch('SELECT * FROM category WHERE category_id=?', $id)){
       return $category;
     }else{
       throw new \Exception('Category not found.');
@@ -42,18 +42,18 @@ class CategoriesRepository{
    * @param int $limit = 1000
    * @return array
    */
-  public function findCategories(?array $params=null,int $offset=0,int $limit=1000):array {
-    if (isset($params['order'])){
+  public function findCategories(?array $params=null, int $offset=0, int $limit=1000):array{
+    if(isset($params['order'])){
       $order=$params['order'];
       unset($params['order']);
     }
-    if (empty($order)){
+    if(empty($order)){
       $order='title';
     }
-    if (!empty($params)){
-      return $this->database->fetchAll('SELECT * FROM category WHERE ',$params,' ORDER BY ?order LIMIT ? OFFSET ?',[$order=>true],$limit,$offset);
+    if(!empty($params)){
+      return $this->database->fetchAll('SELECT * FROM category WHERE ', $params, ' ORDER BY ?order LIMIT ? OFFSET ?', [$order=>true], $limit, $offset);
     }else{
-      return $this->database->fetchAll('SELECT * FROM category ORDER BY ?order LIMIT ? OFFSET ?',[$order=>true],$limit,$offset);
+      return $this->database->fetchAll('SELECT * FROM category ORDER BY ?order LIMIT ? OFFSET ?', [$order=>true], $limit, $offset);
     }
   }
 
@@ -62,9 +62,9 @@ class CategoriesRepository{
    * @param array|null $params
    * @return int
    */
-  public function findCategoriesCount(?array $params=null):int {
-    if (!empty($params)){
-      return $this->database->fetchField('SELECT count(*) FROM category WHERE ',$params);
+  public function findCategoriesCount(?array $params=null):int{
+    if(!empty($params)){
+      return $this->database->fetchField('SELECT count(*) FROM category WHERE ', $params);
     }else{
       return $this->database->fetchField('SELECT count(*) FROM category');
     }
@@ -75,8 +75,8 @@ class CategoriesRepository{
    * @param array $categoryData
    * @return int - ID vloženého záznamu
    */
-  public function saveNewCategory(array $categoryData):int {
-    $this->database->query('INSERT INTO category ',[
+  public function saveNewCategory(array $categoryData):int{
+    $this->database->query('INSERT INTO category ', [
       'title'=>@$categoryData['title'],
       'description'=>@$categoryData['description'],
     ]);

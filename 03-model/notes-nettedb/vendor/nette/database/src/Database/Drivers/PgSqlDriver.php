@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database\Drivers;
 
 use Nette;
+use function array_map, array_values, explode, implode, str_contains, str_replace, strtr, substr;
 
 
 /**
@@ -17,10 +16,7 @@ use Nette;
  */
 class PgSqlDriver implements Nette\Database\Driver
 {
-	use Nette\SmartObject;
-
-	/** @var Nette\Database\Connection */
-	private $connection;
+	private Nette\Database\Connection $connection;
 
 
 	public function initialize(Nette\Database\Connection $connection, array $options): void
@@ -29,10 +25,16 @@ class PgSqlDriver implements Nette\Database\Driver
 	}
 
 
+	public function isSupported(string $feature): bool
+	{
+		return $feature === self::SupportSequence || $feature === self::SupportSchema;
+	}
+
+
 	public function convertException(\PDOException $e): Nette\Database\DriverException
 	{
 		$code = $e->errorInfo[0] ?? null;
-		if ($code === '0A000' && strpos($e->getMessage(), 'truncate') !== false) {
+		if ($code === '0A000' && str_contains($e->getMessage(), 'truncate')) {
 			return Nette\Database\ForeignKeyConstraintViolationException::from($e);
 
 		} elseif ($code === '23502') {
@@ -44,8 +46,21 @@ class PgSqlDriver implements Nette\Database\Driver
 		} elseif ($code === '23505') {
 			return Nette\Database\UniqueConstraintViolationException::from($e);
 
-		} elseif ($code === '08006') {
-			return Nette\Database\ConnectionException::from($e);
+		} elseif ($code === '23514') {
+			return Nette\Database\CheckConstraintViolationException::from($e);
+
+		} elseif ($code === '40001' || $code === '40P01') {
+			return Nette\Database\DeadlockException::from($e);
+
+		} elseif ($code === '55P03') {
+			return Nette\Database\LockTimeoutException::from($e);
+
+		} elseif (
+			$code === '08003'
+			|| $code === '08006'
+			|| ($code === 'HY000' && str_contains($e->getMessage(), 'server closed the connection unexpectedly'))
+		) {
+			return Nette\Database\ConnectionLostException::from($e);
 
 		} else {
 			return Nette\Database\DriverException::from($e);
@@ -106,21 +121,30 @@ class PgSqlDriver implements Nette\Database\Driver
 	public function getTables(): array
 	{
 		$tables = [];
-		foreach ($this->connection->query("
+		$rows = $this->connection->query(<<<'X'
 			SELECT DISTINCT ON (c.relname)
 				c.relname::varchar AS name,
 				c.relkind IN ('v', 'm') AS view,
-				n.nspname::varchar || '.' || c.relname::varchar AS \"fullName\"
+				n.nspname::varchar || '.' || c.relname::varchar AS "fullName",
+				coalesce(d.description, '') AS comment
 			FROM
 				pg_catalog.pg_class AS c
 				JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+				LEFT JOIN pg_catalog.pg_description d ON d.objoid = c.oid AND d.objsubid = 0
 			WHERE
 				c.relkind IN ('r', 'v', 'm', 'p')
 				AND n.nspname = ANY (pg_catalog.current_schemas(FALSE))
 			ORDER BY
 				c.relname
-		") as $row) {
-			$tables[] = (array) $row;
+			X);
+
+		while ($row = $rows->fetch()) {
+			$tables[] = [
+				'name' => (string) $row['name'],
+				'view' => (bool) $row['view'],
+				'fullName' => (string) $row['fullName'],
+				'comment' => (string) $row['comment'],
+			];
 		}
 
 		return $tables;
@@ -130,17 +154,23 @@ class PgSqlDriver implements Nette\Database\Driver
 	public function getColumns(string $table): array
 	{
 		$columns = [];
-		foreach ($this->connection->query("
+		$rows = $this->connection->query(<<<'X'
 			SELECT
 				a.attname::varchar AS name,
 				c.relname::varchar AS table,
 				upper(t.typname) AS nativetype,
-				CASE WHEN a.atttypmod = -1 THEN NULL ELSE a.atttypmod -4 END AS size,
+				CASE
+					WHEN a.atttypid IN (1700, 1231) THEN ((a.atttypmod - 4) >> 16) & 65535  -- precision for numeric/decimal
+					WHEN a.atttypmod > 0 THEN a.atttypmod - 4  -- length for varchar etc.
+					WHEN t.typlen > 0 THEN t.typlen  -- length for fixed-length types
+					ELSE NULL
+				END AS size,
 				NOT (a.attnotnull OR t.typtype = 'd' AND t.typnotnull) AS nullable,
 				pg_catalog.pg_get_expr(ad.adbin, 'pg_catalog.pg_attrdef'::regclass)::varchar AS default,
 				coalesce(co.contype = 'p' AND (seq.relname IS NOT NULL OR strpos(pg_catalog.pg_get_expr(ad.adbin, ad.adrelid), 'nextval') = 1), FALSE) AS autoincrement,
 				coalesce(co.contype = 'p', FALSE) AS primary,
-				coalesce(seq.relname, substring(pg_catalog.pg_get_expr(ad.adbin, 'pg_catalog.pg_attrdef'::regclass) from 'nextval[(]''\"?([^''\"]+)')) AS sequence
+				coalesce(col_description(c.oid, a.attnum)::varchar, '') AS comment,
+				coalesce(seq.relname, substring(pg_catalog.pg_get_expr(ad.adbin, 'pg_catalog.pg_attrdef'::regclass) from 'nextval[(]''"?([^''"]+)')) AS sequence
 			FROM
 				pg_catalog.pg_attribute AS a
 				JOIN pg_catalog.pg_class AS c ON a.attrelid = c.oid
@@ -151,17 +181,27 @@ class PgSqlDriver implements Nette\Database\Driver
 				LEFT JOIN pg_catalog.pg_constraint AS co ON co.connamespace = c.relnamespace AND contype = 'p' AND co.conrelid = c.oid AND a.attnum = ANY(co.conkey)
 			WHERE
 				c.relkind IN ('r', 'v', 'm', 'p')
-				AND c.oid = {$this->connection->quote($this->delimiteFQN($table))}::regclass
+				AND c.oid = ?::regclass
 				AND a.attnum > 0
 				AND NOT a.attisdropped
 			ORDER BY
 				a.attnum
-		") as $row) {
-			$column = (array) $row;
-			$column['vendor'] = $column;
-			unset($column['sequence']);
+			X, $this->delimiteFQN($table));
 
-			$columns[] = $column;
+		while ($row = $rows->fetch()) {
+			$vendor = (array) $row;
+			$columns[] = [
+				'name' => (string) $row['name'],
+				'table' => (string) $row['table'],
+				'nativetype' => (string) $row['nativetype'],
+				'size' => $row['size'] !== null ? (int) $row['size'] : null,
+				'nullable' => (bool) $row['nullable'],
+				'default' => $row['default'],
+				'autoincrement' => (bool) $row['autoincrement'],
+				'primary' => (bool) $row['primary'],
+				'comment' => (string) $row['comment'],
+				'vendor' => $vendor,
+			];
 		}
 
 		return $columns;
@@ -171,7 +211,7 @@ class PgSqlDriver implements Nette\Database\Driver
 	public function getIndexes(string $table): array
 	{
 		$indexes = [];
-		foreach ($this->connection->query("
+		$rows = $this->connection->query(<<<'X'
 			SELECT
 				c2.relname::varchar AS name,
 				i.indisunique AS unique,
@@ -184,13 +224,18 @@ class PgSqlDriver implements Nette\Database\Driver
 				LEFT JOIN pg_catalog.pg_attribute AS a ON c1.oid = a.attrelid AND a.attnum = ANY(i.indkey)
 			WHERE
 				c1.relkind IN ('r', 'p')
-				AND c1.oid = {$this->connection->quote($this->delimiteFQN($table))}::regclass
-		") as $row) {
-			$id = $row['name'];
-			$indexes[$id]['name'] = $id;
-			$indexes[$id]['unique'] = $row['unique'];
-			$indexes[$id]['primary'] = $row['primary'];
-			$indexes[$id]['columns'][] = $row['column'];
+				AND c1.oid = ?::regclass
+			X, $this->delimiteFQN($table));
+
+		while ($row = $rows->fetch()) {
+			$id = (string) $row['name'];
+			$indexes[$id] ??= [
+				'name' => $id,
+				'unique' => (bool) $row['unique'],
+				'primary' => (bool) $row['primary'],
+				'columns' => [],
+			];
+			$indexes[$id]['columns'][] = (string) $row['column'];
 		}
 
 		return array_values($indexes);
@@ -199,8 +244,9 @@ class PgSqlDriver implements Nette\Database\Driver
 
 	public function getForeignKeys(string $table): array
 	{
-		/* Does't work with multicolumn foreign keys */
-		return $this->connection->query("
+		/* Doesn't work with multi-column foreign keys */
+		$keys = [];
+		$rows = $this->connection->query(<<<'X'
 			SELECT
 				co.conname::varchar AS name,
 				al.attname::varchar AS local,
@@ -215,9 +261,20 @@ class PgSqlDriver implements Nette\Database\Driver
 				JOIN pg_catalog.pg_attribute AS af ON af.attrelid = cf.oid AND af.attnum = co.confkey[1]
 			WHERE
 				co.contype = 'f'
-				AND cl.oid = {$this->connection->quote($this->delimiteFQN($table))}::regclass
+				AND cl.oid = ?::regclass
 				AND nf.nspname = ANY (pg_catalog.current_schemas(FALSE))
-		")->fetchAll();
+			X, $this->delimiteFQN($table));
+
+		while ($row = $rows->fetch()) {
+			$keys[] = [
+				'name' => (string) $row['name'],
+				'local' => (string) $row['local'],
+				'table' => (string) $row['table'],
+				'foreign' => (string) $row['foreign'],
+			];
+		}
+
+		return $keys;
 	}
 
 
@@ -225,17 +282,8 @@ class PgSqlDriver implements Nette\Database\Driver
 	{
 		static $cache;
 		$item = &$cache[$statement->queryString];
-		if ($item === null) {
-			$item = Nette\Database\Helpers::detectTypes($statement);
-		}
-
+		$item ??= Nette\Database\Helpers::detectTypes($statement);
 		return $item;
-	}
-
-
-	public function isSupported(string $item): bool
-	{
-		return $item === self::SUPPORT_SEQUENCE || $item === self::SUPPORT_SUBSELECT || $item === self::SUPPORT_SCHEMA;
 	}
 
 
@@ -244,6 +292,6 @@ class PgSqlDriver implements Nette\Database\Driver
 	 */
 	private function delimiteFQN(string $name): string
 	{
-		return implode('.', array_map([$this, 'delimite'], explode('.', $name)));
+		return implode('.', array_map($this->delimite(...), explode('.', $name)));
 	}
 }

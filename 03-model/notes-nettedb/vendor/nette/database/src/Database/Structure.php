@@ -1,44 +1,37 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database;
 
 use Nette;
+use function array_flip, count, hash, is_array, reset, strlen, strtolower, uksort, usort;
 
 
 /**
- * Cached reflection of database structure.
+ * Provides database structure metadata with caching.
  */
 class Structure implements IStructure
 {
-	use Nette\SmartObject;
+	protected readonly Nette\Caching\Cache $cache;
 
-	/** @var Connection */
-	protected $connection;
-
-	/** @var Nette\Caching\Cache */
-	protected $cache;
-
-	/** @var array */
-	protected $structure;
-
-	/** @var bool */
-	protected $isRebuilt = false;
+	/** @var array{tables: list<array{name: string, fullName?: string, view: bool}>, columns: array<string, list<array<string, mixed>>>, primary: array<string, string|list<string>|null>, aliases: array<string, string>, hasMany: array<string, array<string, list<string>>>, belongsTo: array<string, array<string, string>>} */
+	protected array $structure;
+	protected bool $isRebuilt = false;
 
 
-	public function __construct(Connection $connection, Nette\Caching\IStorage $cacheStorage)
-	{
-		$this->connection = $connection;
-		$this->cache = new Nette\Caching\Cache($cacheStorage, 'Nette.Database.Structure.' . md5($this->connection->getDsn()));
+	public function __construct(
+		protected readonly Connection $connection,
+		Nette\Caching\Storage $cacheStorage,
+	) {
+		$this->cache = new Nette\Caching\Cache($cacheStorage, 'Nette.Database.Structure.' . hash('xxh128', $connection->getDsn()));
 	}
 
 
+	/** @return list<array{name: string, fullName?: string, view: bool}> */
 	public function getTables(): array
 	{
 		$this->needStructure();
@@ -56,9 +49,9 @@ class Structure implements IStructure
 
 
 	/**
-	 * @return string|string[]|null
+	 * @return string|list<string>|null
 	 */
-	public function getPrimaryKey(string $table)
+	public function getPrimaryKey(string $table): string|array|null
 	{
 		$this->needStructure();
 		$table = $this->resolveFQTableName($table);
@@ -66,6 +59,9 @@ class Structure implements IStructure
 	}
 
 
+	/**
+	 * Returns the name of the autoincrement primary key column, or null if none exists.
+	 */
 	public function getPrimaryAutoincrementKey(string $table): ?string
 	{
 		$primaryKey = $this->getPrimaryKey($table);
@@ -96,12 +92,15 @@ class Structure implements IStructure
 	}
 
 
+	/**
+	 * Returns the sequence name for the primary key column, or null if not applicable.
+	 */
 	public function getPrimaryKeySequence(string $table): ?string
 	{
 		$this->needStructure();
 		$table = $this->resolveFQTableName($table);
 
-		if (!$this->connection->getDriver()->isSupported(Driver::SUPPORT_SEQUENCE)) {
+		if (!$this->connection->getDriver()->isSupported(Driver::SupportSequence)) {
 			return null;
 		}
 
@@ -121,44 +120,27 @@ class Structure implements IStructure
 	}
 
 
-	public function getHasManyReference(string $table, ?string $targetTable = null): ?array
+	/** @return array<string, list<string>>  referencing table name => list of referencing columns */
+	public function getHasManyReference(string $table): array
 	{
 		$this->needStructure();
 		$table = $this->resolveFQTableName($table);
-
-		if ($targetTable) {
-			$targetTable = $this->resolveFQTableName($targetTable);
-			foreach ($this->structure['hasMany'][$table] as $key => $value) {
-				if (strtolower($key) === $targetTable) {
-					return $this->structure['hasMany'][$table][$key];
-				}
-			}
-
-			return null;
-
-		} else {
-			return $this->structure['hasMany'][$table] ?? [];
-		}
+		return $this->structure['hasMany'][$table] ?? [];
 	}
 
 
-	public function getBelongsToReference(string $table, ?string $column = null): ?array
+	/** @return array<string, string>  local column name => referenced table name */
+	public function getBelongsToReference(string $table): array
 	{
 		$this->needStructure();
 		$table = $this->resolveFQTableName($table);
-
-		if ($column) {
-			$column = strtolower($column);
-			return isset($this->structure['belongsTo'][$table][$column])
-				? [$this->structure['belongsTo'][$table][$column], $column]
-				: null;
-
-		} else {
-			return $this->structure['belongsTo'][$table] ?? [];
-		}
+		return $this->structure['belongsTo'][$table] ?? [];
 	}
 
 
+	/**
+	 * Rebuilds structure cache.
+	 */
 	public function rebuild(): void
 	{
 		$this->structure = $this->loadStructure();
@@ -166,27 +148,37 @@ class Structure implements IStructure
 	}
 
 
+	/**
+	 * Checks whether the structure has been rebuilt from the database during this request.
+	 */
 	public function isRebuilt(): bool
 	{
 		return $this->isRebuilt;
 	}
 
 
+	/**
+	 * Ensures the structure is loaded, from cache or from the database.
+	 */
 	protected function needStructure(): void
 	{
-		if ($this->structure !== null) {
+		if (isset($this->structure)) {
 			return;
 		}
 
-		$this->structure = $this->cache->load('structure', \Closure::fromCallable([$this, 'loadStructure']));
+		$this->structure = $this->cache->load('structure', $this->loadStructure(...));
 	}
 
 
+	/**
+	 * Loads complete structure from database.
+	 * @return array{tables: list<array{name: string, fullName?: string, view: bool}>, columns: array<string, list<array<string, mixed>>>, primary: array<string, string|list<string>|null>, aliases: array<string, string>, hasMany: array<string, array<string, list<string>>>, belongsTo: array<string, array<string, string>>}
+	 */
 	protected function loadStructure(): array
 	{
 		$driver = $this->connection->getDriver();
 
-		$structure = [];
+		$structure = ['tables' => [], 'columns' => [], 'primary' => [], 'aliases' => [], 'hasMany' => [], 'belongsTo' => []];
 		$structure['tables'] = $driver->getTables();
 
 		foreach ($structure['tables'] as $tablePair) {
@@ -207,9 +199,7 @@ class Structure implements IStructure
 
 		if (isset($structure['hasMany'])) {
 			foreach ($structure['hasMany'] as &$table) {
-				uksort($table, function ($a, $b): int {
-					return strlen($a) <=> strlen($b);
-				});
+				uksort($table, fn(string $a, string $b): int => strlen($a) <=> strlen($b));
 			}
 		}
 
@@ -219,7 +209,11 @@ class Structure implements IStructure
 	}
 
 
-	protected function analyzePrimaryKey(array $columns)
+	/**
+	 * @param  list<array{name: string, primary: bool}>  $columns
+	 * @return string|list<string>|null
+	 */
+	protected function analyzePrimaryKey(array $columns): string|array|null
 	{
 		$primary = [];
 		foreach ($columns as $column) {
@@ -238,21 +232,21 @@ class Structure implements IStructure
 	}
 
 
+	/** @param array<string, mixed> $structure */
 	protected function analyzeForeignKeys(array &$structure, string $table): void
 	{
 		$lowerTable = strtolower($table);
 
 		$foreignKeys = $this->connection->getDriver()->getForeignKeys($table);
 
+		/** @var array<string, int> $fksColumnsCounts */
 		$fksColumnsCounts = [];
 		foreach ($foreignKeys as $foreignKey) {
 			$tmp = &$fksColumnsCounts[$foreignKey['name']];
 			$tmp++;
 		}
 
-		usort($foreignKeys, function ($a, $b) use ($fksColumnsCounts): int {
-			return $fksColumnsCounts[$b['name']] <=> $fksColumnsCounts[$a['name']];
-		});
+		usort($foreignKeys, fn($a, $b): int => $fksColumnsCounts[$b['name']] <=> $fksColumnsCounts[$a['name']]);
 
 		foreach ($foreignKeys as $row) {
 			$structure['belongsTo'][$lowerTable][$row['local']] = $row['table'];
@@ -260,13 +254,14 @@ class Structure implements IStructure
 		}
 
 		if (isset($structure['belongsTo'][$lowerTable])) {
-			uksort($structure['belongsTo'][$lowerTable], function ($a, $b): int {
-				return strlen($a) <=> strlen($b);
-			});
+			uksort($structure['belongsTo'][$lowerTable], fn(string $a, string $b): int => strlen($a) <=> strlen($b));
 		}
 	}
 
 
+	/**
+	 * Returns normalized table name.
+	 */
 	protected function resolveFQTableName(string $table): string
 	{
 		$name = strtolower($table);

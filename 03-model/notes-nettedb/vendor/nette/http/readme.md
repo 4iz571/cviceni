@@ -35,7 +35,7 @@ Installation
 composer require nette/http
 ```
 
-It requires PHP version 7.2 and supports PHP up to 8.3.
+It requires PHP version 8.3 and supports PHP up to 8.5.
 
 
 HTTP Request
@@ -168,10 +168,6 @@ Is it an AJAX request?
 getRemoteAddress(): ?string
 ---------------------------
 Returns the user's IP address. You may need to [set up a proxy|configuring#HTTP proxy] for proper functionality.
-
-getRemoteHost(): ?string
-------------------------
-Returns DNS translation of the user's IP address. You may need to [set up a proxy|configuring#HTTP proxy] for proper functionality.
 
 getRawBody(): ?string
 ---------------------
@@ -307,7 +303,7 @@ Sets the expiration of the HTTP document using the `Cache-Control` and `Expires`
 $httpResponse->setExpiration('1 hour');
 ```
 
-setCookie(string $name, string $value, $time, string $path = null, string $domain = null, bool $secure = null, bool $httpOnly = null, string $sameSite = null)
+setCookie(string $name, string $value, string|int|\DateTimeInterface|null $expire, string $path = null, string $domain = null, bool $secure = null, bool $httpOnly = null, string $sameSite = null)
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 Sends a cookie. The default values ​​of the parameters are:
 - `$path` with scope to all directories (`'/'`)
@@ -316,7 +312,7 @@ Sends a cookie. The default values ​​of the parameters are:
 - `$httpOnly` is true, so the cookie is inaccessible to JavaScript
 - `$sameSite` is null, so the flag is not specified
 
-The time can be specified as a string or the number of seconds.
+The `$expire` parameter can be specified as a string, an object implementing `DateTimeInterface`, or the number of seconds.
 
 ```php
 $httpResponse->setCookie('lang', 'en', '100 days');

@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database\Drivers;
 
 use Nette;
+use function array_values, str_replace, strtr;
 
 
 /**
@@ -17,24 +16,31 @@ use Nette;
  */
 class SqlsrvDriver implements Nette\Database\Driver
 {
-	use Nette\SmartObject;
-
-	/** @var Nette\Database\Connection */
-	private $connection;
-
-	/** @var string */
-	private $version;
+	private Nette\Database\Connection $connection;
 
 
 	public function initialize(Nette\Database\Connection $connection, array $options): void
 	{
 		$this->connection = $connection;
-		$this->version = $connection->getPdo()->getAttribute(\PDO::ATTR_SERVER_VERSION);
+	}
+
+
+	public function isSupported(string $feature): bool
+	{
+		return false;
 	}
 
 
 	public function convertException(\PDOException $e): Nette\Database\DriverException
 	{
+		$code = $e->errorInfo[1] ?? null;
+		if ($code === 1205) {
+			return Nette\Database\DeadlockException::from($e);
+
+		} elseif ($code === 1222) {
+			return Nette\Database\LockTimeoutException::from($e);
+		}
+
 		return Nette\Database\DriverException::from($e);
 	}
 
@@ -75,16 +81,6 @@ class SqlsrvDriver implements Nette\Database\Driver
 		if ($limit < 0 || $offset < 0) {
 			throw new Nette\InvalidArgumentException('Negative offset or limit.');
 
-		} elseif (version_compare($this->version, '11', '<')) { // 11 == SQL Server 2012
-			if ($offset) {
-				throw new Nette\NotSupportedException('Offset is not supported by this database.');
-
-			} elseif ($limit !== null) {
-				$sql = preg_replace('#^\s*(SELECT(\s+DISTINCT|\s+ALL)?|UPDATE|DELETE)#i', '$0 TOP ' . $limit, $sql, 1, $count);
-				if (!$count) {
-					throw new Nette\InvalidArgumentException('SQL query must begin with SELECT, UPDATE or DELETE command.');
-				}
-			}
 		} elseif ($limit !== null || $offset) {
 			// requires ORDER BY, see https://technet.microsoft.com/en-us/library/gg699618(v=sql.110).aspx
 			$sql .= ' OFFSET ' . (int) $offset . ' ROWS '
@@ -99,21 +95,29 @@ class SqlsrvDriver implements Nette\Database\Driver
 	public function getTables(): array
 	{
 		$tables = [];
-		foreach ($this->connection->query("
+		$rows = $this->connection->query(<<<'X'
 			SELECT
-				name,
-				CASE type
+				o.name,
+				CASE o.type
 					WHEN 'U' THEN 0
 					WHEN 'V' THEN 1
-				END AS [view]
+				END AS [view],
+				CAST(p.value AS VARCHAR(255)) AS comment
 			FROM
-				sys.objects
+				sys.objects o
+			LEFT JOIN
+				sys.extended_properties p ON p.major_id = o.object_id
+				AND p.minor_id = 0
+				AND p.name = 'MS_Description'
 			WHERE
-				type IN ('U', 'V')
-		") as $row) {
+				o.type IN ('U', 'V')
+			X);
+
+		while ($row = $rows->fetch()) {
 			$tables[] = [
-				'name' => $row->name,
-				'view' => (bool) $row->view,
+				'name' => (string) $row['name'],
+				'view' => (bool) $row['view'],
+				'comment' => (string) ($row['comment'] ?? ''),
 			];
 		}
 
@@ -124,36 +128,52 @@ class SqlsrvDriver implements Nette\Database\Driver
 	public function getColumns(string $table): array
 	{
 		$columns = [];
-		foreach ($this->connection->query("
+		$rows = $this->connection->query(<<<'X'
 			SELECT
 				c.name AS name,
 				o.name AS [table],
 				UPPER(t.name) AS nativetype,
-				NULL AS size,
+				CASE
+					WHEN c.precision <> 0 THEN c.precision
+					WHEN c.max_length <> -1 THEN c.max_length
+					ELSE NULL
+				END AS size,
 				c.is_nullable AS nullable,
 				OBJECT_DEFINITION(c.default_object_id) AS [default],
 				c.is_identity AS autoincrement,
 				CASE WHEN i.index_id IS NULL
 					THEN 0
 					ELSE 1
-				END AS [primary]
+				END AS [primary],
+				CAST(ep.value AS VARCHAR(255)) AS comment
 			FROM
 				sys.columns c
 				JOIN sys.objects o ON c.object_id = o.object_id
 				LEFT JOIN sys.types t ON c.user_type_id = t.user_type_id
 				LEFT JOIN sys.key_constraints k ON o.object_id = k.parent_object_id AND k.type = 'PK'
 				LEFT JOIN sys.index_columns i ON k.parent_object_id = i.object_id AND i.index_id = k.unique_index_id AND i.column_id = c.column_id
+				LEFT JOIN sys.extended_properties ep ON
+					ep.major_id = c.object_id AND
+					ep.minor_id = c.column_id AND
+					ep.name = 'MS_Description'
 			WHERE
 				o.type IN ('U', 'V')
-				AND o.name = {$this->connection->quote($table)}
-		") as $row) {
-			$row = (array) $row;
-			$row['vendor'] = $row;
-			$row['nullable'] = (bool) $row['nullable'];
-			$row['autoincrement'] = (bool) $row['autoincrement'];
-			$row['primary'] = (bool) $row['primary'];
+				AND o.name = ?
+			X, $table);
 
-			$columns[] = $row;
+		while ($row = $rows->fetch()) {
+			$columns[] = [
+				'name' => (string) $row['name'],
+				'table' => (string) $row['table'],
+				'nativetype' => (string) $row['nativetype'],
+				'size' => $row['size'] !== null ? (int) $row['size'] : null,
+				'nullable' => (bool) $row['nullable'],
+				'default' => $row['default'],
+				'autoincrement' => (bool) $row['autoincrement'],
+				'primary' => (bool) $row['primary'],
+				'comment' => (string) ($row['comment'] ?? ''),
+				'vendor' => (array) $row,
+			];
 		}
 
 		return $columns;
@@ -163,7 +183,7 @@ class SqlsrvDriver implements Nette\Database\Driver
 	public function getIndexes(string $table): array
 	{
 		$indexes = [];
-		foreach ($this->connection->query("
+		$rows = $this->connection->query(<<<'X'
 			SELECT
 				i.name AS name,
 				CASE WHEN i.is_unique = 1 OR i.is_unique_constraint = 1
@@ -178,16 +198,21 @@ class SqlsrvDriver implements Nette\Database\Driver
 				JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
 				JOIN sys.tables t ON i.object_id = t.object_id
 			WHERE
-				t.name = {$this->connection->quote($table)}
+				t.name = ?
 			ORDER BY
 				i.index_id,
 				ic.index_column_id
-		") as $row) {
-			$id = $row['name'];
-			$indexes[$id]['name'] = $id;
-			$indexes[$id]['unique'] = (bool) $row['unique'];
-			$indexes[$id]['primary'] = (bool) $row['primary'];
-			$indexes[$id]['columns'][] = $row['column'];
+			X, $table);
+
+		while ($row = $rows->fetch()) {
+			$id = (string) $row['name'];
+			$indexes[$id] ??= [
+				'name' => $id,
+				'unique' => (bool) $row['unique'],
+				'primary' => (bool) $row['primary'],
+				'columns' => [],
+			];
+			$indexes[$id]['columns'][] = (string) $row['column'];
 		}
 
 		return array_values($indexes);
@@ -196,14 +221,13 @@ class SqlsrvDriver implements Nette\Database\Driver
 
 	public function getForeignKeys(string $table): array
 	{
-		// Does't work with multicolumn foreign keys
 		$keys = [];
-		foreach ($this->connection->query("
+		$rows = $this->connection->query(<<<'X'
 			SELECT
 				fk.name AS name,
 				cl.name AS local,
 				tf.name AS [table],
-				cf.name AS [column]
+				cf.name AS [foreign]
 			FROM
 				sys.foreign_keys fk
 				JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
@@ -212,12 +236,21 @@ class SqlsrvDriver implements Nette\Database\Driver
 				JOIN sys.tables tf ON fkc.referenced_object_id = tf.object_id
 				JOIN sys.columns cf ON fkc.referenced_object_id = cf.object_id AND fkc.referenced_column_id = cf.column_id
 			WHERE
-				tl.name = {$this->connection->quote($table)}
-		") as $row) {
-			$keys[$row->name] = (array) $row;
+				tl.name = ?
+			ORDER BY
+				fk.name, fkc.constraint_column_id
+			X, $table);
+
+		while ($row = $rows->fetch()) {
+			$keys[] = [
+				'name' => (string) $row['name'],
+				'local' => (string) $row['local'],
+				'table' => (string) $row['table'],
+				'foreign' => (string) $row['foreign'],
+			];
 		}
 
-		return array_values($keys);
+		return $keys;
 	}
 
 
@@ -238,11 +271,5 @@ class SqlsrvDriver implements Nette\Database\Driver
 		}
 
 		return $types;
-	}
-
-
-	public function isSupported(string $item): bool
-	{
-		return $item === self::SUPPORT_SUBSELECT;
 	}
 }

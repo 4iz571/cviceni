@@ -1,42 +1,38 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database\Table;
 
 use Nette;
+use function array_intersect_key, array_key_exists, array_keys, implode, is_array, iterator_to_array;
 
 
 /**
- * Single row representation.
+ * Represents database row with support for relations.
  * ActiveRow is based on the great library NotORM http://www.notorm.com written by Jakub Vrana.
+ * @implements \IteratorAggregate<string, mixed>
  */
 class ActiveRow implements \IteratorAggregate, IRow
 {
-	/** @var Selection */
-	private $table;
-
-	/** @var array of row data */
-	private $data;
-
-	/** @var bool */
-	private $dataRefreshed = false;
+	private bool $dataRefreshed = false;
 
 
-	public function __construct(array $data, Selection $table)
-	{
-		$this->data = $data;
-		$this->table = $table;
+	public function __construct(
+		/** @var array<string, mixed> */
+		private array $data,
+		/** @var Selection<ActiveRow> */
+		private Selection $table,
+	) {
 	}
 
 
 	/**
 	 * @internal
+	 * @param Selection<ActiveRow> $table
 	 */
 	public function setTable(Selection $table): void
 	{
@@ -46,6 +42,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 	/**
 	 * @internal
+	 * @return Selection<ActiveRow>
 	 */
 	public function getTable(): Selection
 	{
@@ -53,21 +50,19 @@ class ActiveRow implements \IteratorAggregate, IRow
 	}
 
 
-	public function __toString()
+	public function getExplorer(): Nette\Database\Explorer
 	{
-		try {
-			return (string) $this->getPrimary();
-		} catch (\Throwable $e) {
-			if (func_num_args() || PHP_VERSION_ID >= 70400) {
-				throw $e;
-			}
-
-			trigger_error('Exception in ' . __METHOD__ . "(): {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}", E_USER_ERROR);
-			return '';
-		}
+		return $this->table->getExplorer();
 	}
 
 
+	public function __toString(): string
+	{
+		return (string) $this->getPrimary();
+	}
+
+
+	/** @return array<string, mixed> */
 	public function toArray(): array
 	{
 		$this->accessColumn(null);
@@ -76,10 +71,9 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 
 	/**
-	 * Returns primary key value.
-	 * @return mixed possible int, string, array, object (Nette\Utils\DateTime)
+	 * Returns primary key value, or an array of values for composite primary keys.
 	 */
-	public function getPrimary(bool $throw = true)
+	public function getPrimary(bool $throw = true): mixed
 	{
 		$primary = $this->table->getPrimary($throw);
 		if ($primary === null) {
@@ -113,7 +107,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 
 	/**
-	 * Returns row signature (composition of primary keys)
+	 * Returns row signature (composition of primary keys).
 	 */
 	public function getSignature(bool $throw = true): string
 	{
@@ -122,8 +116,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 
 	/**
-	 * Returns referenced row.
-	 * @return self|null if the row does not exist
+	 * Returns referenced row, or null if the row does not exist.
 	 */
 	public function ref(string $key, ?string $throughColumn = null): ?self
 	{
@@ -137,11 +130,12 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 
 	/**
-	 * Returns referencing rows.
+	 * Returns referencing rows collection.
+	 * @return GroupedSelection<ActiveRow>
 	 */
 	public function related(string $key, ?string $throughColumn = null): GroupedSelection
 	{
-		$groupedSelection = $this->table->getReferencingTable($key, $throughColumn, $this[$this->table->getPrimary()]);
+		$groupedSelection = $this->table->getReferencingTable($key, $throughColumn, $this->__get($this->table->getPrimary()));
 		if (!$groupedSelection) {
 			throw new Nette\MemberAccessException("No reference found for \${$this->table->getName()}->related($key).");
 		}
@@ -151,7 +145,8 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 
 	/**
-	 * Updates row.
+	 * Updates row data and refreshes the instance from database. Returns true if the row was changed.
+	 * @param  iterable<string, mixed>  $data
 	 */
 	public function update(iterable $data): bool
 	{
@@ -187,8 +182,8 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 
 	/**
-	 * Deletes row.
-	 * @return int number of affected rows
+	 * Deletes the row from database.
+	 * @return int  number of affected rows
 	 */
 	public function delete(): int
 	{
@@ -196,7 +191,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 			->wherePrimary($this->getPrimary())
 			->delete();
 
-		if ($res > 0 && ($signature = $this->getSignature(false))) {
+		if ($res > 0 && ($signature = $this->getSignature(throw: false))) {
 			unset($this->table[$signature]);
 		}
 
@@ -207,6 +202,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 	/********************* interface IteratorAggregate ****************d*g**/
 
 
+	/** @return \ArrayIterator<string, mixed> */
 	public function getIterator(): \Iterator
 	{
 		$this->accessColumn(null);
@@ -217,60 +213,42 @@ class ActiveRow implements \IteratorAggregate, IRow
 	/********************* interface ArrayAccess & magic accessors ****************d*g**/
 
 
-	/**
-	 * Stores value in column.
-	 * @param  string  $column
-	 * @param  mixed  $value
-	 */
 	public function offsetSet($column, $value): void
 	{
 		$this->__set($column, $value);
 	}
 
 
-	/**
-	 * Returns value of column.
-	 * @param  string  $column
-	 * @return mixed
-	 */
-	#[\ReturnTypeWillChange]
-	public function offsetGet($column)
+	public function offsetGet($column): mixed
 	{
 		return $this->__get($column);
 	}
 
 
-	/**
-	 * Tests if column exists.
-	 * @param  string  $column
-	 */
 	public function offsetExists($column): bool
 	{
 		return $this->__isset($column);
 	}
 
 
-	/**
-	 * Removes column from data.
-	 * @param  string  $column
-	 */
 	public function offsetUnset($column): void
 	{
 		$this->__unset($column);
 	}
 
 
-	public function __set($column, $value)
+	public function __set(string $column, mixed $value): void
 	{
 		throw new Nette\DeprecatedException('ActiveRow is read-only; use update() method instead.');
 	}
 
 
 	/**
+	 * Returns column value, or a referenced row if the key matches a relationship.
 	 * @return ActiveRow|mixed
-	 * @throws Nette\MemberAccessException
+	 * @throws Nette\MemberAccessException  if the column does not exist and no relationship is found
 	 */
-	public function &__get(string $key)
+	public function &__get(string $key): mixed
 	{
 		if ($this->accessColumn($key)) {
 			return $this->data[$key];
@@ -278,7 +256,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 		$referenced = $this->table->getReferencedTable($this, $key);
 		if ($referenced !== false) {
-			$this->accessColumn($key, false);
+			$this->accessColumn($key, selectColumn: false);
 			return $referenced;
 		}
 
@@ -288,7 +266,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 	}
 
 
-	public function __isset($key)
+	public function __isset(string $key): bool
 	{
 		if ($this->accessColumn($key)) {
 			return isset($this->data[$key]);
@@ -296,7 +274,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 
 		$referenced = $this->table->getReferencedTable($this, $key);
 		if ($referenced !== false) {
-			$this->accessColumn($key, false);
+			$this->accessColumn($key, selectColumn: false);
 			return (bool) $referenced;
 		}
 
@@ -305,16 +283,14 @@ class ActiveRow implements \IteratorAggregate, IRow
 	}
 
 
-	public function __unset($key)
+	public function __unset(string $key): void
 	{
 		throw new Nette\DeprecatedException('ActiveRow is read-only.');
 	}
 
 
-	/**
-	 * @internal
-	 */
-	public function accessColumn($key, bool $selectColumn = true): bool
+	/** @internal */
+	public function accessColumn(?string $key, bool $selectColumn = true): bool
 	{
 		if ($this->table->accessColumn($key, $selectColumn) && !$this->dataRefreshed) {
 			if (!isset($this->table[$this->getSignature()])) {
@@ -325,6 +301,7 @@ class ActiveRow implements \IteratorAggregate, IRow
 			$this->dataRefreshed = true;
 		}
 
+		$key ??= '';
 		return isset($this->data[$key]) || array_key_exists($key, $this->data);
 	}
 

@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database\Drivers;
 
 use Nette;
+use function in_array, str_replace;
 
 
 /**
@@ -17,13 +16,8 @@ use Nette;
  */
 class OciDriver implements Nette\Database\Driver
 {
-	use Nette\SmartObject;
-
-	/** @var Nette\Database\Connection */
-	private $connection;
-
-	/** @var string  Datetime format */
-	private $fmtDateTime;
+	private Nette\Database\Connection $connection;
+	private string $fmtDateTime;
 
 
 	public function initialize(Nette\Database\Connection $connection, array $options): void
@@ -33,17 +27,26 @@ class OciDriver implements Nette\Database\Driver
 	}
 
 
+	public function isSupported(string $feature): bool
+	{
+		return $feature === self::SupportSequence;
+	}
+
+
 	public function convertException(\PDOException $e): Nette\Database\DriverException
 	{
 		$code = $e->errorInfo[1] ?? null;
-		if (in_array($code, [1, 2299, 38911], true)) {
+		if (in_array($code, [1, 2299, 38911], strict: true)) {
 			return Nette\Database\UniqueConstraintViolationException::from($e);
 
-		} elseif (in_array($code, [1400], true)) {
+		} elseif (in_array($code, [1400], strict: true)) {
 			return Nette\Database\NotNullConstraintViolationException::from($e);
 
-		} elseif (in_array($code, [2266, 2291, 2292], true)) {
+		} elseif (in_array($code, [2266, 2291, 2292], strict: true)) {
 			return Nette\Database\ForeignKeyConstraintViolationException::from($e);
+
+		} elseif ($code === 60) {
+			return Nette\Database\DeadlockException::from($e);
 
 		} else {
 			return Nette\Database\DriverException::from($e);
@@ -87,8 +90,8 @@ class OciDriver implements Nette\Database\Driver
 		} elseif ($offset) {
 			// see http://www.oracle.com/technology/oramag/oracle/06-sep/o56asktom.html
 			$sql = 'SELECT * FROM (SELECT t.*, ROWNUM AS "__rnum" FROM (' . $sql . ') t '
-				. ($limit !== null ? 'WHERE ROWNUM <= ' . ($offset + $limit) : '')
-				. ') WHERE "__rnum" > ' . $offset;
+				. ') WHERE "__rnum" > ' . $offset
+				. ($limit !== null ? ' AND "__rnum" <= ' . ($offset + $limit) : '');
 
 		} elseif ($limit !== null) {
 			$sql = 'SELECT * FROM (' . $sql . ') WHERE ROWNUM <= ' . $limit;
@@ -102,11 +105,13 @@ class OciDriver implements Nette\Database\Driver
 	public function getTables(): array
 	{
 		$tables = [];
-		foreach ($this->connection->query('SELECT * FROM cat') as $row) {
+		$rows = $this->connection->query('SELECT * FROM cat');
+		while ($row = $rows->fetch()) {
 			if ($row[1] === 'TABLE' || $row[1] === 'VIEW') {
 				$tables[] = [
-					'name' => $row[0],
+					'name' => (string) $row[0],
 					'view' => $row[1] === 'VIEW',
+					'comment' => null,
 				];
 			}
 		}
@@ -136,11 +141,5 @@ class OciDriver implements Nette\Database\Driver
 	public function getColumnTypes(\PDOStatement $statement): array
 	{
 		return [];
-	}
-
-
-	public function isSupported(string $item): bool
-	{
-		return $item === self::SUPPORT_SEQUENCE || $item === self::SUPPORT_SUBSELECT;
 	}
 }

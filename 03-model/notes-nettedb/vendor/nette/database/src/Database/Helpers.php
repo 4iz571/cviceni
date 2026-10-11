@@ -1,34 +1,34 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Database;
 
 use Nette;
 use Nette\Bridges\DatabaseTracy\ConnectionPanel;
 use Tracy;
+use function array_filter, array_keys, array_unique, count, fclose, fgets, fopen, fstat, get_resource_type, htmlspecialchars, implode, is_bool, is_float, is_resource, is_string, preg_last_error, preg_match, preg_replace, preg_replace_callback, reset, rtrim, set_time_limit, str_ends_with, str_starts_with, stream_get_meta_data, strlen, strncasecmp, substr, trim, wordwrap;
 
 
 /**
- * Database helpers.
+ * Database utility functions.
  */
 class Helpers
 {
 	use Nette\StaticClass;
 
-	/** @var int maximum SQL length */
-	public static $maxLength = 100;
+	/** maximum SQL length */
+	public static int $maxLength = 100;
 
-	/** @var array */
-	public static $typePatterns = [
+	/** @var array<string, string> */
+	public static array $typePatterns = [
 		'^_' => IStructure::FIELD_TEXT, // PostgreSQL arrays
-		'(TINY|SMALL|SHORT|MEDIUM|BIG|LONG)(INT)?|INT(EGER|\d+| IDENTITY)?|(SMALL|BIG|)SERIAL\d*|COUNTER|YEAR|BYTE|LONGLONG|UNSIGNED BIG INT' => IStructure::FIELD_INTEGER,
-		'(NEW)?DEC(IMAL)?(\(.*)?|NUMERIC|REAL|DOUBLE( PRECISION)?|FLOAT\d*|(SMALL)?MONEY|CURRENCY|NUMBER' => IStructure::FIELD_FLOAT,
+		'(TINY|SMALL|SHORT|MEDIUM|BIG|LONG)(INT)?|INT(EGER|\d+| IDENTITY| UNSIGNED)?|(SMALL|BIG|)SERIAL\d*|COUNTER|YEAR|BYTE|LONGLONG|UNSIGNED BIG INT' => IStructure::FIELD_INTEGER,
+		'(NEW)?DEC(IMAL)?(\(.*)?|NUMERIC|(SMALL)?MONEY|CURRENCY|NUMBER' => IStructure::FIELD_DECIMAL,
+		'REAL|DOUBLE( PRECISION)?|FLOAT\d*' => IStructure::FIELD_FLOAT,
 		'BOOL(EAN)?' => IStructure::FIELD_BOOL,
 		'TIME' => IStructure::FIELD_TIME,
 		'DATE' => IStructure::FIELD_DATE,
@@ -38,7 +38,7 @@ class Helpers
 
 
 	/**
-	 * Displays complete result set as HTML table for debug purposes.
+	 * Displays result set as HTML table.
 	 */
 	public static function dumpResult(ResultSet $result): void
 	{
@@ -85,7 +85,8 @@ class Helpers
 
 
 	/**
-	 * Returns syntax highlighted SQL command.
+	 * Returns syntax-highlighted SQL query as an HTML string.
+	 * @param ?array<mixed> $params
 	 */
 	public static function dumpSql(string $sql, ?array $params = null, ?Connection $connection = null): string
 	{
@@ -164,7 +165,8 @@ class Helpers
 
 
 	/**
-	 * Common column type detection.
+	 * Detects column types from a PDO statement using column metadata.
+	 * @return array<string, string>  column name => IStructure::FIELD_* type
 	 */
 	public static function detectTypes(\PDOStatement $statement): array
 	{
@@ -182,7 +184,7 @@ class Helpers
 
 
 	/**
-	 * Heuristic column type detection.
+	 * Maps a native column type string to an IStructure::FIELD_* constant.
 	 * @internal
 	 */
 	public static function detectType(string $type): string
@@ -201,8 +203,18 @@ class Helpers
 	}
 
 
-	/** @internal */
-	public static function normalizeRow(array $row, ResultSet $resultSet): array
+	/**
+	 * Converts raw column values to PHP types based on column type metadata.
+	 * @internal
+	 * @param  array<mixed>  $row
+	 * @param  class-string<\DateTime|\DateTimeImmutable>  $dateTimeClass
+	 * @return array<mixed>
+	 */
+	public static function normalizeRow(
+		array $row,
+		ResultSet $resultSet,
+		string $dateTimeClass = Nette\Utils\DateTime::class,
+	): array
 	{
 		foreach ($resultSet->getColumnTypes() as $key => $type) {
 			$value = $row[$key];
@@ -211,22 +223,19 @@ class Helpers
 			} elseif ($type === IStructure::FIELD_INTEGER) {
 				$row[$key] = is_float($tmp = $value * 1) ? $value : $tmp;
 
-			} elseif ($type === IStructure::FIELD_FLOAT) {
-				if (is_string($value) && ($pos = strpos($value, '.')) !== false) {
-					$value = rtrim(rtrim($pos === 0 ? "0$value" : $value, '0'), '.');
-				}
-
+			} elseif ($type === IStructure::FIELD_FLOAT || $type === IStructure::FIELD_DECIMAL) {
 				$row[$key] = (float) $value;
 
 			} elseif ($type === IStructure::FIELD_BOOL) {
-				$row[$key] = ((bool) $value) && $value !== 'f' && $value !== 'F';
+				$row[$key] = $value && $value !== 'f' && $value !== 'F';
 
-			} elseif (
-				$type === IStructure::FIELD_DATETIME
-				|| $type === IStructure::FIELD_DATE
-				|| $type === IStructure::FIELD_TIME
-			) {
-				$row[$key] = new Nette\Utils\DateTime($value);
+			} elseif ($type === IStructure::FIELD_DATETIME || $type === IStructure::FIELD_DATE) {
+				$row[$key] = str_starts_with($value, '0000-00')
+					? null
+					: new $dateTimeClass($value);
+
+			} elseif ($type === IStructure::FIELD_TIME) {
+				$row[$key] = (new $dateTimeClass($value))->setDate(1, 1, 1);
 
 			} elseif ($type === IStructure::FIELD_TIME_INTERVAL) {
 				preg_match('#^(-?)(\d+)\D(\d+)\D(\d+)(\.\d+)?$#D', $value, $m);
@@ -235,7 +244,7 @@ class Helpers
 				$row[$key]->invert = (int) (bool) $m[1];
 
 			} elseif ($type === IStructure::FIELD_UNIX_TIMESTAMP) {
-				$row[$key] = Nette\Utils\DateTime::from($value);
+				$row[$key] = (new $dateTimeClass)->setTimestamp($value);
 			}
 		}
 
@@ -244,9 +253,10 @@ class Helpers
 
 
 	/**
-	 * Import SQL dump from file - extremely fast.
-	 * @param  array<callable(int, ?float): void>  $onProgress
-	 * @return int  count of commands
+	 * Imports SQL dump from file.
+	 * @param  ?(callable(int, ?float): void)  $onProgress  Called after each query
+	 * @return int  Number of executed commands
+	 * @throws Nette\FileNotFoundException
 	 */
 	public static function loadFromFile(Connection $connection, string $file, ?callable $onProgress = null): int
 	{
@@ -267,7 +277,7 @@ class Helpers
 			if (!strncasecmp($s, 'DELIMITER ', 10)) {
 				$delimiter = trim(substr($s, 10));
 
-			} elseif (substr($ts = rtrim($s), -strlen($delimiter)) === $delimiter) {
+			} elseif (str_ends_with($ts = rtrim($s), $delimiter)) {
 				$sql .= substr($ts, 0, -strlen($delimiter));
 				$pdo->exec($sql);
 				$sql = '';
@@ -299,7 +309,7 @@ class Helpers
 		bool $explain,
 		string $name,
 		Tracy\Bar $bar,
-		Tracy\BlueScreen $blueScreen
+		Tracy\BlueScreen $blueScreen,
 	): ?ConnectionPanel
 	{
 		return ConnectionPanel::initialize($connection, true, $name, $explain, $bar, $blueScreen);
@@ -313,7 +323,7 @@ class Helpers
 		string $name = '',
 		bool $explain = true,
 		?Tracy\Bar $bar = null,
-		?Tracy\BlueScreen $blueScreen = null
+		?Tracy\BlueScreen $blueScreen = null,
 	): ?ConnectionPanel
 	{
 		return ConnectionPanel::initialize($connection, $addBarPanel, $name, $explain, $bar, $blueScreen);
@@ -321,19 +331,22 @@ class Helpers
 
 
 	/**
-	 * Reformat source to key -> value pairs.
+	 * Transforms rows into an associative array using the specified key and value columns.
+	 * @template TRow of Row|Table\ActiveRow|array<string, mixed>
+	 * @param  array<TRow>  $rows
+	 * @param  string|int|(\Closure(TRow): array{0: mixed, 1?: mixed})|null  $key
+	 * @return array<mixed, mixed>
 	 */
-	public static function toPairs(array $rows, $key = null, $value = null): array
+	public static function toPairs(array $rows, string|int|\Closure|null $key, string|int|null $value): array
 	{
-		if (!$rows) {
-			return [];
-		}
-
-		$keys = array_keys((array) reset($rows));
-		if (!count($keys)) {
-			throw new \LogicException('Result set does not contain any column.');
-
-		} elseif ($key === null && $value === null) {
+		if ($key === null && $value === null) {
+			if (!$rows) {
+				return [];
+			}
+			$keys = array_keys((array) reset($rows));
+			if (!count($keys)) {
+				throw new \LogicException('Result set does not contain any column.');
+			}
 			if (count($keys) === 1) {
 				[$value] = $keys;
 			} else {
@@ -346,9 +359,18 @@ class Helpers
 			foreach ($rows as $row) {
 				$return[] = ($value === null ? $row : $row[$value]);
 			}
+		} elseif ($key instanceof \Closure) {
+			foreach ($rows as $row) {
+				$tuple = $key($row);
+				if (count($tuple) === 1) {
+					$return[] = $tuple[0];
+				} else {
+					$return[$tuple[0]] = $tuple[1];
+				}
+			}
 		} else {
 			foreach ($rows as $row) {
-				$return[(string) $row[$key]] = ($value === null ? $row : $row[$value]);
+				$return[(string) $row[$key]] = $value === null ? $row : $row[$value];
 			}
 		}
 
@@ -357,13 +379,17 @@ class Helpers
 
 
 	/**
-	 * Finds duplicate columns in select statement
+	 * Returns a human-readable string listing duplicate column names in the result set.
 	 */
 	public static function findDuplicates(\PDOStatement $statement): string
 	{
 		$cols = [];
 		for ($i = 0; $i < $statement->columnCount(); $i++) {
 			$meta = $statement->getColumnMeta($i);
+			if ($meta === false) {
+				continue;
+			}
+
 			$cols[$meta['name']][] = $meta['table'] ?? '';
 		}
 
@@ -376,5 +402,21 @@ class Helpers
 		}
 
 		return implode(', ', $duplicates);
+	}
+
+
+	/**
+	 * Parses a SQL column type string into its components.
+	 * @return array{type: ?string, length: ?int, scale: ?int, parameters: ?string}
+	 */
+	public static function parseColumnType(string $type): array
+	{
+		preg_match('/^([^(]+)(?:\((?:(\d+)(?:,(\d+))?|([^)]+))\))?/', $type, $m, PREG_UNMATCHED_AS_NULL);
+		return [
+			'type' => $m[1] ?? null,
+			'length' => isset($m[2]) ? (int) $m[2] : null,
+			'scale' => isset($m[3]) ? (int) $m[3] : null,
+			'parameters' => $m[4] ?? null,
+		];
 	}
 }

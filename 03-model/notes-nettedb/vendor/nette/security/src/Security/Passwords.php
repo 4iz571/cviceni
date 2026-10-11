@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Security;
 
@@ -13,36 +11,54 @@ use Nette;
 
 
 /**
- * Password Hashing.
+ * Password hashing and verification.
  */
 class Passwords
 {
-	use Nette\SmartObject;
-
-	/** @var int|string  string since PHP 7.4 */
-	private $algo;
-
-	/** @var array */
-	private $options;
-
-
 	/**
-	 * Chooses which secure algorithm is used for hashing and how to configure it.
-	 * @see https://php.net/manual/en/password.constants.php
+	 * Configures the hashing algorithm and its options.
 	 */
-	public function __construct($algo = PASSWORD_DEFAULT, array $options = [])
-	{
-		$this->algo = $algo;
-		$this->options = $options;
+	public function __construct(
+		private readonly string $algo = PASSWORD_DEFAULT,
+		/** @var array<string, mixed>  algorithm-specific options, see https://php.net/manual/en/password.constants.php */
+		private readonly array $options = [],
+	) {
 	}
 
 
 	/**
-	 * Computes password´s hash. The result contains the algorithm ID and its settings, cryptographical salt and the hash itself.
+	 * Creates an instance configured for bcrypt hashing. Higher cost means slower and safer hashing;
+	 * null falls back to the PHP default.
+	 */
+	public static function bcrypt(?int $cost = null): self
+	{
+		return new self(PASSWORD_BCRYPT, $cost === null ? [] : ['cost' => $cost]);
+	}
+
+
+	/**
+	 * Creates an instance configured for Argon2id hashing. Null options fall back to PHP defaults.
+	 */
+	public static function argon2id(?int $memoryCost = null, ?int $timeCost = null, ?int $threads = null): self
+	{
+		if (!defined('PASSWORD_ARGON2ID')) {
+			throw new Nette\NotSupportedException('Argon2 is not supported by this PHP build.');
+		}
+
+		return new self(PASSWORD_ARGON2ID, array_filter([
+			'memory_cost' => $memoryCost,
+			'time_cost' => $timeCost,
+			'threads' => $threads,
+		], fn($value) => $value !== null));
+	}
+
+
+	/**
+	 * Computes a password hash containing the algorithm ID, settings, salt, and the hash itself.
 	 */
 	public function hash(
 		#[\SensitiveParameter]
-		string $password
+		string $password,
 	): string
 	{
 		if ($password === '') {
@@ -51,7 +67,7 @@ class Passwords
 
 		$hash = @password_hash($password, $this->algo, $this->options); // @ is escalated to exception
 		if (!$hash) {
-			throw new Nette\InvalidStateException('Computed hash is invalid. ' . error_get_last()['message']);
+			throw new Nette\InvalidStateException('Computed hash is invalid. ' . (error_get_last()['message'] ?? ''));
 		}
 
 		return $hash;
@@ -59,12 +75,12 @@ class Passwords
 
 
 	/**
-	 * Finds out, whether the given password matches the given hash.
+	 * Checks whether the password matches the given hash.
 	 */
 	public function verify(
 		#[\SensitiveParameter]
 		string $password,
-		string $hash
+		string $hash,
 	): bool
 	{
 		return password_verify($password, $hash);
@@ -72,7 +88,7 @@ class Passwords
 
 
 	/**
-	 * Finds out if the hash matches the options given in constructor.
+	 * Checks whether the hash needs to be rehashed with the current algorithm and options.
 	 */
 	public function needsRehash(string $hash): bool
 	{

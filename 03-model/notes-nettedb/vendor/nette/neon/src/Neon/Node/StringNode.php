@@ -1,16 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Neon\Node;
 
 use Nette;
 use Nette\Neon\Node;
+use function json_decode, json_encode, preg_match, preg_replace, preg_replace_callback, str_contains, str_replace, strlen, substr;
 
 
 /** @internal */
@@ -23,6 +22,7 @@ final class StringNode extends Node
 
 	public function __construct(
 		public string $value,
+		public string $indentation = "\t",
 	) {
 	}
 
@@ -33,6 +33,7 @@ final class StringNode extends Node
 	}
 
 
+	/** Parses a raw NEON string token (including its delimiters) and returns the decoded string value. */
 	public static function parse(string $s): string
 	{
 		if (preg_match('#^...\n++([\t ]*+)#', $s, $m)) { // multiline
@@ -51,7 +52,7 @@ final class StringNode extends Node
 		}
 
 		return preg_replace_callback(
-			'#\\\\(?:ud[89ab][0-9a-f]{2}\\\\ud[c-f][0-9a-f]{2}|u[0-9a-f]{4}|.)#i',
+			'#\\\(?:ud[89ab][0-9a-f]{2}\\\ud[c-f][0-9a-f]{2}|u[0-9a-f]{4}|.)#i',
 			function (array $m): string {
 				$sq = $m[0];
 				if (isset(self::EscapeSequences[$sq[1]])) {
@@ -77,7 +78,7 @@ final class StringNode extends Node
 		} elseif (preg_match('~[\x00-\x08\x0B-\x1F]|\n[\t ]+\'{3}~', $this->value)) {
 			$s = substr(json_encode($this->value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 1, -1);
 			$s = preg_replace_callback(
-				'#[^\\\\]|\\\\(.)#s',
+				'#[^\\\]|\\\(.)#s',
 				fn($m) => ['n' => "\n", 't' => "\t", '"' => '"'][$m[1] ?? ''] ?? $m[0],
 				$s,
 			);
@@ -89,7 +90,7 @@ final class StringNode extends Node
 			$delim = "'''";
 		}
 
-		$s = preg_replace('#^(?=.)#m', "\t", $s);
+		$s = preg_replace('#^(?=.)#m', $this->indentation, $s);
 		return $delim . "\n" . $s . "\n" . $delim;
 	}
 }
