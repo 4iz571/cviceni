@@ -29,11 +29,11 @@ class TodosFacade{
   /**
    * Metoda pro vyhledání úkolů
    * @param array|null $params = null
-   * @param int $offset = null
-   * @param int $limit = null
+   * @param int|null $offset = null
+   * @param int|null $limit = null
    * @return Todo[]
    */
-  public function findTodos(array $params=null,int $offset=null,int $limit=null):array {
+  public function findTodos(?array $params=null,?int $offset=null,?int $limit=null):array {
     return $this->todoRepository->findAllBy($params,$offset,$limit);
   }
 
@@ -42,8 +42,12 @@ class TodosFacade{
    * @param array|null $params
    * @return int
    */
-  public function findTodosCount(array $params=null):int {
-    return $this->todoRepository->findCountBy($params);
+  public function findTodosCount(?array $params=null):int {
+    try{
+      return $this->todoRepository->findCountBy($params);
+    }catch(\Exception $e){
+      return 0;
+    }
   }
 
   /**

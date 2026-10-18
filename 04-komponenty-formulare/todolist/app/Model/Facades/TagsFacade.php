@@ -46,17 +46,16 @@ class TagsFacade{
 
   /**
    * Metoda pro vyhledání tagů
-   * @param int $offset = null
-   * @param int $limit = null
+   * @param ?int $offset = null
+   * @param ?int $limit = null
    * @return Tag[]
    */
-  public function findTags(int $offset=null,int $limit=null):array {
+  public function findTags(?int $offset=null,?int $limit=null):array {
     return $this->tagRepository->findAllBy(['order'=>'title'],$offset,$limit);
   }
 
   /**
    * Metoda pro zjištění počtu tagů
-   * @param array|null $params
    * @return int
    */
   public function findTodosCount():int {

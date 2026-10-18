@@ -18,16 +18,16 @@ class TodoEditForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onFailed */
-  public $onFailed = [];
+  public array $onFailed = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
   //TODO tady asi něco chybí :)
 
 
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults($values, bool $erase = false):static {
     parent::setDefaults($values, $erase);
     return $this;
   }
