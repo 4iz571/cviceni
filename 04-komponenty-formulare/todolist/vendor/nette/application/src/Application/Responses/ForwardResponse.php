@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Application\Responses;
 
@@ -17,15 +15,9 @@ use Nette;
  */
 final class ForwardResponse implements Nette\Application\Response
 {
-	use Nette\SmartObject;
-
-	/** @var Nette\Application\Request */
-	private $request;
-
-
-	public function __construct(Nette\Application\Request $request)
-	{
-		$this->request = $request;
+	public function __construct(
+		private readonly Nette\Application\Request $request,
+	) {
 	}
 
 

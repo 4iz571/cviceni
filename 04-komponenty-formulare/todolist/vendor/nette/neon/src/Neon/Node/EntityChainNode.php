@@ -1,23 +1,22 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Neon\Node;
 
 use Nette\Neon;
 use Nette\Neon\Node;
+use function array_map, implode;
 
 
 /** @internal */
 final class EntityChainNode extends Node
 {
 	public function __construct(
-		/** @var EntityNode[] */
+		/** @var list<EntityNode> */
 		public array $chain = [],
 	) {
 	}
@@ -45,5 +44,6 @@ final class EntityChainNode extends Node
 		foreach ($this->chain as &$item) {
 			yield $item;
 		}
+		$this->chain = array_values(array_filter($this->chain));
 	}
 }

@@ -1,13 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Tracy (https://tracy.nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Tracy;
+
+use function array_slice, is_string, strlen;
 
 
 /**
@@ -15,15 +15,23 @@ namespace Tracy;
  */
 final class DeferredContent
 {
-	private SessionStorage $sessionStorage;
-	private string $requestId;
+	private readonly bool $deferred;
+	private readonly string $requestId;
 	private bool $useSession = false;
 
 
-	public function __construct(SessionStorage $sessionStorage)
+	public function __construct(
+		private readonly SessionStorage $sessionStorage,
+	) {
+		$ajax = $_SERVER['HTTP_X_TRACY_AJAX'] ?? '';
+		$this->deferred = (bool) preg_match('#^\w{10,15}$#D', $ajax);
+		$this->requestId = $this->deferred ? $ajax : Helpers::createId();
+	}
+
+
+	public function isDeferred(): bool
 	{
-		$this->sessionStorage = $sessionStorage;
-		$this->requestId = $_SERVER['HTTP_X_TRACY_AJAX'] ?? Helpers::createId();
+		return $this->deferred;
 	}
 
 
@@ -39,6 +47,7 @@ final class DeferredContent
 	}
 
 
+	/** @return array<mixed> */
 	public function &getItems(string $key): array
 	{
 		$items = &$this->sessionStorage->getData()[$key];
@@ -49,7 +58,7 @@ final class DeferredContent
 
 	public function addSetup(string $method, mixed $argument): void
 	{
-		$argument = json_encode($argument, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+		$argument = Helpers::jsonEncode($argument);
 		$item = &$this->getItems('setup')[$this->requestId];
 		$item['code'] = ($item['code'] ?? '') . "$method($argument);\n";
 		$item['time'] = time();
@@ -58,14 +67,17 @@ final class DeferredContent
 
 	public function sendAssets(): bool
 	{
+		$asset = $_GET['_tracy_bar'] ?? null;
 		if (headers_sent($file, $line) || ob_get_length()) {
+			if ($asset === null && !$this->deferred) { // nothing to send, repeated enable() is a no-op
+				return false;
+			}
+
 			throw new \LogicException(
 				__METHOD__ . '() called after some output has been sent. '
 				. ($file ? "Output started at $file:$line." : 'Try Tracy\OutputDebugger to find where output started.'),
 			);
 		}
-
-		$asset = $_GET['_tracy_bar'] ?? null;
 		if ($asset === 'js') {
 			header('Content-Type: application/javascript; charset=UTF-8');
 			header('Cache-Control: max-age=864000');
@@ -100,7 +112,7 @@ final class DeferredContent
 			return true;
 		}
 
-		if (Helpers::isAjax()) {
+		if ($this->deferred) {
 			header('X-Tracy-Ajax: 1'); // session must be already locked
 		}
 
@@ -110,7 +122,7 @@ final class DeferredContent
 
 	private function buildJsCss(): string
 	{
-		$css = array_map('file_get_contents', array_merge([
+		$css = array_map(file_get_contents(...), array_merge([
 			__DIR__ . '/../assets/reset.css',
 			__DIR__ . '/../Bar/assets/bar.css',
 			__DIR__ . '/../assets/toggle.css',
@@ -130,14 +142,14 @@ final class DeferredContent
 			__DIR__ . '/../Dumper/assets/dumper.js',
 			__DIR__ . '/../BlueScreen/assets/bluescreen.js',
 		]);
-		$js2 = array_map('file_get_contents', Debugger::$customJsFiles);
+		$js2 = array_map(file_get_contents(...), Debugger::$customJsFiles);
 
 		$str = "'use strict';
 (function(){
 	var el = document.createElement('style');
 	el.setAttribute('nonce', document.currentScript.getAttribute('nonce') || document.currentScript.nonce);
 	el.className='tracy-debug';
-	el.textContent=" . json_encode(Helpers::minifyCss(implode('', $css))) . ";
+	el.textContent=" . Helpers::jsonEncode(Helpers::minifyCss(implode('', $css))) . ";
 	document.head.appendChild(el);})
 ();\n" . implode('', $js1) . implode('', $js2);
 
@@ -148,7 +160,7 @@ final class DeferredContent
 	public function clean(): void
 	{
 		foreach ($this->sessionStorage->getData() as &$items) {
-			$items = array_slice((array) $items, -10, null, preserve_keys: true);
+			$items = array_slice((array) $items, -10, preserve_keys: true);
 			$items = array_filter($items, fn($item) => isset($item['time']) && $item['time'] > time() - 60);
 		}
 	}

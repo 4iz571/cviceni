@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Utils;
 
@@ -17,68 +15,53 @@ use Nette;
  *
  * @property   int $page
  * @property-read int $firstPage
- * @property-read int|null $lastPage
+ * @property-read ?int $lastPage
  * @property-read int<0,max> $firstItemOnPage
  * @property-read int<0,max> $lastItemOnPage
  * @property   int $base
  * @property-read bool $first
  * @property-read bool $last
- * @property-read int<0,max>|null $pageCount
+ * @property-read ?int<0,max> $pageCount
  * @property   positive-int $itemsPerPage
- * @property   int<0,max>|null $itemCount
+ * @property   ?int<0,max> $itemCount
  * @property-read int<0,max> $offset
- * @property-read int<0,max>|null $countdownOffset
+ * @property-read ?int<0,max> $countdownOffset
  * @property-read int<0,max> $length
  */
 class Paginator
 {
 	use Nette\SmartObject;
 
-	/** @var int */
-	private $base = 1;
+	private int $base = 1;
 
-	/** @var int */
-	private $itemsPerPage = 1;
+	/** @var positive-int */
+	private int $itemsPerPage = 1;
 
-	/** @var int */
-	private $page = 1;
+	private int $page = 1;
 
-	/** @var int|null */
-	private $itemCount;
+	/** @var ?int<0, max> */
+	private ?int $itemCount = null;
 
 
-	/**
-	 * Sets current page number.
-	 * @return static
-	 */
-	public function setPage(int $page)
+	public function setPage(int $page): static
 	{
 		$this->page = $page;
 		return $this;
 	}
 
 
-	/**
-	 * Returns current page number.
-	 */
 	public function getPage(): int
 	{
 		return $this->base + $this->getPageIndex();
 	}
 
 
-	/**
-	 * Returns first page number.
-	 */
 	public function getFirstPage(): int
 	{
 		return $this->base;
 	}
 
 
-	/**
-	 * Returns last page number.
-	 */
 	public function getLastPage(): ?int
 	{
 		return $this->itemCount === null
@@ -88,7 +71,7 @@ class Paginator
 
 
 	/**
-	 * Returns the sequence number of the first element on the page
+	 * Returns the 1-based index of the first item on the current page, or 0 if the page is empty.
 	 * @return int<0, max>
 	 */
 	public function getFirstItemOnPage(): int
@@ -100,7 +83,7 @@ class Paginator
 
 
 	/**
-	 * Returns the sequence number of the last element on the page
+	 * Returns the 1-based index of the last item on the current page.
 	 * @return int<0, max>
 	 */
 	public function getLastItemOnPage(): int
@@ -109,20 +92,13 @@ class Paginator
 	}
 
 
-	/**
-	 * Sets first page (base) number.
-	 * @return static
-	 */
-	public function setBase(int $base)
+	public function setBase(int $base): static
 	{
 		$this->base = $base;
 		return $this;
 	}
 
 
-	/**
-	 * Returns first page (base) number.
-	 */
 	public function getBase(): int
 	{
 		return $this->base;
@@ -142,18 +118,12 @@ class Paginator
 	}
 
 
-	/**
-	 * Is the current page the first one?
-	 */
 	public function isFirst(): bool
 	{
 		return $this->getPageIndex() === 0;
 	}
 
 
-	/**
-	 * Is the current page the last one?
-	 */
 	public function isLast(): bool
 	{
 		return $this->itemCount === null
@@ -163,22 +133,17 @@ class Paginator
 
 
 	/**
-	 * Returns the total number of pages.
-	 * @return int<0, max>|null
+	 * @return ?int<0, max>
 	 */
 	public function getPageCount(): ?int
 	{
 		return $this->itemCount === null
 			? null
-			: (int) ceil($this->itemCount / $this->itemsPerPage);
+			: max(0, (int) ceil($this->itemCount / $this->itemsPerPage));
 	}
 
 
-	/**
-	 * Sets the number of items to display on a single page.
-	 * @return static
-	 */
-	public function setItemsPerPage(int $itemsPerPage)
+	public function setItemsPerPage(int $itemsPerPage): static
 	{
 		$this->itemsPerPage = max(1, $itemsPerPage);
 		return $this;
@@ -186,7 +151,6 @@ class Paginator
 
 
 	/**
-	 * Returns the number of items to display on a single page.
 	 * @return positive-int
 	 */
 	public function getItemsPerPage(): int
@@ -195,11 +159,7 @@ class Paginator
 	}
 
 
-	/**
-	 * Sets the total number of items.
-	 * @return static
-	 */
-	public function setItemCount(?int $itemCount = null)
+	public function setItemCount(?int $itemCount = null): static
 	{
 		$this->itemCount = $itemCount === null ? null : max(0, $itemCount);
 		return $this;
@@ -207,8 +167,7 @@ class Paginator
 
 
 	/**
-	 * Returns the total number of items.
-	 * @return int<0, max>|null
+	 * @return ?int<0, max>
 	 */
 	public function getItemCount(): ?int
 	{
@@ -228,7 +187,7 @@ class Paginator
 
 	/**
 	 * Returns the absolute index of the first item on current page in countdown paging.
-	 * @return int<0, max>|null
+	 * @return ?int<0, max>
 	 */
 	public function getCountdownOffset(): ?int
 	{
@@ -246,6 +205,6 @@ class Paginator
 	{
 		return $this->itemCount === null
 			? $this->itemsPerPage
-			: min($this->itemsPerPage, $this->itemCount - $this->getPageIndex() * $this->itemsPerPage);
+			: max(0, min($this->itemsPerPage, $this->itemCount - $this->getPageIndex() * $this->itemsPerPage));
 	}
 }

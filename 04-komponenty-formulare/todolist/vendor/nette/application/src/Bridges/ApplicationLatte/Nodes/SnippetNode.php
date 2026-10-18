@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\ApplicationLatte\Nodes;
 
@@ -26,7 +24,8 @@ use Nette\Bridges\ApplicationLatte\SnippetRuntime;
 
 
 /**
- * {snippet [name]}
+ * {snippet [name]} ... {/snippet}
+ * Defines AJAX snippet for partial page redrawing.
  */
 class SnippetNode extends StatementNode
 {
@@ -36,7 +35,7 @@ class SnippetNode extends StatementNode
 	public ?ElementNode $htmlElement;
 
 
-	/** @return \Generator<int, ?array, array{AreaNode, ?Tag}, static> */
+	/** @return \Generator<int, ?list<string>, array{AreaNode, ?Tag}, static> */
 	public static function create(Tag $tag, TemplateParser $parser): \Generator
 	{
 		$tag->outputMode = $tag::OutputKeepIndentation;
@@ -63,6 +62,7 @@ class SnippetNode extends StatementNode
 		}
 
 		if ($tag->isNAttribute()) {
+			assert($tag->htmlElement !== null);
 			if ($tag->prefix !== $tag::PrefixNone) {
 				throw new CompileException("Use n:snippet instead of {$tag->getNotation()}", $tag->position);
 
@@ -97,8 +97,8 @@ class SnippetNode extends StatementNode
 		}
 
 		if ($this->htmlElement) {
+			$inner = $this->htmlElement->content;
 			try {
-				$inner = $this->htmlElement->content;
 				$this->htmlElement->content = new AuxiliaryNode(fn() => $this->printContent($context, $inner));
 				return $this->content->print($context);
 			} finally {

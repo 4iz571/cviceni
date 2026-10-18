@@ -1,46 +1,39 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI;
 
-use Nette;
+use function count, is_array, sprintf;
 
 
 /**
- * Autowiring.
+ * Resolves service names by type for autowiring.
  */
 class Autowiring
 {
-	use Nette\SmartObject;
+	/** @var array<class-string, list<string>>  type => service names */
+	private array $highPriority = [];
 
-	/** @var ContainerBuilder */
-	private $builder;
+	/** @var array<class-string, list<string>>  type => service names */
+	private array $lowPriority = [];
 
-	/** @var array[]  type => services, used by getByType() */
-	private $highPriority = [];
-
-	/** @var array[]  type => services, used by findByType() */
-	private $lowPriority = [];
-
-	/** @var string[] of classes excluded from autowiring */
-	private $excludedClasses = [];
+	/** @var array<class-string, class-string> */
+	private array $excludedClasses = [];
 
 
-	public function __construct(ContainerBuilder $builder)
-	{
-		$this->builder = $builder;
+	public function __construct(
+		private readonly ContainerBuilder $builder,
+	) {
 	}
 
 
 	/**
 	 * Resolves service name by type.
-	 * @param  bool  $throw exception if service not found?
+	 * @param class-string  $type
 	 * @return ($throw is true ? string : ?string)
 	 * @throws MissingServiceException when not found
 	 * @throws ServiceCreationException when multiple found
@@ -66,13 +59,13 @@ class Autowiring
 		} else {
 			$list = $types[$type];
 			natsort($list);
-			$hint = count($list) === 2 && ($tmp = strpos($list[0], '.') xor strpos($list[1], '.'))
+			$hint = count($list) === 2 && ($tmp = str_contains($list[0], '.') xor str_contains($list[1], '.'))
 				? '. If you want to overwrite service ' . $list[$tmp ? 0 : 1] . ', give it proper name.'
 				: '';
 			throw new ServiceCreationException(sprintf(
 				"Multiple services of type $type found: %s%s",
 				implode(', ', $list),
-				$hint
+				$hint,
 			));
 		}
 	}
@@ -80,7 +73,8 @@ class Autowiring
 
 	/**
 	 * Gets the service names and definitions of the specified type.
-	 * @return Definitions\Definition[]  service name is key
+	 * @param class-string  $type
+	 * @return array<string, Definitions\Definition>  service name => definition
 	 */
 	public function findByType(string $type): array
 	{
@@ -97,7 +91,8 @@ class Autowiring
 
 
 	/**
-	 * @param  string[]  $types
+	 * Excludes classes and their ancestors from autowiring lookup.
+	 * @param array<class-string>  $types
 	 */
 	public function addExcludedClasses(array $types): void
 	{
@@ -110,12 +105,19 @@ class Autowiring
 	}
 
 
+	/**
+	 * Returns low-priority and high-priority type-to-service-names maps.
+	 * @return array{array<class-string, list<string>>, array<class-string, list<string>>}
+	 */
 	public function getClassList(): array
 	{
 		return [$this->lowPriority, $this->highPriority];
 	}
 
 
+	/**
+	 * Rebuilds the type-to-service-names index from current definitions.
+	 */
 	public function rebuild(): void
 	{
 		$this->lowPriority = $this->highPriority = $preferred = [];
@@ -130,11 +132,11 @@ class Autowiring
 				foreach ($autowired as $k => $autowiredType) {
 					if ($autowiredType === ContainerBuilder::ThisService) {
 						$autowired[$k] = $type;
-					} elseif (!is_a($type, $autowiredType, true)) {
+					} elseif (!is_a($type, $autowiredType, allow_string: true)) {
 						throw new ServiceCreationException(sprintf(
 							"Incompatible class %s in autowiring definition of service '%s'.",
 							$autowiredType,
-							$name
+							$name,
 						));
 					}
 				}
@@ -146,7 +148,7 @@ class Autowiring
 				} elseif (is_array($autowired)) {
 					$priority = false;
 					foreach ($autowired as $autowiredType) {
-						if (is_a($parent, $autowiredType, true)) {
+						if (is_a($parent, $autowiredType, allow_string: true)) {
 							if (empty($preferred[$parent]) && isset($this->highPriority[$parent])) {
 								$this->lowPriority[$parent] = array_merge($this->lowPriority[$parent] ?? [], $this->highPriority[$parent]);
 								$this->highPriority[$parent] = [];

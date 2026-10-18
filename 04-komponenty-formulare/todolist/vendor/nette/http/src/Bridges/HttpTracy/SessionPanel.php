@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\HttpTracy;
 
@@ -18,15 +16,13 @@ use Tracy;
  */
 class SessionPanel implements Tracy\IBarPanel
 {
-	use Nette\SmartObject;
-
 	/**
 	 * Renders tab.
 	 */
 	public function getTab(): string
 	{
 		return Nette\Utils\Helpers::capture(function () {
-			require __DIR__ . '/templates/SessionPanel.tab.phtml';
+			require __DIR__ . '/dist/tab.phtml';
 		});
 	}
 
@@ -37,7 +33,7 @@ class SessionPanel implements Tracy\IBarPanel
 	public function getPanel(): string
 	{
 		return Nette\Utils\Helpers::capture(function () {
-			require __DIR__ . '/templates/SessionPanel.panel.phtml';
+			require __DIR__ . '/dist/panel.phtml';
 		});
 	}
 }

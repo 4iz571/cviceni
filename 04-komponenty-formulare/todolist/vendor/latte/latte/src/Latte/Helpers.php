@@ -1,13 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Latte;
+
+use function array_filter, array_keys, array_unique, count, in_array, is_array, is_object, is_string, levenshtein, strlen, strpos;
+use const PHP_VERSION_ID;
 
 
 /**
@@ -16,27 +17,6 @@ namespace Latte;
  */
 class Helpers
 {
-	/** @var array<string, int>  empty (void) HTML elements */
-	public static $emptyElements = [
-		'img' => 1, 'hr' => 1, 'br' => 1, 'input' => 1, 'meta' => 1, 'area' => 1, 'embed' => 1, 'keygen' => 1, 'source' => 1, 'base' => 1,
-		'col' => 1, 'link' => 1, 'param' => 1, 'basefont' => 1, 'frame' => 1, 'isindex' => 1, 'wbr' => 1, 'command' => 1, 'track' => 1,
-	];
-
-
-	/**
-	 * Checks callback.
-	 * @param  mixed  $callable
-	 */
-	public static function checkCallback($callable): callable
-	{
-		if (!is_callable($callable, false, $text)) {
-			throw new \InvalidArgumentException("Callback '$text' is not callable.");
-		}
-
-		return $callable;
-	}
-
-
 	/**
 	 * Finds the best suggestion.
 	 * @param  string[]  $items
@@ -56,22 +36,228 @@ class Helpers
 	}
 
 
-	public static function removeFilter(string &$modifier, string $filter): bool
+	/**
+	 * Returns a reflection object for the given callable.
+	 * Intentionally without callable type hint to avoid unhelpful error messages.
+	 */
+	public static function toReflection(mixed $callable): \ReflectionFunctionAbstract
 	{
-		$tmp = str_replace('|checkUrl', '', $modifier);
-		if ($filter === 'noescape' && preg_match('#\|noescape\s*\S#Di', $tmp)) {
-			trigger_error("Filter |noescape should be placed at the very end in '$tmp'", E_USER_DEPRECATED);
+		if (is_string($callable) && strpos($callable, '::')) {
+			return PHP_VERSION_ID < 80300
+				? new \ReflectionMethod($callable)
+				: \ReflectionMethod::createFromMethodName($callable);
+		} elseif (is_array($callable)) {
+			return new \ReflectionMethod($callable[0], $callable[1]);
+		} elseif (is_object($callable) && !$callable instanceof \Closure) {
+			return new \ReflectionMethod($callable, '__invoke');
+		} else {
+			return new \ReflectionFunction($callable);
 		}
-		$modifier = preg_replace('#\|(' . $filter . ')\s?(?=\||$)#Di', '', $modifier, -1, $found);
-		return (bool) $found;
 	}
 
 
 	/**
-	 * Starts the $haystack string with the prefix $needle?
+	 * Sorts items by before/after ordering constraints defined as \stdClass objects.
+	 * @param  array<string, mixed|\stdClass>  $list
+	 * @return array<string, mixed|\stdClass>
 	 */
-	public static function startsWith(string $haystack, string $needle): bool
+	public static function sortBeforeAfter(array $list): array
 	{
-		return strncmp($haystack, $needle, strlen($needle)) === 0;
+		$names = array_keys($list);
+
+		// Build adjacency list and in-degree count
+		// Edge A → B means "A must come before B"
+		$graph = array_fill_keys($names, []);
+		$inDegree = array_fill_keys($names, 0);
+
+		foreach ($list as $name => $info) {
+			if (!$info instanceof \stdClass) {
+				continue;
+			}
+
+			// "before: X" means this node → X (this comes before X)
+			foreach ((array) ($info->before ?? []) as $target) {
+				if ($target === '*') {
+					foreach ($names as $other) {
+						if ($other !== $name && !in_array($other, $graph[$name], true)) {
+							$graph[$name][] = $other;
+							$inDegree[$other]++;
+						}
+					}
+				} elseif (isset($list[$target]) && $target !== $name) {
+					if (!in_array($target, $graph[$name], true)) {
+						$graph[$name][] = $target;
+						$inDegree[$target]++;
+					}
+				}
+			}
+
+			// "after: X" means X → this node (X comes before this)
+			foreach ((array) ($info->after ?? []) as $target) {
+				if ($target === '*') {
+					foreach ($names as $other) {
+						if ($other !== $name && !in_array($name, $graph[$other], true)) {
+							$graph[$other][] = $name;
+							$inDegree[$name]++;
+						}
+					}
+				} elseif (isset($list[$target]) && $target !== $name) {
+					if (!in_array($name, $graph[$target], true)) {
+						$graph[$target][] = $name;
+						$inDegree[$name]++;
+					}
+				}
+			}
+		}
+
+		// Kahn's algorithm
+		$queue = [];
+		foreach ($names as $name) {
+			if ($inDegree[$name] === 0) {
+				$queue[] = $name;
+			}
+		}
+
+		$result = [];
+		while ($queue) {
+			$node = array_shift($queue);
+			$result[$node] = $list[$node];
+
+			foreach ($graph[$node] as $neighbor) {
+				$inDegree[$neighbor]--;
+				if ($inDegree[$neighbor] === 0) {
+					$queue[] = $neighbor;
+				}
+			}
+		}
+
+		if (count($result) !== count($list)) {
+			$cycle = array_diff($names, array_keys($result));
+			throw new \LogicException('Circular dependency detected among: ' . implode(', ', $cycle));
+		}
+
+		return $result;
+	}
+
+
+	/**
+	 * Removes null values from the array and re-indexes it.
+	 * @param  mixed[]  $items
+	 */
+	public static function removeNulls(array &$items): void
+	{
+		$items = array_values(array_filter($items, fn($item) => $item !== null));
+	}
+
+
+	/**
+	 * Attempts to map the compiled template to the source.
+	 * @return array{name: ?string, line: ?int, column: ?int}|null
+	 */
+	public static function mapCompiledToSource(string $compiledFile, ?int $compiledLine = null): ?array
+	{
+		if (!Runtime\Cache::isCacheFile($compiledFile)) {
+			return null;
+		}
+
+		$content = file_get_contents($compiledFile);
+		if ($content === false) {
+			return null;
+		}
+		$name = preg_match('#^/\*\* source: (\S.+) \*/#m', $content, $m) ? $m[1] : null;
+		$compiledLine && preg_match('~/\* pos (\d+)(?::(\d+))? \*/~', explode("\n", $content)[$compiledLine - 1], $pos);
+		$line = isset($pos[1]) ? (int) $pos[1] : null;
+		$column = isset($pos[2]) ? (int) $pos[2] : null;
+		return $name || $line ? compact('name', 'line', 'column') : null;
+	}
+
+
+	/**
+	 * Tries to guess the template position from the backtrace. Returns a human-readable string like
+	 * "in 'path/to/template.latte' on line 42", or null if the position cannot be determined.
+	 */
+	public static function guessTemplatePosition(): ?string
+	{
+		$trace = debug_backtrace();
+		foreach ($trace as $item) {
+			if (isset($item['file']) && ($source = self::mapCompiledToSource($item['file'], $item['line'] ?? null))) {
+				$res = [];
+				if ($source['name'] && is_file($source['name'])) {
+					$res[] = "in '" . str_replace(dirname($source['name'], 2), '...', $source['name']) . "'";
+				}
+				if ($source['line']) {
+					$res[] = 'on line ' . $source['line'] . ($source['column'] ? ' at column ' . $source['column'] : '');
+				}
+				return implode(' ', $res);
+			}
+		}
+		return null;
+	}
+
+
+	/**
+	 * Resolves template parameters from an object, its public properties are extracted as variables
+	 * and annotated methods are registered as filters/functions.
+	 * @param  object|mixed[]  $params
+	 * @return array<string, mixed>
+	 */
+	public static function resolveParams(Engine $engine, object|array $params): array
+	{
+		if (is_array($params)) {
+			return $params;
+		}
+
+		['filters' => $filters, 'functions' => $functions, 'hooked' => $hooked] = self::inspectParamsClass($params::class);
+		foreach ($filters as $name) {
+			$engine->addFilter($name, $params->$name(...));
+		}
+
+		foreach ($functions as $name) {
+			$engine->addFunction($name, $params->$name(...));
+		}
+
+		$res = get_object_vars($params);
+		foreach ($hooked as $name) {
+			$res[$name] = $params->$name;
+		}
+
+		return $res;
+	}
+
+
+	/**
+	 * Returns names of methods annotated as filters/functions and of virtual properties with a get hook.
+	 * The reflection scan is memoized, because it is the same for every instance of the class.
+	 * @param  class-string  $class
+	 * @return array{filters: list<string>, functions: list<string>, hooked: list<string>}
+	 */
+	private static function inspectParamsClass(string $class): array
+	{
+		static $cache = [];
+		if (isset($cache[$class])) {
+			return $cache[$class];
+		}
+
+		$rc = new \ReflectionClass($class);
+		$res = ['filters' => [], 'functions' => [], 'hooked' => []];
+		foreach ($rc->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+			if ($method->getAttributes(Attributes\TemplateFilter::class)) {
+				$res['filters'][] = $method->name;
+			}
+
+			if ($method->getAttributes(Attributes\TemplateFunction::class)) {
+				$res['functions'][] = $method->name;
+			}
+		}
+
+		if (PHP_VERSION_ID >= 80400) {
+			foreach ($rc->getProperties(\ReflectionProperty::IS_PUBLIC) as $property) {
+				if ($property->isVirtual() && $property->hasHook(\PropertyHookType::Get)) {
+					$res['hooked'][] = $property->getName();
+				}
+			}
+		}
+
+		return $cache[$class] = $res;
 	}
 }

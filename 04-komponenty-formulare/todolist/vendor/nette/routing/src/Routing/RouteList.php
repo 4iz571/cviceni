@@ -1,53 +1,44 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Routing;
 
 use Nette;
+use function array_column, array_filter, array_keys, array_splice, count, is_scalar, rtrim, str_starts_with, strtr;
 
 
 /**
- * The router broker.
+ * Router collection that tries each router in sequence and caches URL construction lookups.
  */
 class RouteList implements Router
 {
-	use Nette\SmartObject;
+	protected ?self $parent = null;
 
-	/** @var self|null */
-	protected $parent;
+	/** @var list<array{Router, int}> */
+	private array $list = [];
 
-	/** @var array of [Router, flags] */
-	private $list = [];
+	/** @var array<string, list<Router>>|null */
+	private ?array $ranks = null;
+	private ?string $cacheKey;
+	private ?string $domain = null;
+	private ?string $path = null;
 
-	/** @var Router[][]|null */
-	private $ranks;
-
-	/** @var string */
-	private $cacheKey;
-
-	/** @var string|null */
-	private $domain;
-
-	/** @var string|null */
-	private $path;
-
-	/** @var \SplObjectStorage|null */
-	private $refUrlCache;
+	/** @var \SplObjectStorage<Nette\Http\UrlScript, Nette\Http\UrlScript> */
+	private \SplObjectStorage $refUrlCache;
 
 
 	public function __construct()
 	{
+		$this->refUrlCache = new \SplObjectStorage;
 	}
 
 
 	/**
-	 * Maps HTTP request to an array.
+	 * @return ?array<string, mixed>
 	 * @final
 	 */
 	public function match(Nette\Http\IRequest $httpRequest): ?array
@@ -78,7 +69,7 @@ class RouteList implements Router
 		if ($this->path) {
 			$url = $httpRequest->getUrl();
 			$relativePath = $url->getRelativePath();
-			if (strncmp($relativePath, $this->path, strlen($this->path)) === 0) {
+			if (str_starts_with($relativePath, $this->path)) {
 				$url = $url->withPath($url->getPath(), $url->getBasePath() . $this->path);
 			} elseif ($relativePath . '/' === $this->path) {
 				$url = $url->withPath($url->getPath() . '/');
@@ -93,41 +84,45 @@ class RouteList implements Router
 	}
 
 
+	/**
+	 * @param array<string, mixed>  $params
+	 * @return ?array<string, mixed>
+	 */
 	protected function completeParameters(array $params): ?array
 	{
 		return $params;
 	}
 
 
-	/**
-	 * Constructs absolute URL from array.
-	 */
+	/** @param array<string, mixed>  $params */
 	public function constructUrl(array $params, Nette\Http\UrlScript $refUrl): ?string
 	{
 		if ($this->domain) {
-			if (!isset($this->refUrlCache[$refUrl])) {
-				$this->refUrlCache[$refUrl] = $refUrl->withHost(
-					$this->expandDomain($refUrl->getHost())
-				);
+			if (!$this->refUrlCache->offsetExists($refUrl)) {
+				$this->refUrlCache->offsetSet($refUrl, $refUrl->withHost(
+					$this->expandDomain($refUrl->getHost()),
+				));
 			}
 
-			$refUrl = $this->refUrlCache[$refUrl];
+			$refUrl = $this->refUrlCache->offsetGet($refUrl);
 		}
 
 		if ($this->path) {
-			if (!isset($this->refUrlCache[$refUrl])) {
-				$this->refUrlCache[$refUrl] = $refUrl->withPath($refUrl->getBasePath() . $this->path);
+			if (!$this->refUrlCache->offsetExists($refUrl)) {
+				$this->refUrlCache->offsetSet($refUrl, $refUrl->withPath($refUrl->getBasePath() . $this->path));
 			}
 
-			$refUrl = $this->refUrlCache[$refUrl];
+			$refUrl = $this->refUrlCache->offsetGet($refUrl);
 		}
 
 		if ($this->ranks === null) {
 			$this->warmupCache();
 		}
 
-		$key = $params[$this->cacheKey] ?? null;
-		if (!is_scalar($key) || !isset($this->ranks[$key])) {
+		assert($this->ranks !== null);
+		$key = $params[$this->cacheKey ?? ''] ?? null;
+		$key = is_scalar($key) ? (string) $key : '*';
+		if (!isset($this->ranks[$key])) {
 			$key = '*';
 		}
 
@@ -142,13 +137,17 @@ class RouteList implements Router
 	}
 
 
+	/**
+	 * Builds an internal lookup index of routers grouped by their most discriminating constant parameter.
+	 * Call this before URL generation to improve performance; called automatically on first use.
+	 */
 	public function warmupCache(): void
 	{
 		// find best key
 		$candidates = [];
 		$routers = [];
-		foreach ($this->list as [$router, $flags]) {
-			if ($flags & self::ONE_WAY) {
+		foreach ($this->list as [$router, $oneWay]) {
+			if ($oneWay) {
 				continue;
 			} elseif ($router instanceof self) {
 				$router->warmupCache();
@@ -158,8 +157,8 @@ class RouteList implements Router
 				? $router->getConstantParameters()
 				: [];
 
-			foreach (array_filter($params, 'is_scalar') as $name => $value) {
-				$candidates[$name][$value] = true;
+			foreach (array_filter($params, is_scalar(...)) as $name => $value) {
+				$candidates[$name][(string) $value] = true;
 			}
 
 			$routers[] = [$router, $params];
@@ -177,12 +176,13 @@ class RouteList implements Router
 		$ranks = ['*' => []];
 
 		foreach ($routers as [$router, $params]) {
-			$value = $params[$this->cacheKey] ?? null;
+			$value = $params[$this->cacheKey ?? ''] ?? null;
 			$values = $value === null
 				? array_keys($ranks)
-				: [is_scalar($value) ? $value : '*'];
+				: [is_scalar($value) ? (string) $value : '*'];
 
 			foreach ($values as $value) {
+				$value = (string) $value;
 				if (!isset($ranks[$value])) {
 					$ranks[$value] = $ranks['*'];
 				}
@@ -197,11 +197,10 @@ class RouteList implements Router
 
 	/**
 	 * Adds a router.
-	 * @return static
 	 */
-	public function add(Router $router, int $flags = 0)
+	public function add(Router $router, int $oneWay = 0): static
 	{
-		$this->list[] = [$router, $flags];
+		$this->list[] = [$router, $oneWay];
 		$this->ranks = null;
 		return $this;
 	}
@@ -210,9 +209,9 @@ class RouteList implements Router
 	/**
 	 * Prepends a router.
 	 */
-	public function prepend(Router $router, int $flags = 0): void
+	public function prepend(Router $router, int $oneWay = 0): void
 	{
-		array_splice($this->list, 0, 0, [[$router, $flags]]);
+		array_splice($this->list, 0, 0, [[$router, $oneWay]]);
 		$this->ranks = null;
 	}
 
@@ -233,22 +232,22 @@ class RouteList implements Router
 
 
 	/**
-	 * @param  string  $mask  e.g. '<presenter>/<action>/<id \d{1,3}>'
-	 * @param  array  $metadata  default values or metadata
+	 * Creates a Route from the mask and adds it to the list.
+	 * @param string  $mask e.g. '<presenter>/<action>/<id \d{1,3}>'
+	 * @param array<string, mixed>  $metadata default values or metadata
 	 * @return static
 	 */
-	public function addRoute(string $mask, $metadata = [], int $flags = 0)
+	public function addRoute(string $mask, array $metadata = [], int $oneWay = 0)
 	{
-		$this->add(new Route($mask, $metadata), $flags);
+		$this->add(new Route($mask, $metadata), $oneWay);
 		return $this;
 	}
 
 
 	/**
-	 * Returns an iterator over all routers.
-	 * @return static
+	 * Creates a child RouteList scoped to the given domain and adds it to this list.
 	 */
-	public function withDomain(string $domain)
+	public function withDomain(string $domain): static
 	{
 		$router = new static;
 		$router->domain = $domain;
@@ -260,9 +259,9 @@ class RouteList implements Router
 
 
 	/**
-	 * @return static
+	 * Creates a child RouteList scoped to the given path prefix and adds it to this list.
 	 */
-	public function withPath(string $path)
+	public function withPath(string $path): static
 	{
 		$router = new static;
 		$router->path = rtrim($path, '/') . '/';
@@ -274,16 +273,17 @@ class RouteList implements Router
 
 
 	/**
-	 * @return ?static
+	 * Returns the parent RouteList, used to end a withDomain()/withPath() chain.
 	 */
-	public function end()
+	public function end(): ?self
 	{
 		return $this->parent;
 	}
 
 
 	/**
-	 * @return Router[]
+	 * Returns all routers in this list.
+	 * @return list<Router>
 	 */
 	public function getRouters(): array
 	{
@@ -292,7 +292,8 @@ class RouteList implements Router
 
 
 	/**
-	 * @return int[]
+	 * Returns the flags (e.g. ONE_WAY) for each router in this list.
+	 * @return list<int>
 	 */
 	public function getFlags(): array
 	{
@@ -314,7 +315,8 @@ class RouteList implements Router
 
 	private function expandDomain(string $host): string
 	{
-		$parts = ip2long($host) ? [$host] : array_reverse(explode('.', $host));
+		assert($this->domain !== null);
+		$parts = Route::hostParts($host);
 		return strtr($this->domain, [
 			'%tld%' => $parts[0],
 			'%domain%' => isset($parts[1]) ? "$parts[1].$parts[0]" : $parts[0],

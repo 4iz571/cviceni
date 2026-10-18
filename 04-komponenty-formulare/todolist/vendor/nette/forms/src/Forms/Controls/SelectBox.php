@@ -1,15 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms\Controls;
 
 use Nette;
+use Stringable;
+use function array_key_exists, is_array;
 
 
 /**
@@ -19,36 +19,35 @@ class SelectBox extends ChoiceControl
 {
 	/** validation rule */
 	public const Valid = ':selectBoxValid';
+
+	/** @deprecated use SelectBox::Valid */
 	public const VALID = self::Valid;
 
-	/** @var array of option / optgroup */
-	private $options = [];
+	/** @var mixed[]  option / optgroup */
+	private array $options = [];
+	private string|Stringable|false $prompt = false;
 
-	/** @var string|object|false */
-	private $prompt = false;
-
-	/** @var array */
-	private $optionAttributes = [];
+	/** @var array<string, mixed> */
+	private array $optionAttributes = [];
 
 
-	public function __construct($label = null, ?array $items = null)
+	/** @param  ?mixed[]  $items */
+	public function __construct(string|Stringable|null $label = null, ?array $items = null)
 	{
 		parent::__construct($label, $items);
 		$this->setOption('type', 'select');
-		$this->addCondition(function () {
-			return $this->prompt === false
-				&& $this->options
-				&& $this->control->size < 2;
-		})->addRule(Nette\Forms\Form::Filled, Nette\Forms\Validator::$messages[self::Valid]);
+		$this->addCondition(
+			fn() => $this->prompt === false
+			&& $this->options
+			&& $this->control->size < 2,
+		)->addRule(Nette\Forms\Form::Filled, Nette\Forms\Validator::$messages[self::Valid]);
 	}
 
 
 	/**
 	 * Sets first prompt item in select box.
-	 * @param  string|object|false  $prompt
-	 * @return static
 	 */
-	public function setPrompt($prompt)
+	public function setPrompt(string|Stringable|false $prompt): static
 	{
 		$this->prompt = $prompt;
 		return $this;
@@ -56,10 +55,9 @@ class SelectBox extends ChoiceControl
 
 
 	/**
-	 * Returns first prompt item?
-	 * @return string|object|false
+	 * Returns first prompt item.
 	 */
-	public function getPrompt()
+	public function getPrompt(): string|Stringable|false
 	{
 		return $this->prompt;
 	}
@@ -67,6 +65,7 @@ class SelectBox extends ChoiceControl
 
 	/**
 	 * Sets options and option groups from which to choose.
+	 * @param  mixed[]  $items
 	 * @return static
 	 */
 	public function setItems(array $items, bool $useKeys = true)
@@ -88,43 +87,63 @@ class SelectBox extends ChoiceControl
 		}
 
 		$this->options = $items;
-		return parent::setItems(Nette\Utils\Arrays::flatten($items, true));
+		return parent::setItems(Nette\Utils\Arrays::flatten($items, preserveKeys: true));
 	}
 
 
 	public function getControl(): Nette\Utils\Html
 	{
-		$items = $this->prompt === false ? [] : ['' => $this->translate($this->prompt)];
+		$items = [];
 		foreach ($this->options as $key => $value) {
 			$items[is_array($value) ? $this->translate($key) : $key] = $this->translate($value);
 		}
 
-		return Nette\Forms\Helpers::createSelectBox(
-			$items,
-			[
-				'disabled:' => is_array($this->disabled) ? $this->disabled : null,
-			] + $this->optionAttributes,
-			$this->value
-		)->addAttributes(parent::getControl()->attrs);
+		$attrs = $this->optionAttributes;
+		$attrs['disabled:'] = is_array($this->disabled) ? $this->disabled : [];
+
+		$selected = $this->value;
+		if ($this->prompt !== false) {
+			$promptKey = '';
+			while (isset($items[$promptKey])) {
+				$promptKey .= "\t";
+			}
+			$items = [$promptKey => $this->translate($this->prompt)] + $items;
+			if ($this->isRequired()) {
+				$attrs['hidden:'][$promptKey] = $attrs['disabled:'][$promptKey] = true;
+				// disabled & selected for Safari, hidden for other browsers
+				$selected = $this->value !== null && array_key_exists($this->value, $this->getItems()) ? $this->value : $promptKey;
+			}
+		}
+
+		return Nette\Forms\Helpers::createSelectBox($items, $attrs, $selected)
+			->addAttributes(parent::getControl()->attrs);
 	}
 
 
-	/** @return static */
-	public function addOptionAttributes(array $attributes)
+	/**
+	 * @param  array<string, mixed>  $attributes
+	 * @deprecated use setOptionAttribute()
+	 */
+	public function addOptionAttributes(array $attributes): static
 	{
 		$this->optionAttributes = $attributes + $this->optionAttributes;
 		return $this;
 	}
 
 
-	/** @return static */
-	public function setOptionAttribute(string $name, $value = true)
+	/**
+	 * Sets an attribute on all <option> elements. Use trailing ':' for per-item values or '?' for boolean attributes.
+	 */
+	public function setOptionAttribute(string $name, mixed $value = true): static
 	{
 		$this->optionAttributes[$name] = $value;
 		return $this;
 	}
 
 
+	/**
+	 * Checks whether the current selection is valid (a non-prompt item is selected, or the control has a prompt/is disabled).
+	 */
 	public function isOk(): bool
 	{
 		return $this->isDisabled()
@@ -135,6 +154,10 @@ class SelectBox extends ChoiceControl
 	}
 
 
+	/**
+	 * Returns all option attributes.
+	 * @return array<string, mixed>
+	 */
 	public function getOptionAttributes(): array
 	{
 		return $this->optionAttributes;

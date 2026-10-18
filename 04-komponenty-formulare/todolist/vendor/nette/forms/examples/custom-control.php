@@ -1,10 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * Nette Forms custom control example.
  */
-
-declare(strict_types=1);
 
 
 if (@!include __DIR__ . '/../vendor/autoload.php') {
@@ -18,18 +16,15 @@ use Nette\Utils\Html;
 
 class DateInput extends Nette\Forms\Controls\BaseControl
 {
-	/** @var string */
-	private $day = '';
-
-	private $month = '';
-
-	private $year = '';
+	private string $day = '';
+	private string $month = '';
+	private string $year = '';
 
 
 	public function __construct($label = null)
 	{
 		parent::__construct($label);
-		$this->addRule([self::class, 'validateDate'], 'Date is invalid.');
+		$this->addRule(self::validateDate(...), 'Date is invalid.');
 	}
 
 
@@ -88,7 +83,7 @@ class DateInput extends Nette\Forms\Controls\BaseControl
 			. Helpers::createSelectBox(
 				[1 => 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
 				[],
-				$this->month
+				$this->month,
 			)->name($name . '[month]')
 
 			. Html::el('input', [
@@ -131,7 +126,7 @@ if ($form->isSuccess()) {
 <meta charset="utf-8">
 <title>Nette Forms custom control example</title>
 <link rel="stylesheet" media="screen" href="assets/style.css" />
-<script src="https://unpkg.com/nette-forms@3/src/assets/netteForms.js"></script>
+<script src="https://unpkg.com/nette-forms@3"></script>
 
 <h1>Nette Forms custom control example</h1>
 

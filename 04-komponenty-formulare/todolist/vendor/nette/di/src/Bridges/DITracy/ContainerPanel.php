@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\DITracy;
 
@@ -19,23 +17,16 @@ use Tracy;
  */
 class ContainerPanel implements Tracy\IBarPanel
 {
-	use Nette\SmartObject;
-
-	/** @var float|null */
-	public static $compilationTime;
-
-	/** @var Nette\DI\Container */
-	private $container;
-
-	/** @var float|null */
-	private $elapsedTime;
+	public static ?float $compilationTime = null;
+	private Nette\DI\Container $container;
+	private ?float $elapsedTime;
 
 
 	public function __construct(Container $container)
 	{
 		$this->container = $container;
 		$this->elapsedTime = self::$compilationTime
-			? microtime(true) - self::$compilationTime
+			? microtime(as_float: true) - self::$compilationTime
 			: null;
 	}
 
@@ -47,7 +38,7 @@ class ContainerPanel implements Tracy\IBarPanel
 	{
 		return Nette\Utils\Helpers::capture(function () {
 			$elapsedTime = $this->elapsedTime;
-			require __DIR__ . '/templates/ContainerPanel.tab.phtml';
+			require __DIR__ . '/dist/tab.phtml';
 		});
 	}
 
@@ -57,32 +48,18 @@ class ContainerPanel implements Tracy\IBarPanel
 	 */
 	public function getPanel(): string
 	{
-		$methods = (function () { return $this->methods; })->bindTo($this->container, Container::class)();
-		$services = [];
-		foreach ($methods as $name => $foo) {
-			$name = lcfirst(str_replace('__', '.', substr($name, 13)));
-			$services[$name] = $this->container->getServiceType($name);
-		}
+		$rc = new \ReflectionClass($this->container);
+
+		$services = $this->container->getServiceDescriptors();
 		ksort($services, SORT_NATURAL);
 
-		$propertyTags = (function () { return $this->tags; })->bindTo($this->container, $this->container)();
-		$tags = [];
-		foreach ($propertyTags as $tag => $tmp) {
-			foreach ($tmp as $service => $val) {
-				$tags[$service][$tag] = $val;
-			}
-		}
-
-		return Nette\Utils\Helpers::capture(function () use ($tags, $services) {
+		return Nette\Utils\Helpers::capture(function () use ($rc, $services) {
 			$container = $this->container;
-			$rc = (new \ReflectionClass($this->container));
 			$file = $rc->getFileName();
-			$instances = (function () { return $this->instances; })->bindTo($this->container, Container::class)();
-			$wiring = (function () { return $this->wiring; })->bindTo($this->container, $this->container)();
 			$parameters = $rc->getMethod('getStaticParameters')->getDeclaringClass()->getName() === Container::class
 				? null
 				: $container->getParameters();
-			require __DIR__ . '/templates/ContainerPanel.panel.phtml';
+			require __DIR__ . '/dist/panel.phtml';
 		});
 	}
 }

@@ -15,15 +15,17 @@
 		}
 	],
 	"require": {
-		"php": "7.2 - 8.3",
-		"nette/utils": "^3.2.1 || ~4.0.0"
+		"php": "8.3 - 8.5",
+		"nette/utils": "^4.1"
 	},
 	"require-dev": {
-		"nette/di": "^3.0",
-		"nette/tester": "^2.4",
-		"nette/security": "^3.0",
-		"tracy/tracy": "^2.8",
-		"phpstan/phpstan": "^1.0"
+		"nette/di": "^3.2",
+		"nette/tester": "^2.6",
+		"nette/security": "^3.2",
+		"tracy/tracy": "^2.12",
+		"phpstan/phpstan": "^2.2@stable",
+		"phpstan/extension-installer": "^1.4@stable",
+		"nette/phpstan-rules": "^1.0"
 	},
 	"conflict": {
 		"nette/di": "<3.0.3",
@@ -36,7 +38,10 @@
 		"ext-intl": "to support punycode by Nette\\Http\\Url"
 	},
 	"autoload": {
-		"classmap": ["src/"]
+		"classmap": ["src/"],
+		"psr-4": {
+			"Nette\\": "src"
+		}
 	},
 	"minimum-stability": "dev",
 	"scripts": {
@@ -45,7 +50,12 @@
 	},
 	"extra": {
 		"branch-alias": {
-			"dev-master": "3.2-dev"
+			"dev-master": "3.4-dev"
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"phpstan/extension-installer": true
 		}
 	}
 }
