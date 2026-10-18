@@ -87,7 +87,7 @@ class TagEditForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):static {
+  public function setDefaults(array|object $values, bool $erase = false):static {
     if ($values instanceof Tag){
       $values = [
         'tagId'=>$values->tagId,

@@ -36,7 +36,7 @@ class TagEditForm extends Form{
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    */
-  public function __construct(TagsFacade $tagsFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(TagsFacade $tagsFacade, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->tagsFacade = $tagsFacade;
     $this->createSubcomponents();
@@ -87,7 +87,7 @@ class TagEditForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults(object|array $values, bool $erase = false):static {
     if ($values instanceof Tag){
       $values = [
         'tagId'=>$values->tagId,
