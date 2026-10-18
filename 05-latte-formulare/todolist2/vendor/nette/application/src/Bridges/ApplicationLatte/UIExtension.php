@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\ApplicationLatte;
 
@@ -16,6 +14,7 @@ use Latte\Compiler\Tag;
 use Latte\Essential\Nodes\ExtendsNode;
 use Nette;
 use Nette\Application\UI;
+use function array_unshift, preg_match;
 
 
 /**
@@ -24,17 +23,32 @@ use Nette\Application\UI;
 final class UIExtension extends Latte\Extension
 {
 	public function __construct(
-		private ?UI\Control $control,
+		private readonly ?UI\Control $control,
 	) {
+	}
+
+
+	public function getFilters(): array
+	{
+		$presenter = $this->control?->getPresenter(throw: false);
+		return [
+			'modifyDate' => fn($time, $delta, $unit = null) => $time
+				? Nette\Utils\DateTime::from($time)->modify($delta . $unit)
+				: null,
+		] + ($presenter ? [
+			'absoluteUrl' => fn(\Stringable|string|null $link): ?string => $link === null
+					? null
+					: $presenter->getHttpRequest()->getUrl()->resolve((string) $link)->getAbsoluteUrl(),
+		] : []);
 	}
 
 
 	public function getFunctions(): array
 	{
-		if ($presenter = $this->control?->getPresenterIfExists()) {
+		if ($presenter = $this->control?->getPresenter(throw: false)) {
 			return [
-				'isLinkCurrent' => [$presenter, 'isLinkCurrent'],
-				'isModuleCurrent' => [$presenter, 'isModuleCurrent'],
+				'isLinkCurrent' => $presenter->isLinkCurrent(...),
+				'isModuleCurrent' => $presenter->isModuleCurrent(...),
 			];
 		}
 		return [];
@@ -43,10 +57,10 @@ final class UIExtension extends Latte\Extension
 
 	public function getProviders(): array
 	{
-		$presenter = $this->control?->getPresenterIfExists();
+		$presenter = $this->control?->getPresenter(throw: false);
 		$httpResponse = $presenter?->getHttpResponse();
 		return [
-			'coreParentFinder' => [$this, 'findLayoutTemplate'],
+			'coreParentFinder' => $this->findLayoutTemplate(...),
 			'uiControl' => $this->control,
 			'uiPresenter' => $presenter,
 			'snippetDriver' => $this->control ? new SnippetRuntime($this->control) : null,
@@ -58,17 +72,17 @@ final class UIExtension extends Latte\Extension
 	public function getTags(): array
 	{
 		return [
-			'n:href' => [Nodes\LinkNode::class, 'create'],
-			'n:nonce' => [Nodes\NNonceNode::class, 'create'],
-			'control' => [Nodes\ControlNode::class, 'create'],
-			'plink' => [Nodes\LinkNode::class, 'create'],
-			'link' => [Nodes\LinkNode::class, 'create'],
-			'ifCurrent' => [Nodes\IfCurrentNode::class, 'create'],
-			'templatePrint' => [Nodes\TemplatePrintNode::class, 'create'],
-			'snippet' => [Nodes\SnippetNode::class, 'create'],
-			'snippetArea' => [Nodes\SnippetAreaNode::class, 'create'],
-			'layout' => [$this, 'createExtendsNode'],
-			'extends' => [$this, 'createExtendsNode'],
+			'n:href' => Nodes\LinkNode::create(...),
+			'n:nonce' => Nodes\NNonceNode::create(...),
+			'control' => Nodes\ControlNode::create(...),
+			'plink' => Nodes\LinkNode::create(...),
+			'link' => Nodes\LinkNode::create(...),
+			'linkBase' => Nodes\LinkBaseNode::create(...),
+			'templatePrint' => Nodes\TemplatePrintNode::create(...),
+			'snippet' => Nodes\SnippetNode::create(...),
+			'snippetArea' => Nodes\SnippetAreaNode::create(...),
+			'layout' => $this->createExtendsNode(...),
+			'extends' => $this->createExtendsNode(...),
 		];
 	}
 
@@ -76,7 +90,8 @@ final class UIExtension extends Latte\Extension
 	public function getPasses(): array
 	{
 		return [
-			'snippetRendering' => [$this, 'snippetRenderingPass'],
+			'snippetRendering' => $this->snippetRenderingPass(...),
+			'applyLinkBase' => Nodes\LinkBaseNode::applyLinkBasePass(...),
 		];
 	}
 
@@ -97,11 +112,9 @@ final class UIExtension extends Latte\Extension
 	public static function findLayoutTemplate(Latte\Runtime\Template $template): ?string
 	{
 		$presenter = $template->global->uiControl ?? null;
-		return $presenter instanceof UI\Presenter
-			&& ($template::Blocks[$template::LayerTop] ?? null)
-			&& !$template->getReferringTemplate()
-				? $presenter->findLayoutTemplateFile()
-				: null;
+		return $presenter instanceof UI\Presenter && !empty($template::Blocks[$template::LayerTop])
+			? $presenter->findLayoutTemplateFile()
+			: null;
 	}
 
 
@@ -118,7 +131,7 @@ final class UIExtension extends Latte\Extension
 		$auto = $tag->parser->stream->is('auto');
 		$node = ExtendsNode::create($tag);
 		if ($auto) {
-			$node->extends = new AuxiliaryNode(fn() => '$this->global->uiPresenter->findLayoutTemplateFile()');
+			$node->extends = new AuxiliaryNode(fn() => '($this->getReferringTemplate() ? null : $this->global->uiPresenter->findLayoutTemplateFile())');
 		}
 		return $node;
 	}

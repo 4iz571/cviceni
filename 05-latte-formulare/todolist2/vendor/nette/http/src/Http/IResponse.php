@@ -1,27 +1,19 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Http;
 
 
 /**
- * HTTP response interface.
+ * HTTP response contract for setting status code, headers, cookies, and redirects.
  * @method self deleteHeader(string $name)
  */
 interface IResponse
 {
-	/** @deprecated */
-	public const PERMANENT = 2116333333;
-
-	/** @deprecated */
-	public const BROWSER = 0;
-
 	/** HTTP 1.1 response code */
 	public const
 		S100_Continue = 100,
@@ -146,7 +138,7 @@ interface IResponse
 		511 => 'Network Authentication Required',
 	];
 
-	/** SameSite cookie */
+	/** @deprecated use Nette\Http\SameSite enum */
 	public const
 		SameSiteLax = 'Lax',
 		SameSiteStrict = 'Strict',
@@ -155,13 +147,13 @@ interface IResponse
 	/** @deprecated use IResponse::ReasonPhrases */
 	public const REASON_PHRASES = self::ReasonPhrases;
 
-	/** @deprecated use IResponse::SameSiteLax */
+	/** @deprecated use Nette\Http\SameSite enum */
 	public const SAME_SITE_LAX = self::SameSiteLax;
 
-	/** @deprecated use IResponse::SameSiteStrict */
+	/** @deprecated use Nette\Http\SameSite enum */
 	public const SAME_SITE_STRICT = self::SameSiteStrict;
 
-	/** @deprecated use IResponse::SameSiteNone */
+	/** @deprecated use Nette\Http\SameSite enum */
 	public const SAME_SITE_NONE = self::SameSiteNone;
 
 	/** @deprecated use IResponse::S100_Continue */
@@ -353,13 +345,13 @@ interface IResponse
 	function getCode(): int;
 
 	/**
-	 * Sends a HTTP header and replaces a previous one.
+	 * Sends an HTTP header, replacing any previously sent header with the same name.
 	 * @return static
 	 */
 	function setHeader(string $name, string $value);
 
 	/**
-	 * Adds HTTP header.
+	 * Adds an HTTP header without replacing a previously sent header with the same name.
 	 * @return static
 	 */
 	function addHeader(string $name, string $value);
@@ -376,43 +368,45 @@ interface IResponse
 	function redirect(string $url, int $code = self::S302_Found): void;
 
 	/**
-	 * Sets the time (like '20 minutes') before a page cached on a browser expires, null means "must-revalidate".
+	 * Sets the Cache-Control and Expires headers. Pass a time string (e.g. '20 minutes') to enable caching,
+	 * or null to disable it.
 	 * @return static
 	 */
 	function setExpiration(?string $expire);
 
 	/**
-	 * Checks if headers have been sent.
+	 * Checks whether HTTP headers have already been sent.
 	 */
 	function isSent(): bool;
 
 	/**
-	 * Returns value of an HTTP header.
+	 * Returns the value of a sent HTTP header, or null if it does not exist.
 	 */
 	function getHeader(string $header): ?string;
 
 	/**
-	 * Returns an associative array of headers to sent.
+	 * Returns all sent HTTP headers as an associative array.
+	 * @return array<string, string>
 	 */
 	function getHeaders(): array;
 
 	/**
 	 * Sends a cookie.
-	 * @param  string|int|\DateTimeInterface $expire  time, value null means "until the browser session ends"
 	 * @return static
 	 */
 	function setCookie(
 		string $name,
 		string $value,
-		$expire,
+		string|int|\DateTimeInterface|null $expire,
 		?string $path = null,
 		?string $domain = null,
 		?bool $secure = null,
-		?bool $httpOnly = null
+		?bool $httpOnly = null,
 	);
 
 	/**
 	 * Deletes a cookie.
+	 * @return void
 	 */
 	function deleteCookie(string $name, ?string $path = null, ?string $domain = null, ?bool $secure = null);
 }

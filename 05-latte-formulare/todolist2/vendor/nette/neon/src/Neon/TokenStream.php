@@ -1,13 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Neon;
+
+use function in_array, str_replace, strlen, strrpos, substr, substr_count;
 
 
 /** @internal */
@@ -17,7 +17,7 @@ final class TokenStream
 
 
 	public function __construct(
-		/** @var Token[] */
+		/** @var list<Token> */
 		public array $tokens,
 	) {
 	}
@@ -35,13 +35,17 @@ final class TokenStream
 	}
 
 
-	/** @return Token[] */
+	/** @return list<Token> */
 	public function getTokens(): array
 	{
 		return $this->tokens;
 	}
 
 
+	/**
+	 * Skips comments and whitespace, then checks whether the next token matches one of the given types.
+	 * With no arguments, checks whether any token remains.
+	 */
 	public function isNext(int|string ...$types): bool
 	{
 		while (in_array($this->tokens[$this->pos]->type ?? null, [Token::Comment, Token::Whitespace], strict: true)) {
@@ -54,6 +58,10 @@ final class TokenStream
 	}
 
 
+	/**
+	 * Consumes and returns the next token if it matches one of the given types, or null otherwise.
+	 * With no arguments, consumes any next token.
+	 */
 	public function consume(int|string ...$types): ?Token
 	{
 		return $this->isNext(...$types)
@@ -62,6 +70,10 @@ final class TokenStream
 	}
 
 
+	/**
+	 * Returns the whitespace indentation of the token at the current position,
+	 * i.e. the whitespace token immediately following a newline (or at the start).
+	 */
 	public function getIndentation(): string
 	{
 		return in_array($this->tokens[$this->pos - 2]->type ?? null, [Token::Newline, null], strict: true)
@@ -90,6 +102,6 @@ final class TokenStream
 		$message ??= 'Unexpected ' . ($token === null
 			? 'end'
 			: "'" . str_replace("\n", '<new line>', substr($this->tokens[$pos]->value, 0, 40)) . "'");
-		throw new Exception("$message on line $line, column $col.");
+		throw new Exception("$message on line $line at column $col");
 	}
 }

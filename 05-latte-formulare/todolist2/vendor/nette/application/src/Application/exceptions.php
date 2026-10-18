@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Application;
 
@@ -13,16 +11,22 @@ use Nette\Http;
 
 
 /**
- * The exception that is thrown when user attempts to terminate the current presenter or application.
- * This is special "silent exception" with no error message or code.
+ * A silent exception used to terminate the current presenter or application.
+ * Contains no error message or code.
  */
 class AbortException extends \LogicException
 {
 }
 
 
+/** @internal */
+final class SwitchException extends AbortException
+{
+}
+
+
 /**
- * Application fatal error.
+ * Fatal error in the application.
  */
 class ApplicationException extends \Exception
 {
@@ -30,7 +34,7 @@ class ApplicationException extends \Exception
 
 
 /**
- * The exception that is thrown when a presenter cannot be loaded.
+ * The requested presenter cannot be loaded.
  */
 class InvalidPresenterException extends \Exception
 {
@@ -38,12 +42,12 @@ class InvalidPresenterException extends \Exception
 
 
 /**
- * The exception that indicates client error with HTTP code 4xx.
+ * The request resulted in HTTP 4xx client error.
  */
 class BadRequestException extends \LogicException
 {
 	/** @var int */
-	protected $code = Http\IResponse::S404_NOT_FOUND;
+	protected $code = Http\IResponse::S404_NotFound;
 
 
 	public function __construct(string $message = '', int $httpCode = 0, ?\Throwable $previous = null)
@@ -60,10 +64,9 @@ class BadRequestException extends \LogicException
 
 
 /**
- * Forbidden request exception - access denied.
+ * Access to the requested resource is forbidden.
  */
 class ForbiddenRequestException extends BadRequestException
 {
-	/** @var int */
-	protected $code = Http\IResponse::S403_FORBIDDEN;
+	protected $code = Http\IResponse::S403_Forbidden;
 }

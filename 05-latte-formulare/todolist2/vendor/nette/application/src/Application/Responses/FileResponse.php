@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Application\Responses;
 
 use Nette;
+use function strlen;
 
 
 /**
@@ -17,38 +16,21 @@ use Nette;
  */
 final class FileResponse implements Nette\Application\Response
 {
-	use Nette\SmartObject;
-
-	/** @var bool */
-	public $resuming = true;
-
-	/** @var string */
-	private $file;
-
-	/** @var string */
-	private $contentType;
-
-	/** @var string */
-	private $name;
-
-	/** @var bool */
-	private $forceDownload;
+	public bool $resuming = true;
+	private readonly string $name;
 
 
 	public function __construct(
-		string $file,
+		private readonly string $file,
 		?string $name = null,
-		?string $contentType = null,
-		bool $forceDownload = true
+		private readonly string $contentType = 'application/octet-stream',
+		private readonly bool $forceDownload = true,
 	) {
 		if (!is_file($file) || !is_readable($file)) {
 			throw new Nette\Application\BadRequestException("File '$file' doesn't exist or is not readable.");
 		}
 
-		$this->file = $file;
 		$this->name = $name ?? basename($file);
-		$this->contentType = $contentType ?: 'application/octet-stream';
-		$this->forceDownload = $forceDownload;
 	}
 
 
@@ -89,25 +71,28 @@ final class FileResponse implements Nette\Application\Response
 			'Content-Disposition',
 			($this->forceDownload ? 'attachment' : 'inline')
 				. '; filename="' . $this->name . '"'
-				. '; filename*=utf-8\'\'' . rawurlencode($this->name)
+				. '; filename*=utf-8\'\'' . rawurlencode($this->name),
 		);
 
 		$filesize = $length = filesize($this->file);
-		$handle = fopen($this->file, 'r');
-		if (!$handle) {
-			throw new Nette\Application\BadRequestException("Cannot open file: '{$this->file}'.");
+		if ($filesize === false) {
+			throw new Nette\Application\BadRequestException("Cannot stat file: '{$this->file}'.");
 		}
+		$handle = fopen($this->file, 'r') ?: throw new Nette\Application\BadRequestException("Cannot open file: '{$this->file}'.");
 
 		if ($this->resuming) {
 			$httpResponse->setHeader('Accept-Ranges', 'bytes');
-			if (preg_match('#^bytes=(\d*)-(\d*)$#D', (string) $httpRequest->getHeader('Range'), $matches)) {
+			if (preg_match('#^bytes=(\d+)?-(\d+)?$#D', (string) $httpRequest->getHeader('Range'), $matches, PREG_UNMATCHED_AS_NULL)) {
 				[, $start, $end] = $matches;
-				if ($start === '') {
-					$start = max(0, $filesize - $end);
+				if ($start === null) {
+					$start = max(0, $filesize - (int) $end);
 					$end = $filesize - 1;
 
-				} elseif ($end === '' || $end > $filesize - 1) {
-					$end = $filesize - 1;
+				} else {
+					$start = (int) $start;
+					$end = $end === null || (int) $end > $filesize - 1
+						? $filesize - 1
+						: (int) $end;
 				}
 
 				if ($end < $start) {
@@ -118,7 +103,7 @@ final class FileResponse implements Nette\Application\Response
 				$httpResponse->setCode(206);
 				$httpResponse->setHeader('Content-Range', 'bytes ' . $start . '-' . $end . '/' . $filesize);
 				$length = $end - $start + 1;
-				fseek($handle, (int) $start);
+				fseek($handle, $start);
 
 			} else {
 				$httpResponse->setHeader('Content-Range', 'bytes 0-' . ($filesize - 1) . '/' . $filesize);
@@ -127,7 +112,11 @@ final class FileResponse implements Nette\Application\Response
 
 		$httpResponse->setHeader('Content-Length', (string) $length);
 		while (!feof($handle) && $length > 0) {
-			echo $s = fread($handle, min(4000000, $length));
+			$s = fread($handle, min(4_000_000, $length));
+			if ($s === false) {
+				throw new Nette\IOException("Cannot read file '$this->file'.");
+			}
+			echo $s;
 			$length -= strlen($s);
 		}
 

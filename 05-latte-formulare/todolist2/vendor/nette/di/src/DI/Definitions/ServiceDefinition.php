@@ -1,32 +1,34 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI\Definitions;
 
 use Nette;
 use Nette\DI\ServiceCreationException;
+use Nette\Utils\Strings;
+use function count, is_string;
 
 
 /**
  * Definition of standard service.
  *
- * @property string|null $class
+ * @property ?string $class
  * @property Statement $factory
  * @property Statement[] $setup
  */
 final class ServiceDefinition extends Definition
 {
-	/** @var Statement */
-	private $creator;
+	use Nette\SmartObject;
+
+	public ?bool $lazy = null;
+	private Statement $creator;
 
 	/** @var Statement[] */
-	private $setup = [];
+	private array $setup = [];
 
 
 	public function __construct()
@@ -35,8 +37,7 @@ final class ServiceDefinition extends Definition
 	}
 
 
-	/** @return static */
-	public function setType(?string $type)
+	public function setType(?string $type): static
 	{
 		return parent::setType($type);
 	}
@@ -44,10 +45,10 @@ final class ServiceDefinition extends Definition
 
 	/**
 	 * Alias for setCreator()
-	 * @param  string|array|Definition|Reference|Statement  $factory
-	 * @return static
+	 * @param  string|array{string|Reference|Statement, string}|Definition|Reference|Statement  $factory
+	 * @param  array<mixed>  $args
 	 */
-	public function setFactory($factory, array $args = [])
+	public function setFactory(string|array|Definition|Reference|Statement $factory, array $args = []): static
 	{
 		return $this->setCreator($factory, $args);
 	}
@@ -58,15 +59,15 @@ final class ServiceDefinition extends Definition
 	 */
 	public function getFactory(): Statement
 	{
-		return $this->getCreator();
+		return $this->creator;
 	}
 
 
 	/**
-	 * @param  string|array|Definition|Reference|Statement  $creator
-	 * @return static
+	 * @param  string|array{string|Reference|Statement, string}|Definition|Reference|Statement  $creator
+	 * @param  array<mixed>  $args
 	 */
-	public function setCreator($creator, array $args = [])
+	public function setCreator(string|array|Definition|Reference|Statement $creator, array $args = []): static
 	{
 		$this->creator = $creator instanceof Statement
 			? $creator
@@ -81,23 +82,22 @@ final class ServiceDefinition extends Definition
 	}
 
 
-	/** @return string|array|Definition|Reference|null */
-	public function getEntity()
+	/** @return string|array{string|Reference|Statement, string}|Definition|Reference|null */
+	public function getEntity(): string|array|Definition|Reference|null
 	{
 		return $this->creator->getEntity();
 	}
 
 
-	/** @return static */
-	public function setArguments(array $args = [])
+	/** @param  array<mixed>  $args */
+	public function setArguments(array $args = []): static
 	{
 		$this->creator->arguments = $args;
 		return $this;
 	}
 
 
-	/** @return static */
-	public function setArgument($key, $value)
+	public function setArgument(int|string $key, mixed $value): static
 	{
 		$this->creator->arguments[$key] = $value;
 		return $this;
@@ -106,9 +106,8 @@ final class ServiceDefinition extends Definition
 
 	/**
 	 * @param  Statement[]  $setup
-	 * @return static
 	 */
-	public function setSetup(array $setup)
+	public function setSetup(array $setup): static
 	{
 		foreach ($setup as &$entity) {
 			if (!$entity instanceof Statement) {
@@ -130,10 +129,10 @@ final class ServiceDefinition extends Definition
 
 
 	/**
-	 * @param  string|array|Definition|Reference|Statement  $entity
-	 * @return static
+	 * @param  string|array{string|Reference|Statement, string}|Definition|Reference|Statement  $entity
+	 * @param  array<mixed>  $args
 	 */
-	public function addSetup($entity, array $args = [])
+	public function addSetup(string|array|Definition|Reference|Statement $entity, array $args = []): static
 	{
 		$entity = $entity instanceof Statement
 			? $entity
@@ -146,11 +145,12 @@ final class ServiceDefinition extends Definition
 	public function resolveType(Nette\DI\Resolver $resolver): void
 	{
 		if (!$this->getEntity()) {
-			if (!$this->getType()) {
+			$type = $this->getType();
+			if (!$type) {
 				throw new ServiceCreationException('Factory and type are missing in definition of service.');
 			}
 
-			$this->setCreator($this->getType(), $this->creator->arguments ?? []);
+			$this->setCreator($type, $this->creator->arguments);
 
 		} elseif (!$this->getType()) {
 			$type = $resolver->resolveEntityType($this->creator);
@@ -158,6 +158,7 @@ final class ServiceDefinition extends Definition
 				throw new ServiceCreationException('Unknown service type, specify it or declare return type of factory method.');
 			}
 
+			assert(class_exists($type) || interface_exists($type));
 			$this->setType($type);
 			$resolver->addDependency(new \ReflectionClass($type));
 		}
@@ -180,7 +181,7 @@ final class ServiceDefinition extends Definition
 		$this->creator = $resolver->completeStatement($this->creator);
 
 		foreach ($this->setup as &$setup) {
-			$setup = $resolver->completeStatement($setup, true);
+			$setup = $resolver->completeStatement($setup, currentServiceAllowed: true);
 		}
 	}
 
@@ -195,19 +196,37 @@ final class ServiceDefinition extends Definition
 
 	public function generateMethod(Nette\PhpGenerator\Method $method, Nette\DI\PhpGenerator $generator): void
 	{
-		$code = $generator->formatStatement($this->creator) . ";\n";
-		if (!$this->setup) {
-			$method->setBody('return ' . $code);
-			return;
+		$lines = [];
+		foreach ([$this->creator, ...$this->setup] as $stmt) {
+			$lines[] = $generator->formatStatement($stmt) . ";\n";
 		}
 
-		$code = '$service = ' . $code;
-		foreach ($this->setup as $setup) {
-			$code .= $generator->formatStatement($setup) . ";\n";
-		}
+		if ($this->canBeLazy() && !preg_grep('#func_get_arg|func_num_args#i', $lines)) { // latteFactory workaround
+			$class = $this->creator->getEntity();
+			assert(is_string($class) && class_exists($class)); // canBeLazy() guarantees this
+			$lines[0] = (new \ReflectionClass($class))->hasMethod('__construct')
+				? $generator->formatPhp("\$service->__construct(...?:);\n", [$this->creator->arguments])
+				: '';
+			$method->setBody("return new ReflectionClass($class::class)->newLazyGhost(function (\$service) {\n"
+				. Strings::indent(implode('', $lines))
+				. '});');
 
-		$code .= 'return $service;';
-		$method->setBody($code);
+		} elseif (count($lines) === 1) {
+			$method->setBody('return ' . $lines[0]);
+
+		} else {
+			$method->setBody('$service = ' . implode('', $lines) . 'return $service;');
+		}
+	}
+
+
+	private function canBeLazy(): bool
+	{
+		return $this->lazy
+			&& is_string($class = $this->creator->getEntity())
+			&& ($this->creator->arguments || $this->setup)
+			&& ($ancestor = ($tmp = class_parents($class)) ? array_pop($tmp) : $class)
+			&& !(new \ReflectionClass($ancestor))->isInternal();
 	}
 
 

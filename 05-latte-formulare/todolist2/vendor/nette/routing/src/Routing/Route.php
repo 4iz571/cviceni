@@ -1,27 +1,22 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Routing;
 
 use Nette;
 use Nette\Utils\Strings;
-use function array_key_exists, is_array, count, strlen;
+use function array_flip, array_key_exists, array_pop, array_reverse, array_unshift, count, explode, http_build_query, ini_get, ip2long, is_array, is_scalar, is_string, ltrim, preg_match, preg_quote, preg_replace_callback, rawurldecode, rawurlencode, str_starts_with, strlen, strpbrk, strtr, substr, trim;
 
 
 /**
- * The bidirectional route is responsible for mapping
- * HTTP request to an array for dispatch and vice-versa.
+ * Bidirectional route mapping between HTTP requests and parameter arrays using a URL mask.
  */
 class Route implements Router
 {
-	use Nette\SmartObject;
-
 	/** key used in metadata */
 	public const
 		Value = 'value',
@@ -31,14 +26,23 @@ class Route implements Router
 		FilterTable = 'filterTable',
 		FilterStrict = 'filterStrict';
 
-	/** key used in metadata */
-	public const
-		VALUE = self::Value,
-		PATTERN = self::Pattern,
-		FILTER_IN = self::FilterIn,
-		FILTER_OUT = self::FilterOut,
-		FILTER_TABLE = self::FilterTable,
-		FILTER_STRICT = self::FilterStrict;
+	/** @deprecated use Route::Value */
+	public const VALUE = self::Value;
+
+	/** @deprecated use Route::Pattern */
+	public const PATTERN = self::Pattern;
+
+	/** @deprecated use Route::FilterIn */
+	public const FILTER_IN = self::FilterIn;
+
+	/** @deprecated use Route::FilterOut */
+	public const FILTER_OUT = self::FilterOut;
+
+	/** @deprecated use Route::FilterTable */
+	public const FILTER_TABLE = self::FilterTable;
+
+	/** @deprecated use Route::FilterStrict */
+	public const FILTER_STRICT = self::FilterStrict;
 
 	/** key used in metadata */
 	private const
@@ -58,41 +62,41 @@ class Route implements Router
 		InPath = 1, // in brackets is default value = null
 		Constant = 2;
 
-	/** @var array */
-	protected $defaultMeta = [
+	/** @var array<string, array<string, mixed>> */
+	protected array $defaultMeta = [
 		'#' => [ // default style for path parameters
 			self::Pattern => '[^/]+',
 			self::FilterOut => [self::class, 'param2path'],
 		],
 	];
 
-	/** @var string */
-	private $mask;
+	private string $mask;
 
-	/** @var array */
-	private $sequence;
+	/** @var list<string> */
+	private array $sequence;
 
-	/** @var string  regular expression pattern */
-	private $re;
+	/** regular expression pattern */
+	private string $re;
 
-	/** @var string[]  parameter aliases in regular expression */
-	private $aliases = [];
+	/** @var array<string, string> parameter aliases in regular expression */
+	private array $aliases = [];
 
-	/** @var array of [value & fixity, filterIn, filterOut] */
-	private $metadata = [];
+	/** @var array<string, array<string, mixed>> of [value & fixity, filterIn, filterOut] */
+	private array $metadata = [];
 
-	/** @var array  */
-	private $xlat = [];
+	/** @var array<string, string> */
+	private array $xlat = [];
 
-	/** @var int HOST, PATH, RELATIVE */
-	private $type;
+	/** Host, Path, Relative */
+	private int $type;
 
-	/** @var string  http | https */
-	private $scheme;
+	/** http | https */
+	private string $scheme = '';
 
 
 	/**
-	 * @param  string  $mask  e.g. '<presenter>/<action>/<id \d{1,3}>'
+	 * @param string  $mask e.g. '<presenter>/<action>/<id \d{1,3}>'
+	 * @param array<string, mixed>  $metadata default values or metadata
 	 */
 	public function __construct(string $mask, array $metadata = [])
 	{
@@ -102,25 +106,23 @@ class Route implements Router
 	}
 
 
-	/**
-	 * Returns mask.
-	 */
 	public function getMask(): string
 	{
 		return $this->mask;
 	}
 
 
-	/** @internal */
+	/**
+	 * @internal
+	 * @return array<string, array<string, mixed>>
+	 */
 	protected function getMetadata(): array
 	{
 		return $this->metadata;
 	}
 
 
-	/**
-	 * Returns default values.
-	 */
+	/** @return array<string, mixed> */
 	public function getDefaults(): array
 	{
 		$defaults = [];
@@ -134,7 +136,11 @@ class Route implements Router
 	}
 
 
-	/** @internal */
+	/**
+	 * Returns parameters that must have a specific fixed value for the route to match.
+	 * @internal
+	 * @return array<string, mixed>
+	 */
 	public function getConstantParameters(): array
 	{
 		$res = [];
@@ -148,9 +154,7 @@ class Route implements Router
 	}
 
 
-	/**
-	 * Maps HTTP request to an array.
-	 */
+	/** @return ?array<string, mixed> */
 	public function match(Nette\Http\IRequest $httpRequest): ?array
 	{
 		// combine with precedence: mask (params in URL-path), fixity, query, (post,) defaults
@@ -162,9 +166,7 @@ class Route implements Router
 		if ($this->type === self::Host) {
 			$host = $url->getHost();
 			$path = '//' . $host . $url->getPath();
-			$parts = ip2long($host)
-				? [$host]
-				: array_reverse(explode('.', $host));
+			$parts = self::hostParts($host);
 			$re = strtr($re, [
 				'/%basePath%/' => preg_quote($url->getBasePath(), '#'),
 				'%tld%' => preg_quote($parts[0], '#'),
@@ -175,7 +177,7 @@ class Route implements Router
 
 		} elseif ($this->type === self::Relative) {
 			$basePath = $url->getBasePath();
-			if (strncmp($url->getPath(), $basePath, strlen($basePath)) !== 0) {
+			if (!str_starts_with($url->getPath(), $basePath)) {
 				return null;
 			}
 
@@ -234,8 +236,8 @@ class Route implements Router
 			}
 		}
 
-		if (isset($this->metadata[null][self::FilterIn])) {
-			$params = $this->metadata[null][self::FilterIn]($params);
+		if (isset($this->metadata[''][self::FilterIn])) {
+			$params = $this->metadata[''][self::FilterIn]($params);
 			if ($params === null) {
 				return null;
 			}
@@ -245,9 +247,7 @@ class Route implements Router
 	}
 
 
-	/**
-	 * Constructs absolute URL from array.
-	 */
+	/** @param array<string, mixed>  $params */
 	public function constructUrl(array $params, Nette\Http\UrlScript $refUrl): ?string
 	{
 		if (!$this->preprocessParams($params)) {
@@ -268,9 +268,7 @@ class Route implements Router
 
 		} else {
 			$host = $refUrl->getHost();
-			$parts = ip2long($host)
-				? [$host]
-				: array_reverse(explode('.', $host));
+			$parts = self::hostParts($host);
 			$url = strtr($url, [
 				'/%basePath%/' => $refUrl->getBasePath(),
 				'%tld%' => $parts[0],
@@ -294,9 +292,10 @@ class Route implements Router
 	}
 
 
+	/** @param array<string, mixed>  $params */
 	private function preprocessParams(array &$params): bool
 	{
-		$filter = $this->metadata[null][self::FilterOut] ?? null;
+		$filter = $this->metadata[''][self::FilterOut] ?? null;
 		if ($filter) {
 			$params = $filter($params);
 			if ($params === null) {
@@ -349,6 +348,7 @@ class Route implements Router
 	}
 
 
+	/** @param array<string, mixed>  $params */
 	private function compileUrl(array &$params): ?string
 	{
 		$brackets = [];
@@ -406,7 +406,7 @@ class Route implements Router
 			[, $this->scheme, $path] = $m;
 			return $path;
 
-		} elseif (substr($this->mask, 0, 1) === '/') {
+		} elseif (str_starts_with($this->mask, '/')) {
 			$this->type = self::Path;
 
 		} else {
@@ -417,6 +417,10 @@ class Route implements Router
 	}
 
 
+	/**
+	 * @param array<string, mixed>  $metadata
+	 * @return array<string, array<string, mixed>>
+	 */
 	private function normalizeMetadata(array $metadata): array
 	{
 		foreach ($metadata as $name => $meta) {
@@ -442,7 +446,7 @@ class Route implements Router
 	private function parseMask(string $path): void
 	{
 		// <parameter-name[=default] [pattern]> or [ or ] or ?...
-		$parts = Strings::split($path, '/<([^<>= ]+)(=[^<> ]*)? *([^<>]*)>|(\[!?|\]|\s*\?.*)/');
+		$parts = Strings::split($path, '/<([^<>= ]+)(=[^<> ]*)? *([^<>]*)>|(\[!?|]|\s*\?.*)/');
 
 		$i = count($parts) - 1;
 		if ($i === 0) {
@@ -563,10 +567,11 @@ class Route implements Router
 	}
 
 
+	/** @param list<string>  $parts */
 	private function parseQuery(array $parts): bool
 	{
 		$query = $parts[count($parts) - 2] ?? '';
-		if (substr(ltrim($query), 0, 1) !== '?') {
+		if (!str_starts_with(ltrim($query), '?')) {
 			return false;
 		}
 
@@ -599,7 +604,10 @@ class Route implements Router
 
 
 	/**
-	 * Rename keys in array.
+	 * Renames keys in array according to the translation table.
+	 * @param array<string, mixed>  $arr
+	 * @param array<string, string>  $xlat
+	 * @return array<string, mixed>
 	 */
 	private static function renameKeys(array $arr, array $xlat): array
 	{
@@ -623,10 +631,28 @@ class Route implements Router
 
 
 	/**
-	 * Url encode.
+	 * Splits a host into parts for %tld%/%domain%/%sld% wildcards; IP addresses are kept whole.
+	 * @internal
+	 * @return non-empty-list<string>
+	 */
+	public static function hostParts(string $host): array
+	{
+		return str_starts_with($host, '[') || ip2long($host) !== false // [IPv6] or IPv4
+			? [$host]
+			: array_reverse(explode('.', $host));
+	}
+
+
+	/**
+	 * Encodes a parameter value for use in a URL path segment, leaving allowed characters unencoded.
 	 */
 	public static function param2path(string $s): string
 	{
-		return str_replace('%2F', '/', rawurlencode($s));
+		// segment + "/", see https://datatracker.ietf.org/doc/html/rfc3986#appendix-A
+		return (string) preg_replace_callback(
+			'#[^\w.~!$&\'()*+,;=:@/-]#',
+			fn($m) => rawurlencode($m[0]),
+			$s,
+		);
 	}
 }

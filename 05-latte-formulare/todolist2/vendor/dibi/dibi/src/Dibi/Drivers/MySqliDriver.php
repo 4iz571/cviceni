@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -51,7 +49,10 @@ class MySqliDriver implements Dibi\Driver
 	private bool $buffered = false;
 
 
-	/** @throws Dibi\NotSupportedException */
+	/**
+	 * @param  array<string, mixed>  $config
+	 * @throws Dibi\NotSupportedException
+	 */
 	public function __construct(array $config)
 	{
 		if (!extension_loaded('mysqli')) {
@@ -86,7 +87,7 @@ class MySqliDriver implements Dibi\Driver
 			$foo = &$config['flags'];
 			$foo = &$config['database'];
 
-			$this->connection = mysqli_init();
+			$this->connection = mysqli_init() ?: throw new Dibi\DriverException('Cannot initialize MySQLi.');
 			if (isset($config['options'])) {
 				foreach ($config['options'] as $key => $value) {
 					$this->connection->options($key, $value);
@@ -104,7 +105,7 @@ class MySqliDriver implements Dibi\Driver
 			);
 
 			if ($this->connection->connect_errno) {
-				throw new Dibi\DriverException($this->connection->connect_error, $this->connection->connect_errno);
+				throw new Dibi\DriverException($this->connection->connect_error ?? 'Connection failed', $this->connection->connect_errno);
 			}
 		}
 
@@ -165,13 +166,13 @@ class MySqliDriver implements Dibi\Driver
 
 	public static function createException(string $message, int|string $code, string $sql): Dibi\DriverException
 	{
-		if (in_array($code, [1216, 1217, 1451, 1452, 1701], true)) {
+		if (in_array($code, [1216, 1217, 1451, 1452, 1701], strict: true)) {
 			return new Dibi\ForeignKeyConstraintViolationException($message, $code, $sql);
 
-		} elseif (in_array($code, [1062, 1557, 1569, 1586], true)) {
+		} elseif (in_array($code, [1062, 1557, 1569, 1586], strict: true)) {
 			return new Dibi\UniqueConstraintViolationException($message, $code, $sql);
 
-		} elseif (in_array($code, [1048, 1121, 1138, 1171, 1252, 1263, 1566], true)) {
+		} elseif (in_array($code, [1048, 1121, 1138, 1171, 1252, 1263, 1566], strict: true)) {
 			return new Dibi\NotNullConstraintViolationException($message, $code, $sql);
 
 		} else {
@@ -182,11 +183,12 @@ class MySqliDriver implements Dibi\Driver
 
 	/**
 	 * Retrieves information about the most recently executed query.
+	 * @return array<string, int>
 	 */
 	public function getInfo(): array
 	{
 		$res = [];
-		preg_match_all('#(.+?): +(\d+) *#', $this->connection->info, $matches, PREG_SET_ORDER);
+		preg_match_all('#(.+?): +(\d+) *#', $this->connection->info ?? '', $matches, PREG_SET_ORDER);
 		if (preg_last_error()) {
 			throw new Dibi\PcreException;
 		}
@@ -206,7 +208,7 @@ class MySqliDriver implements Dibi\Driver
 	{
 		return $this->connection->affected_rows === -1
 			? null
-			: $this->connection->affected_rows;
+			: (int) $this->connection->affected_rows;
 	}
 
 
@@ -215,7 +217,7 @@ class MySqliDriver implements Dibi\Driver
 	 */
 	public function getInsertId(?string $sequence): ?int
 	{
-		return $this->connection->insert_id ?: null;
+		return ((int) $this->connection->insert_id) ?: null;
 	}
 
 
@@ -256,7 +258,7 @@ class MySqliDriver implements Dibi\Driver
 	{
 		try {
 			return @$this->connection->thread_id ? $this->connection : null;
-		} catch (\Throwable $e) {
+		} catch (\Throwable) {
 			return null;
 		}
 	}

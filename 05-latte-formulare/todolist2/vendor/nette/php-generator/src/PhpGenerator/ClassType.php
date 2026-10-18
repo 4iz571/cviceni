@@ -1,16 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 use Nette;
-use function array_diff, array_map, strtolower;
+use function array_diff, array_map, func_num_args, strtolower;
 
 
 /**
@@ -23,7 +21,7 @@ final class ClassType extends ClassLike
 	use Traits\PropertiesAware;
 	use Traits\TraitsAware;
 
-	/** @deprecated */
+	#[\Deprecated]
 	public const
 		TYPE_CLASS = 'class',
 		TYPE_INTERFACE = 'interface',
@@ -35,58 +33,16 @@ final class ClassType extends ClassLike
 	private ?string $extends = null;
 	private bool $readOnly = false;
 
-	/** @var string[] */
+	/** @var list<string> */
 	private array $implements = [];
 
 
-	/** @deprecated  create object using 'new Nette\PhpGenerator\ClassType' */
-	public static function class(?string $name): self
+	public function __construct(?string $name = null)
 	{
-		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\ClassType", E_USER_DEPRECATED);
-		return new self($name);
-	}
-
-
-	/** @deprecated  create object using 'new Nette\PhpGenerator\InterfaceType' */
-	public static function interface(string $name): InterfaceType
-	{
-		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\InterfaceType'", E_USER_DEPRECATED);
-		return new InterfaceType($name);
-	}
-
-
-	/** @deprecated  create object using 'new Nette\PhpGenerator\TraitType' */
-	public static function trait(string $name): TraitType
-	{
-		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\TraitType'", E_USER_DEPRECATED);
-		return new TraitType($name);
-	}
-
-
-	/** @deprecated  create object using 'new Nette\PhpGenerator\EnumType' */
-	public static function enum(string $name): EnumType
-	{
-		trigger_error(__METHOD__ . "() is deprecated, create object using 'new Nette\\PhpGenerator\\EnumType'", E_USER_DEPRECATED);
-		return new EnumType($name);
-	}
-
-
-	public function __construct(?string $name = null, ?PhpNamespace $namespace = null)
-	{
+		parent::__construct($name ?? 'foo', func_num_args() > 1 ? func_get_arg(1) : null); // backward compatibility
 		if ($name === null) {
-			parent::__construct('foo', $namespace);
 			$this->setName(null);
-		} else {
-			parent::__construct($name, $namespace);
 		}
-	}
-
-
-	/** @deprecated */
-	public function getType(): string
-	{
-		trigger_error(__METHOD__ . "() is deprecated, method always returns 'class'", E_USER_DEPRECATED);
-		return self::TYPE_CLASS;
 	}
 
 
@@ -145,9 +101,7 @@ final class ClassType extends ClassLike
 	}
 
 
-	/**
-	 * @param  string[]  $names
-	 */
+	/** @param list<string>  $names */
 	public function setImplements(array $names): static
 	{
 		$this->validateNames($names);
@@ -156,7 +110,7 @@ final class ClassType extends ClassLike
 	}
 
 
-	/** @return string[] */
+	/** @return list<string> */
 	public function getImplements(): array
 	{
 		return $this->implements;
@@ -173,7 +127,7 @@ final class ClassType extends ClassLike
 
 	public function removeImplement(string $name): static
 	{
-		$this->implements = array_diff($this->implements, [$name]);
+		$this->implements = array_values(array_diff($this->implements, [$name]));
 		return $this;
 	}
 
@@ -229,10 +183,9 @@ final class ClassType extends ClassLike
 	public function __clone(): void
 	{
 		parent::__clone();
-		$clone = fn($item) => clone $item;
-		$this->consts = array_map($clone, $this->consts);
-		$this->methods = array_map($clone, $this->methods);
-		$this->properties = array_map($clone, $this->properties);
-		$this->traits = array_map($clone, $this->traits);
+		$this->consts = array_map(fn(Constant $c) => clone $c, $this->consts);
+		$this->methods = array_map(fn(Method $m) => clone $m, $this->methods);
+		$this->properties = array_map(fn(Property $p) => clone $p, $this->properties);
+		$this->traits = array_map(fn(TraitUse $t) => clone $t, $this->traits);
 	}
 }

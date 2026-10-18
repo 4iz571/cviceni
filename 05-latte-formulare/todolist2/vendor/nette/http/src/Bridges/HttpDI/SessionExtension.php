@@ -1,35 +1,36 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\HttpDI;
 
 use Nette;
-use Nette\Http\IResponse;
+use Nette\Http\SameSite;
 use Nette\Schema\Expect;
 
 
 /**
  * Session extension for Nette DI.
+ *
+ * @property object{
+ *     debugger: bool,
+ *     autoStart: 'smart'|'always'|'never'|bool,
+ *     expiration: ?string,
+ *     handler: ?string,
+ *     readAndClose: ?bool,
+ *     cookieSamesite: 'Lax'|'Strict'|'None',
+ *     cookieDomain?: string,
+ * } $config
  */
 class SessionExtension extends Nette\DI\CompilerExtension
 {
-	/** @var bool */
-	private $debugMode;
-
-	/** @var bool */
-	private $cliMode;
-
-
-	public function __construct(bool $debugMode = false, bool $cliMode = false)
-	{
-		$this->debugMode = $debugMode;
-		$this->cliMode = $cliMode;
+	public function __construct(
+		private readonly bool $debugMode = false,
+		private readonly bool $cliMode = false,
+	) {
 	}
 
 
@@ -41,13 +42,13 @@ class SessionExtension extends Nette\DI\CompilerExtension
 			'expiration' => Expect::string()->dynamic(),
 			'handler' => Expect::string()->dynamic(),
 			'readAndClose' => Expect::bool(),
-			'cookieSamesite' => Expect::anyOf(IResponse::SameSiteLax, IResponse::SameSiteStrict, IResponse::SameSiteNone, true)
+			'cookieSamesite' => Expect::anyOf(SameSite::Lax->value, SameSite::Strict->value, SameSite::None->value)
 				->firstIsDefault(),
-		])->otherItems('mixed');
+		])->otherItems();
 	}
 
 
-	public function loadConfiguration()
+	public function loadConfiguration(): void
 	{
 		$builder = $this->getContainerBuilder();
 		$config = $this->config;
@@ -65,16 +66,6 @@ class SessionExtension extends Nette\DI\CompilerExtension
 
 		if (($config->cookieDomain ?? null) === 'domain') {
 			$config->cookieDomain = $builder::literal('$this->getByType(Nette\Http\IRequest::class)->getUrl()->getDomain(2)');
-		}
-
-		if (isset($config->cookieSecure)) {
-			trigger_error("The item 'session\u{a0}›\u{a0}cookieSecure' is deprecated, use 'http\u{a0}›\u{a0}cookieSecure' (it has default value 'auto').", E_USER_DEPRECATED);
-			unset($config->cookieSecure);
-		}
-
-		if ($config->cookieSamesite === true) {
-			trigger_error("In 'session\u{a0}›\u{a0}cookieSamesite' replace true with 'Lax'.", E_USER_DEPRECATED);
-			$config->cookieSamesite = IResponse::SameSiteLax;
 		}
 
 		$this->compiler->addExportedType(Nette\Http\IRequest::class);

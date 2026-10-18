@@ -1,42 +1,39 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI;
 
 use Nette;
 use Nette\Utils\Reflection;
-use Nette\Utils\Type;
 use ReflectionClass;
 use ReflectionMethod;
+use function count, is_object, is_string, sprintf;
+use const PHP_VERSION_ID;
 
 
 /**
- * Cache dependencies checker.
+ * Tracks and checks whether cached container dependencies have changed.
  */
 class DependencyChecker
 {
-	use Nette\SmartObject;
-
 	public const Version = 1;
 
 	/** @deprecated use DependencyChecker::Version */
 	public const VERSION = self::Version;
 
-	/** @var array of ReflectionClass|\ReflectionFunctionAbstract|string */
-	private $dependencies = [];
+	/** @var array<ReflectionClass<object>|\ReflectionFunctionAbstract|string> */
+	private array $dependencies = [];
 
 
 	/**
 	 * Adds dependencies to the list.
-	 * @return static
+	 * @param  array<ReflectionClass<object>|\ReflectionFunctionAbstract|string>  $deps
 	 */
-	public function add(array $deps)
+	public function add(array $deps): static
 	{
 		$this->dependencies = array_merge($this->dependencies, $deps);
 		return $this;
@@ -45,6 +42,7 @@ class DependencyChecker
 
 	/**
 	 * Exports dependencies.
+	 * @return array{int, array<string, int|false>, array<string, int|false>, string[], string[], string}
 	 */
 	public function export(): array
 	{
@@ -63,25 +61,31 @@ class DependencyChecker
 					}
 				}
 			} elseif ($dep instanceof \ReflectionFunctionAbstract) {
-				$phpFiles[] = $dep->getFileName();
+				if ($file = $dep->getFileName()) {
+					$phpFiles[] = $file;
+				}
 				$functions[] = rtrim(Reflection::toString($dep), '()');
 
 			} else {
-				throw new Nette\InvalidStateException(sprintf('Unexpected dependency %s', gettype($dep)));
+				throw new Nette\InvalidStateException(sprintf('Unexpected dependency %s', get_debug_type($dep)));
 			}
 		}
 
 		$classes = array_keys($classes);
 		$functions = array_unique($functions, SORT_REGULAR);
 		$hash = self::calculateHash($classes, $functions);
-		$files = @array_map('filemtime', array_combine($files, $files)); // @ - file may not exist
-		$phpFiles = @array_map('filemtime', array_combine($phpFiles, $phpFiles)); // @ - file may not exist
+		$files = @array_map(filemtime(...), array_combine($files, $files)); // @ - file may not exist
+		$phpFiles = @array_map(filemtime(...), array_combine($phpFiles, $phpFiles)); // @ - file may not exist
 		return [self::Version, $files, $phpFiles, $classes, $functions, $hash];
 	}
 
 
 	/**
-	 * Are dependencies expired?
+	 * Checks whether the cached dependencies have changed since they were exported.
+	 * @param  array<string, int|false>  $files
+	 * @param  array<string, int|false>  $phpFiles
+	 * @param  list<string>  $classes
+	 * @param  list<string>  $functions
 	 */
 	public static function isExpired(
 		int $version,
@@ -89,22 +93,26 @@ class DependencyChecker
 		array &$phpFiles,
 		array $classes,
 		array $functions,
-		string $hash
+		string $hash,
 	): bool
 	{
 		try {
-			$currentFiles = @array_map('filemtime', array_combine($tmp = array_keys($files), $tmp)); // @ - files may not exist
+			$currentFiles = @array_map(filemtime(...), array_combine($tmp = array_keys($files), $tmp)); // @ - files may not exist
 			$origPhpFiles = $phpFiles;
-			$phpFiles = @array_map('filemtime', array_combine($tmp = array_keys($phpFiles), $tmp)); // @ - files may not exist
+			$phpFiles = @array_map(filemtime(...), array_combine($tmp = array_keys($phpFiles), $tmp)); // @ - files may not exist
 			return $version !== self::Version
 				|| $files !== $currentFiles
 				|| ($phpFiles !== $origPhpFiles && $hash !== self::calculateHash($classes, $functions));
-		} catch (\ReflectionException $e) {
+		} catch (\ReflectionException) {
 			return true;
 		}
 	}
 
 
+	/**
+	 * @param  string[]  $classes
+	 * @param  string[]  $functions
+	 */
 	private static function calculateHash(array $classes, array $functions): string
 	{
 		$hash = [];
@@ -125,8 +133,8 @@ class DependencyChecker
 						$name,
 						$prop->name,
 						$prop->getDocComment(),
-						(string) Type::fromReflection($prop),
-						PHP_VERSION_ID >= 80000 ? count($prop->getAttributes(Attributes\Inject::class)) : null,
+						(string) $prop->getType(),
+						count($prop->getAttributes(Attributes\Inject::class)),
 					];
 				}
 			}
@@ -138,7 +146,7 @@ class DependencyChecker
 						$method->name,
 						$method->getDocComment(),
 						self::hashParameters($method),
-						(string) Type::fromReflection($method),
+						(string) $method->getReturnType(),
 					];
 				}
 			}
@@ -146,7 +154,7 @@ class DependencyChecker
 
 		$flip = array_flip($classes);
 		foreach ($functions as $name) {
-			if (strpos($name, '::')) {
+			if (str_contains($name, '::')) {
 				$method = PHP_VERSION_ID < 80300
 					? new ReflectionMethod($name)
 					: ReflectionMethod::createFromMethodName($name);
@@ -166,24 +174,25 @@ class DependencyChecker
 				$uses,
 				$method->getDocComment(),
 				self::hashParameters($method),
-				(string) Type::fromReflection($method),
+				(string) $method->getReturnType(),
 			];
 		}
 
-		return md5(serialize($hash));
+		return hash('xxh128', serialize($hash));
 	}
 
 
+	/** @return array<int, array{string, string, bool, mixed}> */
 	private static function hashParameters(\ReflectionFunctionAbstract $method): array
 	{
 		$res = [];
 		foreach ($method->getParameters() as $param) {
 			$res[] = [
 				$param->name,
-				(string) Type::fromReflection($param),
+				(string) $param->getType(),
 				$param->isVariadic(),
 				$param->isDefaultValueAvailable()
-					? is_object($tmp = Reflection::getParameterDefaultValue($param)) ? ['object' => get_class($tmp)] : ['value' => $tmp]
+					? is_object($tmp = Reflection::getParameterDefaultValue($param)) ? ['object' => $tmp::class] : ['value' => $tmp]
 					: null,
 			];
 		}

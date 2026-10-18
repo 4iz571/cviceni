@@ -1,31 +1,28 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Reflection;
 
 use Dibi;
-use function array_values, strtolower;
 
 
 /**
  * Reflection metadata class for a result set.
  *
- * @property-read array $columns
- * @property-read array $columnNames
+ * @property-read list<Column> $columns
+ * @property-read list<string> $columnNames
  */
 class Result
 {
-	/** @var Column[]|null */
-	private ?array $columns;
+	/** @var list<Column> */
+	private array $columns;
 
-	/** @var Column[]|null */
-	private ?array $names;
+	/** @var array<Column> */
+	private array $names;
 
 
 	public function __construct(
@@ -38,7 +35,7 @@ class Result
 	public function getColumns(): array
 	{
 		$this->initColumns();
-		return array_values($this->columns);
+		return $this->columns;
 	}
 
 

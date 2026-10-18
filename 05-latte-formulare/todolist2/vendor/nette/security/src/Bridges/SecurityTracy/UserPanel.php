@@ -1,16 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\SecurityTracy;
 
 use Nette;
 use Tracy;
+use const PHP_SESSION_ACTIVE;
 
 
 /**
@@ -18,15 +17,9 @@ use Tracy;
  */
 class UserPanel implements Tracy\IBarPanel
 {
-	use Nette\SmartObject;
-
-	/** @var Nette\Security\User */
-	private $user;
-
-
-	public function __construct(Nette\Security\User $user)
-	{
-		$this->user = $user;
+	public function __construct(
+		private readonly Nette\Security\User $user,
+	) {
 	}
 
 
@@ -43,7 +36,7 @@ class UserPanel implements Tracy\IBarPanel
 			$status = session_status() === PHP_SESSION_ACTIVE
 				? $this->user->isLoggedIn()
 				: '?';
-			require __DIR__ . '/templates/UserPanel.tab.phtml';
+			require __DIR__ . '/dist/tab.phtml';
 		});
 	}
 
@@ -59,7 +52,7 @@ class UserPanel implements Tracy\IBarPanel
 
 		return Nette\Utils\Helpers::capture(function () {
 			$user = $this->user;
-			require __DIR__ . '/templates/UserPanel.panel.phtml';
+			require __DIR__ . '/dist/panel.phtml';
 		});
 	}
 }

@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -27,12 +25,15 @@ use function sprintf;
  */
 class PdoDriver implements Dibi\Driver
 {
-	private ?PDO $connection;
+	private PDO $connection;
 	private ?int $affectedRows;
 	private string $driverName;
 
 
-	/** @throws Dibi\NotSupportedException */
+	/**
+	 * @param  array<string, mixed>  $config
+	 * @throws Dibi\NotSupportedException
+	 */
 	public function __construct(array $config)
 	{
 		if (!extension_loaded('pdo')) {
@@ -72,7 +73,7 @@ class PdoDriver implements Dibi\Driver
 	 */
 	public function disconnect(): void
 	{
-		$this->connection = null;
+		unset($this->connection);
 	}
 
 
@@ -165,7 +166,7 @@ class PdoDriver implements Dibi\Driver
 	 */
 	public function getResource(): ?PDO
 	{
-		return $this->connection;
+		return $this->connection ?? null;
 	}
 
 

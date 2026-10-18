@@ -1,45 +1,43 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms\Controls;
 
 use Nette;
+use Nette\Forms\Container;
+use Nette\Forms\Control;
+use Stringable;
+use function is_string;
 
 
 /**
  * Submittable button control.
  *
- * @property-read bool $submittedBy
+ * @property-deprecated bool $submittedBy
  */
 class SubmitButton extends Button implements Nette\Forms\SubmitterControl
 {
 	/**
 	 * Occurs when the button is clicked and form is successfully validated
-	 * @var array<callable(self, array|object): void|callable(Nette\Forms\Form, array|object): void|callable(array|object): void>
+	 * @var array<callable(static, mixed[]|object): void | callable(Nette\Forms\Form, mixed[]|object): void | callable(mixed[]|object): void>
 	 */
-	public $onClick = [];
+	public array $onClick = [];
 
-	/** @var array<callable(self): void>  Occurs when the button is clicked and form is not validated */
-	public $onInvalidClick = [];
+	/** @var array<callable(static): void>  Occurs when the button is clicked and form is not validated */
+	public array $onInvalidClick = [];
 
-	/** @var array|null */
-	private $validationScope;
+	/** @var ?list<Nette\Forms\Control|Nette\Forms\Container> */
+	private ?array $validationScope = null;
 
 
-	/**
-	 * @param  string|object  $caption
-	 */
-	public function __construct($caption = null)
+	public function __construct(string|Stringable|null $caption = null)
 	{
 		parent::__construct($caption);
 		$this->control->type = 'submit';
-		$this->setOmitted(true);
 	}
 
 
@@ -63,29 +61,33 @@ class SubmitButton extends Button implements Nette\Forms\SubmitterControl
 
 	/**
 	 * Sets the validation scope. Clicking the button validates only the controls within the specified scope.
-	 * @return static
+	 * @param  ?iterable<Control|Container|string>  $scope
 	 */
-	public function setValidationScope(?iterable $scope)
+	public function setValidationScope(?iterable $scope): static
 	{
 		if ($scope === null) {
 			$this->validationScope = null;
-		} else {
-			$this->validationScope = [];
-			foreach ($scope ?: [] as $control) {
-				if (!$control instanceof Nette\Forms\Container && !$control instanceof Nette\Forms\Control) {
-					throw new Nette\InvalidArgumentException('Validation scope accepts only Nette\Forms\Container or Nette\Forms\Control instances.');
-				}
-
-				$this->validationScope[] = $control;
-			}
+			return $this;
 		}
 
+		$this->validationScope = [];
+		foreach ($scope as $control) {
+			if (is_string($control)) {
+				$control = $this->getForm()->getComponent($control);
+			}
+			if (!$control instanceof Container && !$control instanceof Control) {
+				throw new Nette\InvalidArgumentException('Validation scope accepts only Nette\Forms\Container or Nette\Forms\Control instances.');
+			}
+
+			$this->validationScope[] = $control;
+		}
 		return $this;
 	}
 
 
 	/**
-	 * Gets the validation scope.
+	 * Returns the validation scope, or null if the entire form is validated.
+	 * @return ?list<Control|Container>
 	 */
 	public function getValidationScope(): ?array
 	{
@@ -94,7 +96,7 @@ class SubmitButton extends Button implements Nette\Forms\SubmitterControl
 
 
 	/**
-	 * Fires click event.
+	 * Invokes the onClick handlers.
 	 */
 	public function click(): void
 	{

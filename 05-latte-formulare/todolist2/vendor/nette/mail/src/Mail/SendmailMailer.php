@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Mail;
 
@@ -17,19 +15,24 @@ use Nette;
  */
 class SendmailMailer implements Mailer
 {
-	use Nette\SmartObject;
-
-	/** @var string|null */
-	public $commandArgs;
-
-	/** @var Signer|null */
-	private $signer;
+	public string $commandArgs = '';
+	private ?Signer $signer = null;
+	private bool $envelopeSender = true;
 
 
-	/** @return static */
-	public function setSigner(Signer $signer): self
+	public function setSigner(Signer $signer): static
 	{
 		$this->signer = $signer;
+		return $this;
+	}
+
+
+	/**
+	 * Sets whether to use the envelope sender (-f option) in the mail command.
+	 */
+	public function setEnvelopeSender(bool $state = true): static
+	{
+		$this->envelopeSender = $state;
 		return $this;
 	}
 
@@ -44,26 +47,36 @@ class SendmailMailer implements Mailer
 			throw new SendException('Unable to send email: mail() has been disabled.');
 		}
 
-		$tmp = clone $mail;
-		$tmp->setHeader('Subject', null);
-		$tmp->setHeader('To', null);
-
 		$data = $this->signer
-			? $this->signer->generateSignedMessage($tmp)
-			: $tmp->generateMessage();
-		$parts = explode(Message::EOL . Message::EOL, $data, 2);
+			? $this->signer->generateSignedMessage($mail)
+			: $mail->generateMessage();
+		[$headers, $body] = explode(Message::EOL . Message::EOL, $data, 2);
 
-		$args = [
-			str_replace(Message::EOL, PHP_EOL, (string) $mail->getEncodedHeader('To')),
-			str_replace(Message::EOL, PHP_EOL, (string) $mail->getEncodedHeader('Subject')),
-			str_replace(Message::EOL, PHP_EOL, $parts[1]),
-			str_replace(Message::EOL, PHP_VERSION_ID >= 80000 ? "\r\n" : PHP_EOL, $parts[0]),
-		];
-		if ($this->commandArgs) {
-			$args[] = $this->commandArgs;
+		// mail() adds 'To' and 'Subject' itself, remove them (in any spelling) from the header block (after DKIM signing)
+		$lines = preg_split('#\r\n(?![ \t])#', $headers);
+		$lines = array_filter($lines, fn($line) => !preg_match('#^(?:To|Subject):#i', $line));
+		$headers = implode(Message::EOL, $lines);
+
+		$cmd = $this->commandArgs;
+		if ($this->envelopeSender && ($from = $mail->getFrom())) {
+			$cmd .= ' -f' . key($from);
 		}
 
-		$res = Nette\Utils\Callback::invokeSafe('mail', $args, function (string $message) use (&$info): void {
+		$this->invokeMail(
+			(string) $mail->getEncodedHeader('To'),
+			(string) $mail->getEncodedHeader('Subject'),
+			$body,
+			$headers,
+			$cmd,
+		);
+	}
+
+
+	/** @throws SendException */
+	protected function invokeMail(string $to, string $subject, string $body, string $headers, string $cmd): void
+	{
+		$info = '';
+		$res = Nette\Utils\Callback::invokeSafe('mail', [$to, $subject, $body, $headers, $cmd], function (string $message) use (&$info): void {
 			$info = ": $message";
 		});
 		if ($res === false) {

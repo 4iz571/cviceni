@@ -1,13 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms;
+
+use Nette\Utils\Html;
 
 
 /**
@@ -43,9 +43,7 @@ final class Blueprint
 		$blueprint->printBegin();
 		$blueprint->printHeader('Form Data Class ' . $form->getName());
 		$blueprint->printCode($blueprint->generateDataClass($form), 'php');
-		if (PHP_VERSION_ID >= 80000) {
-			$blueprint->printCode($blueprint->generateDataClass($form, true), 'php');
-		}
+		$blueprint->printCode($blueprint->generateDataClass($form, true), 'php');
 		$blueprint->printEnd();
 		if ($exit) {
 			exit;
@@ -87,7 +85,7 @@ final class Blueprint
 	{
 		$dict = new \SplObjectStorage;
 		$dummyForm = new class extends Form {
-			protected function receiveHttpData(): ?array
+			protected function receiveHttpData(): array
 			{
 				return [];
 			}
@@ -95,10 +93,10 @@ final class Blueprint
 
 		foreach ($form->getControls() as $input) {
 			$dict[$input] = $dummyInput = new class extends Controls\BaseControl {
-				public $inner;
+				public Control $inner;
 
 
-				public function getLabel($caption = null)
+				public function getLabel(string|\Stringable|null $caption = null): Html|string|null
 				{
 					return $this->inner->getLabel()
 						? '{label ' . $this->inner->lookupPath(Form::class) . '/}'
@@ -106,7 +104,7 @@ final class Blueprint
 				}
 
 
-				public function getControl()
+				public function getControl(): Html|string
 				{
 					return '{input ' . $this->inner->lookupPath(Form::class) . '}';
 				}
@@ -118,7 +116,7 @@ final class Blueprint
 				}
 
 
-				public function getOption($key)
+				public function getOption(mixed $key): mixed
 				{
 					return $key === 'rendered'
 						? parent::getOption($key)
@@ -172,10 +170,10 @@ final class Blueprint
 	public function generateDataClass(
 		Container $container,
 		?bool $propertyPromotion = false,
-		?string $baseName = null
+		?string $baseName = null,
 	): string
 	{
-		$baseName = $baseName ?? preg_replace('~Form$~', '', ucwords((string) $container->getName()));
+		$baseName ??= preg_replace('~Form$~', '', ucwords((string) $container->getName()));
 		$nextCode = '';
 		$props = [];
 		foreach ($container->getComponents() as $name => $input) {
@@ -199,7 +197,7 @@ final class Blueprint
 					}
 				}
 
-				if (!$input->isRequired()) {
+				if (!$input->isRequired() && $input->isNullable()) {
 					$type = '?' . $type;
 				}
 			} elseif ($input instanceof Controls\UploadControl) {
@@ -208,7 +206,7 @@ final class Blueprint
 					$type = '?' . $type;
 				}
 			} elseif ($input instanceof Container) {
-				$type = $baseName . ucwords($name);
+				$type = $baseName . ucwords((string) $name);
 				$nextCode .= $this->generateDataClass($input, $propertyPromotion, $type);
 				$type .= self::ClassNameSuffix;
 			} else {

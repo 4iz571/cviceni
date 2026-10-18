@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\FormsLatte;
 
 use Latte;
+use function strtolower;
 
 
 /**
@@ -20,17 +19,20 @@ final class FormsExtension extends Latte\Extension
 	public function getTags(): array
 	{
 		return [
-			'form' => [Nodes\FormNode::class, 'create'],
-			'formContext' => [Nodes\FormNode::class, 'create'],
-			'formContainer' => [Nodes\FormContainerNode::class, 'create'],
-			'label' => [Nodes\LabelNode::class, 'create'],
-			'input' => [Nodes\InputNode::class, 'create'],
-			'inputError' => [Nodes\InputErrorNode::class, 'create'],
-			'formPrint' => [Nodes\FormPrintNode::class, 'create'],
-			'formClassPrint' => [Nodes\FormPrintNode::class, 'create'],
-			'n:name' => fn(Latte\Compiler\Tag $tag) => yield from strtolower($tag->htmlElement->name) === 'form'
-				? Nodes\FormNNameNode::create($tag)
-				: Nodes\FieldNNameNode::create($tag),
+			'form' => Nodes\FormNode::create(...),
+			'formContext' => Nodes\FormNode::create(...),
+			'formContainer' => Nodes\FormContainerNode::create(...),
+			'label' => Nodes\LabelNode::create(...),
+			'input' => Nodes\InputNode::create(...),
+			'inputError' => Nodes\InputErrorNode::create(...),
+			'formPrint' => Nodes\FormPrintNode::create(...),
+			'formClassPrint' => Nodes\FormPrintNode::create(...),
+			'n:name' => function (Latte\Compiler\Tag $tag) {
+				assert($tag->htmlElement !== null);
+				return yield from strtolower($tag->htmlElement->name) === 'form'
+					? Nodes\FormNNameNode::create($tag)
+					: Nodes\FieldNNameNode::create($tag);
+			},
 		];
 	}
 
@@ -38,13 +40,13 @@ final class FormsExtension extends Latte\Extension
 	public function getProviders(): array
 	{
 		return [
-			'formsStack' => [],
+			'forms' => new Runtime,
 		];
 	}
 
 
 	public function getCacheKey(Latte\Engine $engine): mixed
 	{
-		return 1;
+		return 2;
 	}
 }

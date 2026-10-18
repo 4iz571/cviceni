@@ -1,7 +1,5 @@
 #!/usr/bin/env php
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 if (
 	!(is_file($file = __DIR__ . '/../vendor/autoload.php') && include $file) &&
@@ -11,34 +9,35 @@ if (
 	exit(1);
 }
 
-if (function_exists('pcntl_signal')) {
-	pcntl_signal(SIGINT, function (): void {
-		pcntl_signal(SIGINT, SIG_DFL);
-		echo "Terminated\n";
-		exit(1);
-	});
-} elseif (function_exists('sapi_windows_set_ctrl_handler')) {
-	sapi_windows_set_ctrl_handler(function () {
-		echo "Terminated\n";
-		exit(1);
-	});
-}
-
-set_time_limit(0);
-
 
 echo '
 Latte linter
 ------------
 ';
 
-if ($argc < 2) {
+/** @var list<string> $argv */
+$argv = $_SERVER['argv'] ?? [];
+
+if (count($argv) < 2) {
 	echo "Usage: latte-lint <path>\n";
 	exit(1);
 }
 
-$debug = in_array('--debug', $argv, true);
+if ($debug = in_array('--debug', $argv, true)) {
+	echo "Debug mode\n";
+}
+if ($strict = in_array('--strict', $argv, true)) {
+	echo "Strict mode\n";
+}
+
 $path = $argv[1];
-$linter = new Latte\Tools\Linter(null, $debug);
-$ok = $linter->scanDirectory($path);
-exit($ok ? 0 : 1);
+
+try {
+	$linter = new Latte\Tools\Linter(debug: $debug, strict: $strict);
+	$ok = $linter->scanDirectory($path);
+	exit($ok ? 0 : 1);
+
+} catch (Throwable $e) {
+	fwrite(STDERR, $debug ? "\n$e\n" : "\nError: {$e->getMessage()}\n");
+	exit(2);
+}

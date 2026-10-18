@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\DI\Config\Adapters;
 
@@ -17,8 +15,6 @@ use Nette;
  */
 final class PhpAdapter implements Nette\DI\Config\Adapter
 {
-	use Nette\SmartObject;
-
 	/**
 	 * Reads configuration from PHP file.
 	 */
@@ -30,6 +26,7 @@ final class PhpAdapter implements Nette\DI\Config\Adapter
 
 	/**
 	 * Generates configuration in PHP format.
+	 * @param  array<string, mixed>  $data
 	 */
 	public function dump(array $data): string
 	{

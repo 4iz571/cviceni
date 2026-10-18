@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\ApplicationDI;
 
@@ -17,16 +15,18 @@ use Tracy;
 
 /**
  * Routing extension for Nette DI.
+ *
+ * @property object{
+ *     debugger: bool|null,
+ *     routes: array<string, string>,
+ *     cache: bool,
+ * } $config
  */
 final class RoutingExtension extends Nette\DI\CompilerExtension
 {
-	/** @var bool */
-	private $debugMode;
-
-
-	public function __construct(bool $debugMode = false)
-	{
-		$this->debugMode = $debugMode;
+	public function __construct(
+		private readonly bool $debugMode = false,
+	) {
 	}
 
 
@@ -35,13 +35,12 @@ final class RoutingExtension extends Nette\DI\CompilerExtension
 		return Expect::structure([
 			'debugger' => Expect::bool(),
 			'routes' => Expect::arrayOf('string'),
-			'routeClass' => Expect::string()->deprecated(),
 			'cache' => Expect::bool(false),
 		]);
 	}
 
 
-	public function loadConfiguration()
+	public function loadConfiguration(): void
 	{
 		if (!$this->config->routes) {
 			return;
@@ -52,14 +51,8 @@ final class RoutingExtension extends Nette\DI\CompilerExtension
 		$router = $builder->addDefinition($this->prefix('router'))
 			->setFactory(Nette\Application\Routers\RouteList::class);
 
-		if ($this->config->routeClass) {
-			foreach ($this->config->routes as $mask => $action) {
-				$router->addSetup('$service[] = new ' . $this->config->routeClass . '(?, ?)', [$mask, $action]);
-			}
-		} else {
-			foreach ($this->config->routes as $mask => $action) {
-				$router->addSetup('$service->addRoute(?, ?)', [$mask, $action]);
-			}
+		foreach ($this->config->routes as $mask => $action) {
+			$router->addSetup('$service->addRoute(?, ?)', [$mask, $action]);
 		}
 
 		if ($this->name === 'routing') {
@@ -68,7 +61,7 @@ final class RoutingExtension extends Nette\DI\CompilerExtension
 	}
 
 
-	public function beforeCompile()
+	public function beforeCompile(): void
 	{
 		$builder = $this->getContainerBuilder();
 
@@ -92,12 +85,12 @@ final class RoutingExtension extends Nette\DI\CompilerExtension
 	}
 
 
-	public function afterCompile(Nette\PhpGenerator\ClassType $class)
+	public function afterCompile(Nette\PhpGenerator\ClassType $class): void
 	{
 		if ($this->config->cache) {
 			$builder = $this->getContainerBuilder();
 			$def = $builder->getDefinitionByType(Nette\Routing\Router::class);
-			$method = $class->getMethod(Nette\DI\Container::getMethodName($def->getName()));
+			$method = $class->getMethod(Nette\DI\Container::getMethodName((string) $def->getName()));
 			try {
 				$router = eval($method->getBody());
 				if ($router instanceof Nette\Application\Routers\RouteList) {

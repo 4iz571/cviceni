@@ -15,34 +15,43 @@
 		}
 	],
 	"require": {
-		"php": "8.0 - 8.4",
-		"nette/di": "^3.1",
-		"nette/utils": "^3.2.1 || ^4.0"
+		"php": "8.3 - 8.5",
+		"nette/di": "^3.2",
+		"nette/utils": "^4.1"
 	},
 	"suggest": {
 		"nette/robot-loader": "to use Configurator::createRobotLoader()",
 		"tracy/tracy": "to use Configurator::enableTracy()"
 	},
 	"require-dev": {
-		"nette/application": "^3.1",
-		"nette/caching": "^3.0",
-		"nette/database": "^3.0",
-		"nette/forms": "^3.0",
-		"nette/http": "^3.0",
-		"nette/mail": "^3.0 || ^4.0",
-		"nette/robot-loader": "^3.0 || ^4.0",
+		"nette/application": "^3.2",
+		"nette/assets": "^1.0",
+		"nette/caching": "^3.3",
+		"nette/database": "^3.2",
+		"nette/forms": "^3.2",
+		"nette/http": "^3.2",
+		"nette/mail": "^4.1",
+		"nette/neon": "^3.4",
+		"nette/robot-loader": "^4.0",
 		"nette/safe-stream": "^2.2",
-		"nette/security": "^3.0",
-		"nette/tester": "^2.4",
-		"latte/latte": "^2.8 || ^3.0",
-		"tracy/tracy": "^2.9",
-		"phpstan/phpstan-nette": "^1.0"
+		"nette/security": "^3.2",
+		"nette/tester": "^2.6",
+		"latte/latte": "^3.0",
+		"tracy/tracy": "^2.12",
+		"phpstan/phpstan": "^2.2@stable",
+		"phpstan/extension-installer": "^1.4@stable",
+		"nette/phpstan-rules": "^1.0"
 	},
 	"conflict": {
+		"nette/caching": "<3.3",
+		"nette/mail": "<4.1.2",
 		"tracy/tracy": "<2.6"
 	},
 	"autoload": {
-		"classmap": ["src/"]
+		"classmap": ["src/"],
+		"psr-4": {
+			"Nette\\": "src"
+		}
 	},
 	"minimum-stability": "dev",
 	"scripts": {
@@ -51,7 +60,12 @@
 	},
 	"extra": {
 		"branch-alias": {
-			"dev-master": "3.2-dev"
+			"dev-master": "3.3-dev"
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"phpstan/extension-installer": true
 		}
 	}
 }

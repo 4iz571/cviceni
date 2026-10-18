@@ -1,53 +1,54 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Latte\Sandbox;
 
 use Latte;
+use function array_flip, array_map, assert, is_a, is_bool, strtolower;
 
 
 /**
- * Default-deny policy.
+ * Default-deny security policy. Allowlist permitted tags, filters, functions, methods, and properties.
  */
 class SecurityPolicy implements Latte\Policy
 {
-	use Latte\Strict;
+	public const All = ['*'];
+	public const ALL = self::All;
 
-	public const ALL = ['*'];
+	/** @var array<string, int> */
+	private array $tags = [];
 
-	/** @var string[] */
-	private $tags = [];
+	/** @var array<string, int> */
+	private array $filters = [];
 
-	/** @var string[] */
-	private $filters = [];
+	/** @var array<string, int> */
+	private array $functions = [];
 
-	/** @var string[] */
-	private $functions = [];
+	/** @var array<string, array<string, int>> */
+	private array $methods = [];
 
-	/** @var string[][] */
-	private $methods = [];
-
-	/** @var string[][] */
-	private $properties = [];
-
-	/** @var array<string, array<string, bool>> */
-	private $methodCache = [];
+	/** @var array<string, array<string, int>> */
+	private array $properties = [];
 
 	/** @var array<string, array<string, bool>> */
-	private $propertyCache = [];
+	private array $methodCache = [];
+
+	/** @var array<string, array<string, bool>> */
+	private array $propertyCache = [];
 
 
+	/**
+	 * Creates policy with safe defaults for user-generated templates.
+	 */
 	public static function createSafePolicy(): self
 	{
 		$policy = new self;
 
-		// does not include: contentType, debugbreak, dump, extends, import, include, includeblock, layout,
+		// does not include: contentType, debugbreak, dump, extends, import, include, layout,
 		// php (but 'do' is allowed), sandbox, snippet, snippetArea, templatePrint, varPrint, embed
 		$policy->allowTags([
 			'_', '=', 'attr', 'block', 'breakIf', 'capture', 'case', 'class', 'continueIf', 'default',
@@ -61,28 +62,17 @@ class SecurityPolicy implements Latte\Policy
 			'batch', 'breaklines', 'breakLines', 'bytes', 'capitalize', 'ceil', 'clamp', 'date', 'escapeCss', 'escapeHtml',
 			'escapeHtmlComment', 'escapeICal', 'escapeJs', 'escapeUrl', 'escapeXml', 'explode', 'first',
 			'firstUpper', 'floor', 'checkUrl', 'implode', 'indent', 'join', 'last', 'length', 'lower',
-			'number', 'padLeft', 'padRight', 'query', 'random', 'repeat', 'replace', 'replaceRe', 'reverse',
+			'limit', 'number', 'padLeft', 'padRight', 'query', 'random', 'repeat', 'replace', 'replaceRe', 'reverse',
 			'round', 'slice', 'sort', 'spaceless', 'split', 'strip', 'striphtml', 'stripHtml', 'striptags', 'stripTags', 'substr',
 			'trim', 'truncate', 'upper', 'webalize',
 		]);
 
 		$policy->allowFunctions(['clamp', 'divisibleBy', 'even', 'first', 'last', 'odd', 'slice']);
 
-		$policy->allowMethods(Latte\Runtime\CachingIterator::class, self::ALL);
-		$policy->allowProperties(Latte\Runtime\CachingIterator::class, self::ALL);
+		$policy->allowMethods(Latte\Essential\CachingIterator::class, self::All);
+		$policy->allowProperties(Latte\Essential\CachingIterator::class, self::All);
 
 		return $policy;
-	}
-
-
-	/**
-	 * @deprecated  use allowTags()
-	 */
-	public function allowMacros(array $tags): self
-	{
-		trigger_error(__METHOD__ . '() is deprecated, use allowTags()', E_USER_DEPRECATED);
-		$this->allowTags($tags);
-		return $this;
 	}
 
 
@@ -91,7 +81,7 @@ class SecurityPolicy implements Latte\Policy
 	 */
 	public function allowTags(array $tags): self
 	{
-		$this->tags += array_flip(array_map('strtolower', $tags));
+		$this->tags += array_flip(array_map(strtolower(...), $tags));
 		return $this;
 	}
 
@@ -101,7 +91,7 @@ class SecurityPolicy implements Latte\Policy
 	 */
 	public function allowFilters(array $filters): self
 	{
-		$this->filters += array_flip(array_map('strtolower', $filters));
+		$this->filters += array_flip(array_map(strtolower(...), $filters));
 		return $this;
 	}
 
@@ -111,36 +101,50 @@ class SecurityPolicy implements Latte\Policy
 	 */
 	public function allowFunctions(array $functions): self
 	{
-		$this->functions += array_flip(array_map('strtolower', $functions));
+		$this->functions += array_flip(array_map(strtolower(...), $functions));
 		return $this;
 	}
 
 
 	/**
+	 * Adds methods of the given class (or its subclasses) to the allowlist.
+	 * Use SecurityPolicy::All to allow all methods.
 	 * @param  string[]  $methods
 	 */
 	public function allowMethods(string $class, array $methods): self
 	{
 		$this->methodCache = [];
-		$this->methods[$class] = array_flip(array_map('strtolower', $methods));
+		$this->methods[$class] = array_flip(array_map(strtolower(...), $methods));
 		return $this;
 	}
 
 
 	/**
+	 * Adds properties of the given class (or its subclasses) to the allowlist.
+	 * Use SecurityPolicy::All to allow all properties.
 	 * @param  string[]  $properties
 	 */
 	public function allowProperties(string $class, array $properties): self
 	{
 		$this->propertyCache = [];
-		$this->properties[$class] = array_flip(array_map('strtolower', $properties));
+		$this->properties[$class] = array_flip(array_map(strtolower(...), $properties));
 		return $this;
 	}
 
 
-	public function isMacroAllowed(string $macro): bool
+	/**
+	 * Returns a value representing the policy rules. When it changes, cached templates compiled
+	 * under this policy are invalidated, because part of the sandbox enforcement happens at compile time.
+	 */
+	public function getCacheSignature(): mixed
 	{
-		return isset($this->tags[strtolower($macro)]) || isset($this->tags['*']);
+		return [$this->tags, $this->filters, $this->functions, $this->methods, $this->properties];
+	}
+
+
+	public function isTagAllowed(string $tag): bool
+	{
+		return isset($this->tags[strtolower($tag)]) || isset($this->tags['*']);
 	}
 
 
@@ -160,13 +164,13 @@ class SecurityPolicy implements Latte\Policy
 	{
 		$method = strtolower($method);
 		$res = &$this->methodCache[$class][$method];
-		assert(\is_bool($res) || $res === null);
+		assert(is_bool($res) || $res === null);
 		if (isset($res)) {
 			return $res;
 		}
 
 		foreach ($this->methods as $c => $methods) {
-			if (is_a($class, $c, true) && (isset($methods[$method]) || isset($methods['*']))) {
+			if (is_a($class, $c, allow_string: true) && (isset($methods[$method]) || isset($methods['*']))) {
 				return $res = true;
 			}
 		}
@@ -179,13 +183,13 @@ class SecurityPolicy implements Latte\Policy
 	{
 		$property = strtolower($property);
 		$res = &$this->propertyCache[$class][$property];
-		assert(\is_bool($res) || $res === null);
+		assert(is_bool($res) || $res === null);
 		if (isset($res)) {
 			return $res;
 		}
 
 		foreach ($this->properties as $c => $properties) {
-			if (is_a($class, $c, true) && (isset($properties[$property]) || isset($properties['*']))) {
+			if (is_a($class, $c, allow_string: true) && (isset($properties[$property]) || isset($properties['*']))) {
 				return $res = true;
 			}
 		}
