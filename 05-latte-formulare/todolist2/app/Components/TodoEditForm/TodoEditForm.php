@@ -27,7 +27,7 @@ class TodoEditForm extends Form{
   //TODO tady asi něco chybí :)
 
 
-  public function setDefaults($values, bool $erase = false):static {
+  public function setDefaults(array|object $values, bool $erase = false):static {
     parent::setDefaults($values, $erase);
     return $this;
   }
