@@ -57,7 +57,7 @@ class TagEditForm extends Form{
           //chceme najít existující tag podle jeho ID
           try{
             $tag = $this->tagsFacade->getTag($values['tagId']);
-          }catch (\Exception $e){
+          }catch (\Exception){
             $this->onFailed('Tag nebyl nalezen.');
             return;
           }
