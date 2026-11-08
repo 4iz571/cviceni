@@ -25,7 +25,7 @@ class FacebookApi{
    * @throws \Facebook\Exceptions\FacebookSDKException
    */
   public function getFacebook():Facebook{
-    if ($this->facebook == null){
+    if (empty($this->facebook)){
       $this->facebook=new Facebook([
         'app_id'=>$this->appId,
         'app_secret'=>$this->appSecret

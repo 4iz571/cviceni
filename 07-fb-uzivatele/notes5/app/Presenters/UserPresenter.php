@@ -63,31 +63,10 @@ class UserPresenter extends BasePresenter{
    * @param bool $callback
    */
   public function actionFacebookLogin(bool $callback=false):void{
-    if ($callback){
-      #region návrat z Facebooku
-      try{
-        $facebookUser = $this->facebookApi->getFacebookUser(); //v proměnné $facebookUser máme facebookId, email a jméno uživatele => jdeme jej přihlásit
 
-        //necháme si vytvořit identitu uživatele
-        $userUdentity = $this->usersFacade->getFacebookUserIdentity($facebookUser);
+    //TODO tady bude přihlášení pomocí App\Model\Api\Facebook\FacebookApi
+    //proměnnou $callback použijeme pro rozlišení, zda jde o první zaslání požadavku, nebo o návrat z FB
 
-        //přihlásíme uživatele
-        $this->user->login($userUdentity);
-
-      }catch (\Exception $e){
-        $this->flashMessage('Přihlášení pomocí Facebooku se nezdařilo.','error');
-        $this->redirect('Homepage:default');
-      }
-
-      $this->redirect('Homepage:default');
-      #endregion návrat z Facebooku
-    }else{
-      #region přesměrování na přihlášení pomocí Facebooku
-      $backlink = $this->link('//User:facebookLogin',['callback'=>true]);
-      $facebookLoginLink = $this->facebookApi->getLoginUrl($backlink);
-      $this->redirectUrl($facebookLoginLink);
-      #endregion přesměrování na přihlášení pomocí Facebooku
-    }
   }
   
   /**
@@ -127,8 +106,6 @@ class UserPresenter extends BasePresenter{
       $values=$form->getValues('array');
       try{
         $this->user->login($values['email'],$values['password']);
-        //po přihlášení uživatele smažeme jeho kódy na obnovu hesla
-        $this->usersFacade->deleteForgottenPasswordsByUser($this->user->id);
       }catch (\Exception $e){
         $this->flashMessage('Neplatná kombinace e-mailu a hesla!','error');
         $this->redirect('login');
@@ -226,9 +203,9 @@ class UserPresenter extends BasePresenter{
   public function injectNewPasswordFormFactory(NewPasswordFormFactory $newPasswordFormFactory):void{
     $this->newPasswordFormFactory=$newPasswordFormFactory;
   }
-
+/*TODO zaregistrujte službu FacebookApi v configu a poté povolte tuto metodu
   public function injectFacebookApi( FacebookApi $facebookApi):void{
     $this->facebookApi=$facebookApi;
-  }
+  }*/
   #endregion injections
 }

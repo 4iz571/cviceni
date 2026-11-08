@@ -10,7 +10,7 @@ use Nette;
 final class Error4xxPresenter extends Nette\Application\UI\Presenter {
   public function startup(): void {
     parent::startup();
-    if (!$this->getRequest()->isMethod(Nette\Application\Request::FORWARD)) {
+    if (!$this->getRequest()->isMethod(Nette\Application\Request::Forward)) {
       $this->error();
     }
   }

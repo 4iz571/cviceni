@@ -16,13 +16,13 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter {
    * @throws ForbiddenRequestException
    * @throws AbortException
    */
-  protected function startup(){
+  protected function startup():void{
     parent::startup();
-    $presenterName = $this->request->presenterName;
-    $action = !empty($this->request->parameters['action'])?$this->request->parameters['action']:'';
+    $presenterName = $this->getRequest()->getPresenterName();
+    $action = $this->getRequest()->getParameter('action') ?? '';
 
-    if (!$this->user->isAllowed($presenterName,$action)){
-      if ($this->user->isLoggedIn()){
+    if (!$this->getUser()->isAllowed($presenterName,$action)){
+      if ($this->getUser()->isLoggedIn()){
         throw new ForbiddenRequestException();
       }else{
         $this->flashMessage('Pro zobrazení požadovaného obsahu se musíte přihlásit!','warn');

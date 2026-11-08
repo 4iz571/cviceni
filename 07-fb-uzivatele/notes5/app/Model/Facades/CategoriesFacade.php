@@ -33,7 +33,7 @@ class CategoriesFacade{
    * @param int $limit = null
    * @return Category[]
    */
-  public function findCategories(array $params=null,int $offset=null,int $limit=null):array {
+  public function findCategories(?array $params=null,?int $offset=null,?int $limit=null):array {
     return $this->categoryRepository->findAllBy($params,$offset,$limit);
   }
 
@@ -42,7 +42,7 @@ class CategoriesFacade{
    * @param array|null $params
    * @return int
    */
-  public function findCategoriesCount(array $params=null):int {
+  public function findCategoriesCount(?array $params=null):int {
     return $this->categoryRepository->findCountBy($params);
   }
 

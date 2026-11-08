@@ -16,14 +16,14 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter {
    * @throws ForbiddenRequestException
    * @throws AbortException
    */
-  protected function startup(){
+  protected function startup():void{
     parent::startup();
-    $presenterName = $this->request->presenterName;
-    $action = !empty($this->request->parameters['action'])?$this->request->parameters['action']:'';
+    $presenterName = $this->getRequest()->getPresenterName();
+    $action = $this->getRequest()->getParameter('action') ?? '';
 
-    if (!$this->user->isAllowed($presenterName,$action)){
-      if ($this->user->isLoggedIn()){
-        if ($this->user->isInRole('require2fa')){
+    if (!$this->getUser()->isAllowed($presenterName,$action)){
+      if ($this->getUser()->isLoggedIn()){
+        if ($this->getUser()->isInRole('require2fa')){
           //u tohoto uživatele vyžadujeme ověření 2FA
           $this->redirect('User:login2fa');
         }

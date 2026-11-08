@@ -26,11 +26,11 @@ class NoteEditForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onFailed */
-  public $onFailed = [];
+  public array $onFailed = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
   private CategoriesFacade $categoriesFacade;
   private NotesFacade $notesFacade;
@@ -43,7 +43,7 @@ class NoteEditForm extends Form{
    * @param string|null $name
    * @param CategoriesFacade $categoriesFacade
    */
-  public function __construct(Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->categoriesFacade=$categoriesFacade;
     $this->notesFacade=$notesFacade;
@@ -130,7 +130,7 @@ class NoteEditForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults($values, bool $erase = false):static {
     if ($values instanceof Note){
       $values = [
         'noteId'=>$values->noteId,

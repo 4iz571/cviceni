@@ -22,13 +22,12 @@ class UserRegistrationForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
-  /** @var UsersFacade $usersFacade */
-  private $usersFacade;
-  /** @var Nette\Security\Passwords $passwords */
-  private $passwords;
+  public array $onCancel = [];
+
+  private UsersFacade $usersFacade;
+  private Nette\Security\Passwords $passwords;
 
   /**
    * UserRegistrationForm constructor.

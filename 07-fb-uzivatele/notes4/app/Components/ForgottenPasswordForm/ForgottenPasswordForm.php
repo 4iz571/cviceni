@@ -20,9 +20,9 @@ class ForgottenPasswordForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
   private UsersFacade $usersFacade;
 
@@ -32,7 +32,7 @@ class ForgottenPasswordForm extends Form{
    * @param string|null $name
    * @param UsersFacade $usersFacade
    */
-  public function __construct(UsersFacade $usersFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(UsersFacade $usersFacade, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->createSubcomponents();

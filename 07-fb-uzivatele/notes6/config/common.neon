@@ -21,7 +21,7 @@ services:
 	- LeanMapper\DefaultEntityFactory
 
 	- App\Model\Authenticator\Authenticator
-	- App\Model\Authorization\Authorizator
+	- App\Model\Authorizator\Authorizator
 
 	- App\Model\Api\Facebook\FacebookApi(%facebook.appId%, %facebook.secret%)
 

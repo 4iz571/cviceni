@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Model\Authorization;
+namespace App\Model\Authorizator;
 
 use App\Model\Entities\Permission;
 use App\Model\Facades\UsersFacade;

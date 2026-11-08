@@ -19,16 +19,16 @@ class UserLoginForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
   /**
    * UserRegistrationForm constructor.
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    */
-  public function __construct(Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->createSubcomponents();
   }

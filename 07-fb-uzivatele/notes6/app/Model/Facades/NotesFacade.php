@@ -30,11 +30,11 @@ class NotesFacade{
   /**
    * Metoda pro vyhledání poznámek
    * @param Category|int|null $category
-   * @param int $offset = null
-   * @param int $limit = null
+   * @param int|null $offset = null
+   * @param int|null $limit = null
    * @return Note[]
    */
-  public function findNotes($category = null, ?int $offset=null, ?int $limit=null):array {
+  public function findNotes(Category|int|null $category = null, ?int $offset=null, ?int $limit=null):array {
     if ($category){
       $searchParams=['category_id'=>($category instanceof Category?$category->categoryId:$category)];
     }else{

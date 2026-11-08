@@ -22,21 +22,20 @@ class UserRegistrationForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
   private UsersFacade $usersFacade;
   private Nette\Security\Passwords $passwords;
 
   /**
    * UserRegistrationForm constructor.
-   * @param UsersFacade $usersFacade
-   * @param Nette\Security\Passwords $passwords
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
+   * @param UsersFacade $usersFacade
    */
-  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->passwords=$passwords;
