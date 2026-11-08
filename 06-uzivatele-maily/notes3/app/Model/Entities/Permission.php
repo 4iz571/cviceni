@@ -18,7 +18,7 @@ use LeanMapper\Entity;
  */
 class Permission extends Entity{
 
-  const TYPE_ALLOW = 'allow';
-  const TYPE_DENY = 'deny';
+  const string TYPE_ALLOW = 'allow';
+  const string TYPE_DENY = 'deny';
 
 }

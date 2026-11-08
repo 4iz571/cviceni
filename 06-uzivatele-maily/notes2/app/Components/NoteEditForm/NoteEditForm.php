@@ -43,7 +43,7 @@ class NoteEditForm extends Form{
    * @param string|null $name
    * @param CategoriesFacade $categoriesFacade
    */
-  public function __construct(Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->categoriesFacade=$categoriesFacade;
     $this->notesFacade=$notesFacade;
@@ -52,7 +52,7 @@ class NoteEditForm extends Form{
     if ($currentUser->isLoggedIn()){
       try{
         $this->user=$this->usersFacade->getUser($currentUser->id);
-      }catch (\Exception $e){/*chybu přeskočíme - hned za načtením je zařazena kontrola přihlášeného uživatele*/}
+      }catch (\Exception){/*chybu přeskočíme - hned za načtením je zařazena kontrola přihlášeného uživatele*/}
     }
     if (!$this->user){
       //uživatel není přihlášen, nebo již není v DB
@@ -90,7 +90,7 @@ class NoteEditForm extends Form{
         if (!empty($values['noteId'])){
           try{
             $note=$this->notesFacade->getNote($values['categoryId']);
-          }catch (\Exception $e){
+          }catch (\Exception){
             $this->onFailed('Požadovaná poznámka nebyla nalezena.');
             return;
           }
@@ -100,7 +100,7 @@ class NoteEditForm extends Form{
 
         try{
           $category=$this->categoriesFacade->getCategory($values['categoryId']);
-        }catch (\Exception $e){
+        }catch (\Exception){
           $this->onFailed('Požadovaná kategorie nebyla nalezena.');
           return;
         }
@@ -130,7 +130,7 @@ class NoteEditForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults($values, bool $erase = false):static {
     if ($values instanceof Note){
       $values = [
         'noteId'=>$values->noteId,

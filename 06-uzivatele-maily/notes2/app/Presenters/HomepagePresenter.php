@@ -27,7 +27,7 @@ class HomepagePresenter extends Nette\Application\UI\Presenter{
   public function renderEdit(int $id):void {
     try{
       $note=$this->notesFacade->getNote($id);
-    }catch (\Exception $e){
+    }catch (\Exception){
       throw new Nette\Application\BadRequestException('Požadovaná poznámka nebyla nalezena');
     }
     /** @var NoteEditForm $form */
@@ -45,7 +45,7 @@ class HomepagePresenter extends Nette\Application\UI\Presenter{
   public function actionDelete(int $id):void {
     try{
       $note=$this->notesFacade->getNote($id);
-    }catch (\Exception $e){
+    }catch (\Exception){
       throw new Nette\Application\BadRequestException('Požadovaná poznámka nebyla nalezena');
     }
     $this->notesFacade->deleteNote($note);

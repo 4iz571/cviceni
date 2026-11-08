@@ -5,6 +5,7 @@ namespace App\Model\Facades;
 use App\Model\Entities\Category;
 use App\Model\Entities\Note;
 use App\Model\Repositories\NoteRepository;
+use LeanMapper\Exception\InvalidStateException;
 
 /**
  * Class NotesFacade
@@ -45,12 +46,13 @@ class NotesFacade{
 
   /**
    * Metoda pro zjištění počtu poznámek
-   * @param array|null $category
+   * @param Category|int|null $category
    * @return int
+   * @throws InvalidStateException
    */
-  public function findNotesCount($category = null):int {
+  public function findNotesCount(Category|int|null $category = null):int {
     if ($category){
-      $searchParams=['category_id'=>($category instanceof Category?$category->categoryId:$category)];
+      $searchParams=['category_id'=>($category instanceof Category?$category->categoryId:(int)$category)];
     }else{
       $searchParams=[];
     }

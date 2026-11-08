@@ -20,7 +20,7 @@ class Authorizator extends \Nette\Security\Permission {
    * @param string|null $privilege
    * @return bool
    */
-  public function isAllowed($role=self::ALL, $resource=self::ALL, $privilege=self::ALL):bool {
+  public function isAllowed($role=self::All, $resource=self::All, $privilege=self::All):bool {
 
     //TODO tady mohou být kontroly pro jednotlivé entity
 

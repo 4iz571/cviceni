@@ -19,7 +19,7 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
    * Výchozí akce - zatím jen přesměrovává na seznam kategorií
    * @throws \Nette\Application\AbortException
    */
-  public function actionDefault():void {
+  public function actionDefault():never {
     $this->redirect('list');
   }
 
@@ -90,10 +90,10 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter {
   }
 
   #region injections
-  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade){
+  public function injectCategoriesFacade(CategoriesFacade $categoriesFacade):void{
     $this->categoriesFacade=$categoriesFacade;
   }
-  public function injectCategoryEditFormFactory(CategoryEditFormFactory $categoryEditFormFactory){
+  public function injectCategoryEditFormFactory(CategoryEditFormFactory $categoryEditFormFactory):void{
     $this->categoryEditFormFactory=$categoryEditFormFactory;
   }
   #endregion injections

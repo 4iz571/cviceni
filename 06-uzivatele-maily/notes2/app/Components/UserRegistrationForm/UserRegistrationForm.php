@@ -35,7 +35,7 @@ class UserRegistrationForm extends Form{
    * @param string|null $name
    * @param UsersFacade $usersFacade
    */
-  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->passwords=$passwords;
@@ -46,7 +46,7 @@ class UserRegistrationForm extends Form{
     $this->addText('name','Jméno a příjmení:')
       ->setRequired('Zadejte své jméno')
       ->setHtmlAttribute('maxlength',40)
-      ->addRule(Form::MAX_LENGTH,'Jméno je příliš dlouhé, může mít maximálně 40 znaků.',40);
+      ->addRule(Form::MaxLength,'Jméno je příliš dlouhé, může mít maximálně 40 znaků.',40);
     $this->addEmail('email','E-mail')
       ->setRequired('Zadejte platný email')
       ->addRule(function(Nette\Forms\Controls\TextInput $input){
@@ -61,14 +61,13 @@ class UserRegistrationForm extends Form{
     $password=$this->addPassword('password','Heslo');
     $password
       ->setRequired('Zadejte požadované heslo')
-      ->addRule(Form::MIN_LENGTH,'Heslo musí obsahovat minimálně 5 znaků.',5);
+      ->addRule(Form::MinLength,'Heslo musí obsahovat minimálně 5 znaků.',5);
     $this->addPassword('password2','Heslo znovu:')
-      ->addRule(Form::EQUAL,'Hesla se neshodují',$password);
+      ->addRule(Form::Equal,'Hesla se neshodují',$password);
 
     $this->addSubmit('ok','registrovat se')
       ->setHtmlAttribute('class','btn btn-primary')
       ->onClick[]=function(SubmitButton $button){
-
         //uložení uživatele
         $values=$this->getValues('array');
         $user = new User();

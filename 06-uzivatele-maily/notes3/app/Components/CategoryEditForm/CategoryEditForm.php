@@ -81,7 +81,7 @@ class CategoryEditForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults($values, bool $erase = false):static {
     if ($values instanceof Category){
       $values = [
         'categoryId'=>$values->categoryId,
