@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Forms\Controls;
 
@@ -16,8 +14,8 @@ namespace Nette\Forms\Controls;
 class ImageButton extends SubmitButton
 {
 	/**
-	 * @param  string  $src  URI of the image
-	 * @param  string  $alt  alternate text for the image
+	 * @param  ?string  $src  URI of the image
+	 * @param  ?string  $alt  alternate text for the image
 	 */
 	public function __construct(?string $src = null, ?string $alt = null)
 	{

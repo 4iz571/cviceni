@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 use Nette;
+use function count, is_array, is_int, is_object, is_resource, is_string, strlen;
 
 
 /**
@@ -26,7 +25,8 @@ final class Dumper
 
 
 	/**
-	 * Returns a PHP representation of a variable.
+	 * Converts a value to its PHP code representation.
+	 * @param  int  $column  current column for array wrapping decisions
 	 */
 	public function dump(mixed $var, int $column = 0): string
 	{
@@ -73,14 +73,14 @@ final class Dumper
 
 		$utf8 = preg_match('##u', $s);
 		$escaped = preg_replace_callback(
-			$utf8 ? '#[\p{C}\\\\]#u' : '#[\x00-\x1F\x7F-\xFF\\\\]#',
+			$utf8 ? '#[\p{C}\\\]#u' : '#[\x00-\x1F\x7F-\xFF\\\]#',
 			fn($m) => $special[$m[0]] ?? (strlen($m[0]) === 1
-					? '\x' . str_pad(strtoupper(dechex(ord($m[0]))), 2, '0', STR_PAD_LEFT)
-					: '\u{' . strtoupper(ltrim(dechex(self::utf8Ord($m[0])), '0')) . '}'),
+				? '\x' . str_pad(strtoupper(dechex(ord($m[0]))), 2, '0', STR_PAD_LEFT)
+				: '\u{' . strtoupper(ltrim(dechex(self::utf8Ord($m[0])), '0')) . '}'),
 			$s,
 		);
 		return $s === str_replace('\\\\', '\\', $escaped)
-			? "'" . preg_replace('#\'|\\\\(?=[\'\\\\]|$)#D', '\\\\$0', $s) . "'"
+			? "'" . preg_replace('#\'|\\\(?=[\'\\\]|$)#D', '\\\$0', $s) . "'"
 			: '"' . addcslashes($escaped, '"$') . '"';
 	}
 
@@ -106,7 +106,7 @@ final class Dumper
 		if (empty($var)) {
 			return '[]';
 
-		} elseif ($level > $this->maxDepth || in_array($var, $parents, strict: true)) {
+		} elseif ($level > $this->maxDepth || in_array($var, $parents, true)) {
 			throw new Nette\InvalidStateException('Nesting level too deep or recursive dependency.');
 		}
 
@@ -132,7 +132,7 @@ final class Dumper
 	/** @param  array<mixed[]|object>  $parents */
 	private function dumpObject(object $var, array $parents, int $level, int $column): string
 	{
-		if ($level > $this->maxDepth || in_array($var, $parents, strict: true)) {
+		if ($level > $this->maxDepth || in_array($var, $parents, true)) {
 			throw new Nette\InvalidStateException('Nesting level too deep or recursive dependency.');
 		} elseif ((new \ReflectionObject($var))->isAnonymous()) {
 			throw new Nette\InvalidStateException('Cannot dump an instance of an anonymous class.');
@@ -146,10 +146,11 @@ final class Dumper
 			return '(object) ' . $this->dumpArray($var, $parents, $level, $column + 10);
 
 		} elseif ($class === \DateTime::class || $class === \DateTimeImmutable::class) {
+			assert($var instanceof \DateTimeInterface);
 			return $this->format(
 				"new \\$class(?, new \\DateTimeZone(?))",
 				$var->format('Y-m-d H:i:s.u'),
-				$var->getTimeZone()->getName(),
+				$var->getTimezone()->getName(),
 			);
 
 		} elseif ($var instanceof \UnitEnum) {
@@ -157,10 +158,8 @@ final class Dumper
 
 		} elseif ($var instanceof \Closure) {
 			$inner = Nette\Utils\Callback::unwrap($var);
-			if (Nette\Utils\Callback::isStatic($inner)) {
-				return PHP_VERSION_ID < 80100
-					? '\Closure::fromCallable(' . $this->dump($inner) . ')'
-					: implode('::', (array) $inner) . '(...)';
+			if (is_callable($inner) && Nette\Utils\Callback::isStatic($inner)) {
+				return implode('::', (array) $inner) . '(...)';
 			}
 
 			throw new Nette\InvalidStateException('Cannot dump object of type Closure.');
@@ -208,14 +207,16 @@ final class Dumper
 	private function dumpLiteral(Literal $var, int $level): string
 	{
 		$s = $var->formatWith($this);
-		$s = Nette\Utils\Strings::normalizeNewlines($s);
+		$s = Nette\Utils\Strings::unixNewLines($s);
 		$s = Nette\Utils\Strings::indent(trim($s), $level, $this->indentation);
 		return ltrim($s, $this->indentation);
 	}
 
 
 	/**
-	 * Generates PHP statement. Supports placeholders: ?  \?  $?  ->?  ::?  ...?  ...?:  ?*
+	 * Formats a PHP expression using placeholders.
+	 * Supported placeholders: ? (value), \? (literal ?), $? (variable), ->? (property access),
+	 * ::? (static access), ...? (spread array), ...?: (named spread), ?* (alias for ...?)
 	 */
 	public function format(string $statement, mixed ...$args): string
 	{
@@ -273,12 +274,13 @@ final class Dumper
 
 
 	/**
+	 * @param  class-string  $class
 	 * @param  mixed[]  $props
 	 * @internal
 	 */
 	public static function createObject(string $class, array $props): object
 	{
-		if (method_exists($class, '__serialize')) {
+		if (method_exists($class, '__unserialize')) {
 			$obj = (new \ReflectionClass($class))->newInstanceWithoutConstructor();
 			$obj->__unserialize($props);
 			return $obj;

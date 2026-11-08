@@ -1,19 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * Nette Forms and HTML5.
  */
 
-declare(strict_types=1);
 
-
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
 use Nette\Forms\Form;
-use Tracy\Debugger;
-use Tracy\Dumper;
+use Tracy\{Debugger, Dumper};
 
 Debugger::enable();
 
@@ -26,16 +23,13 @@ $form->addText('query', 'Search:')
 	->setHtmlType('search')
 	->setHtmlAttribute('autofocus');
 
-$form->addText('count', 'Number of results:')
-	->setHtmlType('number')
+$form->addInteger('count', 'Number of results:')
 	->setDefaultValue(10)
-	->addRule($form::Integer, 'Must be numeric value')
 	->addRule($form::Range, 'Must be in range from %d to %d', [1, 100]);
 
-$form->addText('precision', 'Precision:')
+$form->addFloat('precision', 'Precision:')
 	->setHtmlType('range')
 	->setDefaultValue(50)
-	->addRule($form::Integer, 'Precision must be numeric value')
 	->addRule($form::Range, 'Precision must be in range from %d to %d', [0, 100]);
 
 $form->addEmail('email', 'Send to email:')
@@ -57,7 +51,7 @@ if ($form->isSuccess()) {
 <meta charset="utf-8">
 <title>Nette Forms and HTML5</title>
 <link rel="stylesheet" media="screen" href="assets/style.css" />
-<script src="https://unpkg.com/nette-forms@3/src/assets/netteForms.js"></script>
+<script src="https://unpkg.com/nette-forms@3"></script>
 
 <h1>Nette Forms and HTML5</h1>
 

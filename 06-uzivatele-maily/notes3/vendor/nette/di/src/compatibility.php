@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\DI\Config {
 	if (false) {
@@ -35,5 +33,15 @@ namespace Nette\DI {
 		}
 	} elseif (!class_exists(Statement::class)) {
 		class_alias(Definitions\Statement::class, Statement::class);
+	}
+}
+
+namespace Nette\DI\Definitions {
+	if (false) {
+		abstract class Definition
+		{
+		}
+	} elseif (!class_exists(Definition::class)) {
+		class_alias(\Nette\DI\Definition::class, Definition::class);
 	}
 }

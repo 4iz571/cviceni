@@ -1,39 +1,32 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI;
 
 use Nette;
+use function func_num_args, is_array, is_object, is_string, sprintf;
 
 
 /**
- * Configurator compiling extension.
+ * Base class for compiler extensions that hook into the DI container compilation process.
  */
 abstract class CompilerExtension
 {
-	use Nette\SmartObject;
+	protected Compiler $compiler;
+	protected string $name;
 
-	/** @var Compiler */
-	protected $compiler;
-
-	/** @var string */
-	protected $name;
-
-	/** @var array|object */
+	/** @var array<string, mixed>|object */
 	protected $config = [];
 
-	/** @var Nette\PhpGenerator\Closure */
-	protected $initialization;
+	protected Nette\PhpGenerator\Closure $initialization;
 
 
-	/** @return static */
-	public function setCompiler(Compiler $compiler, string $name)
+	/** @internal */
+	public function setCompiler(Compiler $compiler, string $name): static
 	{
 		$this->initialization = new Nette\PhpGenerator\Closure;
 		$this->compiler = $compiler;
@@ -43,15 +36,11 @@ abstract class CompilerExtension
 
 
 	/**
-	 * @param  array|object  $config
-	 * @return static
+	 * Sets the validated configuration for this extension.
+	 * @param  array<string, mixed>|object  $config
 	 */
-	public function setConfig($config)
+	public function setConfig(array|object $config): static
 	{
-		if (!is_array($config) && !is_object($config)) {
-			throw new Nette\InvalidArgumentException;
-		}
-
 		$this->config = $config;
 		return $this;
 	}
@@ -59,9 +48,9 @@ abstract class CompilerExtension
 
 	/**
 	 * Returns extension configuration.
-	 * @return array|object
+	 * @return array<string, mixed>|object
 	 */
-	public function getConfig()
+	public function getConfig(): array|object
 	{
 		return $this->config;
 	}
@@ -80,13 +69,17 @@ abstract class CompilerExtension
 
 	/**
 	 * Checks whether $config contains only $expected items and returns combined array.
+	 * @param  array<string, mixed>  $expected
+	 * @param  ?array<string, mixed>  $config
+	 * @return array<string, mixed>
 	 * @throws Nette\InvalidStateException
 	 * @deprecated  use getConfigSchema()
 	 */
 	public function validateConfig(array $expected, ?array $config = null, ?string $name = null): array
 	{
 		if (func_num_args() === 1) {
-			return $this->config = $this->validateConfig($expected, $this->config);
+			$current = is_array($this->config) ? $this->config : (array) $this->config;
+			return $this->config = $this->validateConfig($expected, $current);
 		}
 
 		if ($extra = array_diff_key((array) $config, $expected)) {
@@ -95,7 +88,7 @@ abstract class CompilerExtension
 			throw new Nette\DI\InvalidConfigurationException(sprintf(
 				"Unknown configuration option '%s\u{a0}›\u{a0}%s'",
 				$name,
-				$hint ? key($extra) : implode("', '{$name}\u{a0}›\u{a0}", array_keys($extra))
+				$hint ? key($extra) : implode("', '{$name}\u{a0}›\u{a0}", array_keys($extra)),
 			) . ($hint ? ", did you mean '{$name}\u{a0}›\u{a0}{$hint}'?" : '.'));
 		}
 
@@ -111,6 +104,7 @@ abstract class CompilerExtension
 
 	/**
 	 * Reads configuration from file.
+	 * @return array<string, mixed>
 	 */
 	public function loadFromFile(string $file): array
 	{
@@ -124,6 +118,7 @@ abstract class CompilerExtension
 	/**
 	 * Loads list of service definitions from configuration.
 	 * Prefixes its names and replaces @extension with name in definition.
+	 * @param  array<mixed>  $configList
 	 */
 	public function loadDefinitionsFromConfig(array $configList): void
 	{
@@ -143,6 +138,9 @@ abstract class CompilerExtension
 	}
 
 
+	/**
+	 * Returns the closure whose body is emitted inside the container's initialize() method.
+	 */
 	public function getInitialization(): Nette\PhpGenerator\Closure
 	{
 		return $this->initialization;
@@ -154,12 +152,12 @@ abstract class CompilerExtension
 	 */
 	public function prefix(string $id): string
 	{
-		return substr_replace($id, $this->name . '.', substr($id, 0, 1) === '@' ? 1 : 0, 0);
+		return substr_replace($id, $this->name . '.', str_starts_with($id, '@') ? 1 : 0, 0);
 	}
 
 
 	/**
-	 * Processes configuration data. Intended to be overridden by descendant.
+	 * Processes extension configuration and registers services. Override in subclasses.
 	 * @return void
 	 */
 	public function loadConfiguration()
@@ -168,7 +166,7 @@ abstract class CompilerExtension
 
 
 	/**
-	 * Adjusts DI container before is compiled to PHP class. Intended to be overridden by descendant.
+	 * Adjusts the container before compilation. Override in subclasses.
 	 * @return void
 	 */
 	public function beforeCompile()
@@ -177,7 +175,7 @@ abstract class CompilerExtension
 
 
 	/**
-	 * Adjusts DI container compiled to PHP class. Intended to be overridden by descendant.
+	 * Adjusts the generated container class. Override in subclasses.
 	 * @return void
 	 */
 	public function afterCompile(Nette\PhpGenerator\ClassType $class)

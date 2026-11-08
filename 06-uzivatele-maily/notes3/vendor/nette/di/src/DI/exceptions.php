@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\DI;
 
@@ -13,7 +11,7 @@ use Nette;
 
 
 /**
- * Service not found exception.
+ * The requested service was not found in the container.
  */
 class MissingServiceException extends Nette\InvalidStateException
 {
@@ -21,11 +19,11 @@ class MissingServiceException extends Nette\InvalidStateException
 
 
 /**
- * Service creation exception.
+ * Failed to create the service instance.
  */
 class ServiceCreationException extends Nette\InvalidStateException
 {
-	public function setMessage(string $message): self
+	public function setMessage(string $message): static
 	{
 		$this->message = $message;
 		return $this;
@@ -34,7 +32,7 @@ class ServiceCreationException extends Nette\InvalidStateException
 
 
 /**
- * Not allowed when container is resolving.
+ * Operation is not allowed while container is resolving dependencies.
  */
 class NotAllowedDuringResolvingException extends Nette\InvalidStateException
 {
@@ -42,7 +40,7 @@ class NotAllowedDuringResolvingException extends Nette\InvalidStateException
 
 
 /**
- * Error in configuration.
+ * The DI container configuration is invalid.
  */
 class InvalidConfigurationException extends Nette\InvalidStateException
 {

@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -19,16 +17,9 @@ use PgSql;
  */
 class PostgreResult implements Dibi\ResultDriver
 {
-	/** @var resource|PgSql\Result */
-	private $resultSet;
-
-
-	/**
-	 * @param  resource|PgSql\Result  $resultSet
-	 */
-	public function __construct($resultSet)
-	{
-		$this->resultSet = $resultSet;
+	public function __construct(
+		private readonly PgSql\Result $resultSet,
+	) {
 	}
 
 
@@ -79,7 +70,7 @@ class PostgreResult implements Dibi\ResultDriver
 		for ($i = 0; $i < $count; $i++) {
 			$row = [
 				'name' => pg_field_name($this->resultSet, $i),
-				'table' => pg_field_table($this->resultSet, $i),
+				'table' => (string) pg_field_table($this->resultSet, $i),
 				'nativetype' => pg_field_type($this->resultSet, $i),
 			];
 			$row['fullname'] = $row['table']
@@ -94,13 +85,10 @@ class PostgreResult implements Dibi\ResultDriver
 
 	/**
 	 * Returns the result set resource.
-	 * @return resource|PgSql\Result|null
 	 */
-	public function getResultResource(): mixed
+	public function getResultResource(): PgSql\Result
 	{
-		return is_resource($this->resultSet) || $this->resultSet instanceof PgSql\Result
-			? $this->resultSet
-			: null;
+		return $this->resultSet;
 	}
 
 

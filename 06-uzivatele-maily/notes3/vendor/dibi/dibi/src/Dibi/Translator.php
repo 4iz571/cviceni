@@ -1,13 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Dibi;
+
+use function array_filter, array_keys, array_splice, array_values, count, explode, get_debug_type, gettype, implode, is_array, is_bool, is_float, is_int, is_numeric, is_object, is_scalar, is_string, iterator_to_array, key, ltrim, number_format, preg_last_error, preg_match, preg_replace_callback, reset, rtrim, str_contains, str_replace, strcspn, strlen, strncasecmp, strtoupper, substr, trim;
 
 
 /**
@@ -15,9 +15,11 @@ namespace Dibi;
  */
 final class Translator
 {
-	private Connection $connection;
-	private Driver $driver;
+	private readonly Connection $connection;
+	private readonly Driver $driver;
 	private int $cursor = 0;
+
+	/** @var list<mixed>  SQL arguments */
 	private array $args;
 
 	/** @var string[] */
@@ -34,12 +36,13 @@ final class Translator
 	{
 		$this->connection = $connection;
 		$this->driver = $connection->getDriver();
-		$this->identifiers = new HashMap([$this, 'delimite']);
+		$this->identifiers = new HashMap($this->delimite(...));
 	}
 
 
 	/**
 	 * Generates SQL. Can be called only once.
+	 * @param  mixed[]  $args
 	 * @throws Exception
 	 */
 	public function translate(array $args): string
@@ -88,7 +91,7 @@ final class Translator
 									(\?)                            ## 11) placeholder
 								)/xs
 								XX,
-							[$this, 'cb'],
+							$this->cb(...),
 							substr($arg, $toSkip),
 						);
 					if (preg_last_error()) {
@@ -288,7 +291,7 @@ final class Translator
 					return implode(', ', $vx);
 
 				case 'ex!':
-					trigger_error('Use Dibi\Expression instead of array: ' . implode(', ', array_filter($value, 'is_scalar')), E_USER_WARNING);
+					trigger_error('Use Dibi\Expression instead of array: ' . implode(', ', array_filter($value, is_scalar(...))), E_USER_WARNING);
 					// break omitted
 				case 'ex':
 				case 'sql':
@@ -434,7 +437,7 @@ final class Translator
 										:(\S*?:)([a-zA-Z0-9._]?)
 									)/sx
 									XX,
-								[$this, 'cb'],
+								$this->cb(...),
 								substr($value, $toSkip),
 							);
 						if (preg_last_error()) {
@@ -509,6 +512,7 @@ final class Translator
 
 	/**
 	 * PREG callback from translate() or formatValue().
+	 * @param  array<int, string>  $matches
 	 */
 	private function cb(array $matches): string
 	{

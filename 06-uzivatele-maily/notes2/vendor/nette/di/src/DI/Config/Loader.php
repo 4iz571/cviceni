@@ -1,16 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI\Config;
 
 use Nette;
 use Nette\Utils\Validators;
+use function sprintf;
 
 
 /**
@@ -18,24 +17,27 @@ use Nette\Utils\Validators;
  */
 class Loader
 {
-	use Nette\SmartObject;
-
 	private const IncludesKey = 'includes';
 
-	private $adapters = [
+	/** @var array<string, class-string<Adapter>|Adapter> */
+	private array $adapters = [
 		'php' => Adapters\PhpAdapter::class,
 		'neon' => Adapters\NeonAdapter::class,
 	];
 
-	private $dependencies = [];
+	/** @var string[] */
+	private array $dependencies = [];
 
-	private $loadedFiles = [];
+	/** @var array<string, true> */
+	private array $loadedFiles = [];
 
-	private $parameters = [];
+	/** @var array<string, mixed> */
+	private array $parameters = [];
 
 
 	/**
 	 * Reads configuration from file.
+	 * @return array<string, mixed>
 	 */
 	public function load(string $file, ?bool $merge = true): array
 	{
@@ -74,18 +76,9 @@ class Loader
 	}
 
 
-	/** @deprecated */
-	public function save(array $data, string $file): void
-	{
-		trigger_error(__METHOD__ . "() is deprecated, use adapter's dump() method.", E_USER_DEPRECATED);
-		if (file_put_contents($file, $this->getAdapter($file)->dump($data)) === false) {
-			throw new Nette\IOException(sprintf("Cannot write file '%s'.", $file));
-		}
-	}
-
-
 	/**
 	 * Returns configuration files.
+	 * @return string[]
 	 */
 	public function getDependencies(): array
 	{
@@ -98,7 +91,7 @@ class Loader
 	 */
 	public function expandIncludedFile(string $includedFile, string $mainFile): string
 	{
-		return preg_match('#([a-z]+:)?[/\\\\]#Ai', $includedFile) // is absolute
+		return preg_match('#([a-z]+:)?[/\\\]#Ai', $includedFile) // is absolute
 			? $includedFile
 			: dirname($mainFile) . '/' . $includedFile;
 	}
@@ -106,10 +99,9 @@ class Loader
 
 	/**
 	 * Registers adapter for given file extension.
-	 * @param  string|Adapter  $adapter
-	 * @return static
+	 * @param  class-string<Adapter>|Adapter  $adapter
 	 */
-	public function addAdapter(string $extension, $adapter)
+	public function addAdapter(string $extension, string|Adapter $adapter): static
 	{
 		$this->adapters[strtolower($extension)] = $adapter;
 		return $this;
@@ -123,14 +115,13 @@ class Loader
 			throw new Nette\InvalidArgumentException(sprintf("Unknown file extension '%s'.", $file));
 		}
 
-		return is_object($this->adapters[$extension])
-			? $this->adapters[$extension]
-			: new $this->adapters[$extension];
+		$adapter = $this->adapters[$extension];
+		return $adapter instanceof Adapter ? $adapter : new $adapter;
 	}
 
 
-	/** @return static */
-	public function setParameters(array $params)
+	/** @param  array<string, mixed>  $params */
+	public function setParameters(array $params): static
 	{
 		$this->parameters = $params;
 		return $this;

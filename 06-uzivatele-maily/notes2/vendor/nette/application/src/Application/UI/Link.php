@@ -1,15 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Application\UI;
-
-use Nette;
 
 
 /**
@@ -18,26 +14,12 @@ use Nette;
  */
 final class Link
 {
-	use Nette\SmartObject;
-
-	/** @var Component */
-	private $component;
-
-	/** @var string */
-	private $destination;
-
-	/** @var array */
-	private $params;
-
-
-	/**
-	 * Link specification.
-	 */
-	public function __construct(Component $component, string $destination, array $params = [])
-	{
-		$this->component = $component;
-		$this->destination = $destination;
-		$this->params = $params;
+	public function __construct(
+		private readonly Component $component,
+		private readonly string $destination,
+		/** @var array<string, mixed> */
+		private array $params = [],
+	) {
 	}
 
 
@@ -61,9 +43,8 @@ final class Link
 
 	/**
 	 * Changes link parameter.
-	 * @return static
 	 */
-	public function setParameter(string $key, $value)
+	public function setParameter(string $key, mixed $value): static
 	{
 		$this->params[$key] = $value;
 		return $this;
@@ -72,9 +53,8 @@ final class Link
 
 	/**
 	 * Returns link parameter.
-	 * @return mixed
 	 */
-	public function getParameter(string $key)
+	public function getParameter(string $key): mixed
 	{
 		return $this->params[$key] ?? null;
 	}
@@ -82,6 +62,7 @@ final class Link
 
 	/**
 	 * Returns link parameters.
+	 * @return array<string, mixed>
 	 */
 	public function getParameters(): array
 	{
@@ -103,16 +84,6 @@ final class Link
 	 */
 	public function __toString(): string
 	{
-		try {
-			return $this->component->link($this->destination, $this->params);
-
-		} catch (\Throwable $e) {
-			if (func_num_args() || PHP_VERSION_ID >= 70400) {
-				throw $e;
-			}
-
-			trigger_error('Exception in ' . __METHOD__ . "(): {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}", E_USER_ERROR);
-			return '';
-		}
+		return $this->component->link($this->destination, $this->params);
 	}
 }

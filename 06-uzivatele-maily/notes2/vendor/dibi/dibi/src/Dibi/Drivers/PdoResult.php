@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -19,14 +17,10 @@ use PDO;
  */
 class PdoResult implements Dibi\ResultDriver
 {
-	private ?\PDOStatement $resultSet;
-	private string $driverName;
-
-
-	public function __construct(\PDOStatement $resultSet, string $driverName)
-	{
-		$this->resultSet = $resultSet;
-		$this->driverName = $driverName;
+	public function __construct(
+		private \PDOStatement $resultSet,
+		private readonly string $driverName,
+	) {
 	}
 
 
@@ -63,7 +57,7 @@ class PdoResult implements Dibi\ResultDriver
 	 */
 	public function free(): void
 	{
-		$this->resultSet = null;
+		unset($this->resultSet);
 	}
 
 
@@ -105,7 +99,7 @@ class PdoResult implements Dibi\ResultDriver
 	 */
 	public function getResultResource(): ?\PDOStatement
 	{
-		return $this->resultSet;
+		return $this->resultSet ?? null;
 	}
 
 

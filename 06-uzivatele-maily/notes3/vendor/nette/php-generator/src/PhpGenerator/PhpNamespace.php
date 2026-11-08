@@ -1,25 +1,19 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 use Nette;
 use Nette\InvalidStateException;
+use function strlen;
 
 
 /**
- * Namespaced part of a PHP file.
- *
- * Generates:
- * - namespace statement
- * - variable amount of use statements
- * - one or more class declarations
+ * Represents a PHP namespace with use statements and contained class-like types and functions.
  */
 final class PhpNamespace
 {
@@ -28,40 +22,37 @@ final class PhpNamespace
 		NameFunction = 'f',
 		NameConstant = 'c';
 
-	/** @deprecated use PhpNamespace::NameNormal */
+	#[\Deprecated('use PhpNamespace::NameNormal')]
 	public const NAME_NORMAL = self::NameNormal;
 
-	/** @deprecated use PhpNamespace::NameFunction */
+	#[\Deprecated('use PhpNamespace::NameFunction')]
 	public const NAME_FUNCTION = self::NameFunction;
 
-	/** @deprecated use PhpNamespace::NameConstant */
+	#[\Deprecated('use PhpNamespace::NameConstant')]
 	public const NAME_CONSTANT = self::NameConstant;
-
-	private string $name;
 
 	private bool $bracketedSyntax = false;
 
-	/** @var string[][] */
+	/** @var array<string, array<string, string>> */
 	private array $aliases = [
 		self::NameNormal => [],
 		self::NameFunction => [],
 		self::NameConstant => [],
 	];
 
-	/** @var (ClassType|InterfaceType|TraitType|EnumType)[] */
+	/** @var array<string, ClassType|InterfaceType|TraitType|EnumType> */
 	private array $classes = [];
 
-	/** @var GlobalFunction[] */
+	/** @var array<string, GlobalFunction> */
 	private array $functions = [];
 
 
-	public function __construct(string $name)
-	{
+	public function __construct(
+		private readonly string $name,
+	) {
 		if ($name !== '' && !Helpers::isNamespaceIdentifier($name)) {
 			throw new Nette\InvalidArgumentException("Value '$name' is not valid name.");
 		}
-
-		$this->name = $name;
 	}
 
 
@@ -88,8 +79,10 @@ final class PhpNamespace
 
 
 	/**
-	 * Adds a use statement to the namespace for class, function or constant.
-	 * @throws InvalidStateException
+	 * Adds a use statement for a class, function, or constant.
+	 * Auto-generates an alias if the short name conflicts with existing names.
+	 * @param  self::Name*  $of
+	 * @throws InvalidStateException  if the alias is already used for a different name
 	 */
 	public function addUse(string $name, ?string $alias = null, string $of = self::NameNormal): static
 	{
@@ -131,6 +124,10 @@ final class PhpNamespace
 	}
 
 
+	/**
+	 * Removes a use statement.
+	 * @param  self::Name*  $of
+	 */
 	public function removeUse(string $name, string $of = self::NameNormal): void
 	{
 		foreach ($this->aliases[$of] as $alias => $item) {
@@ -142,7 +139,7 @@ final class PhpNamespace
 
 
 	/**
-	 * Adds a use statement to the namespace for function.
+	 * Adds a use statement for a function.
 	 */
 	public function addUseFunction(string $name, ?string $alias = null): static
 	{
@@ -151,7 +148,7 @@ final class PhpNamespace
 
 
 	/**
-	 * Adds a use statement to the namespace for constant.
+	 * Adds a use statement for a constant.
 	 */
 	public function addUseConstant(string $name, ?string $alias = null): static
 	{
@@ -159,20 +156,25 @@ final class PhpNamespace
 	}
 
 
-	/** @return string[] */
+	/**
+	 * Returns use statements, sorted alphabetically and excluding redundant aliases within the same namespace.
+	 * @param  self::Name*  $of
+	 * @return array<string, string>  alias => fully qualified name
+	 */
 	public function getUses(string $of = self::NameNormal): array
 	{
 		uasort($this->aliases[$of], fn(string $a, string $b): int => strtr($a, '\\', ' ') <=> strtr($b, '\\', ' '));
 		return array_filter(
 			$this->aliases[$of],
-			fn($name, $alias) => strcasecmp(($this->name ? $this->name . '\\' : '') . $alias, $name),
+			fn($name, $alias) => (bool) strcasecmp(($this->name ? $this->name . '\\' : '') . $alias, $name),
 			ARRAY_FILTER_USE_BOTH,
 		);
 	}
 
 
 	/**
-	 * Resolves relative name to full name.
+	 * Resolves a relative or aliased name to its fully qualified form.
+	 * @param  self::Name*  $of
 	 */
 	public function resolveName(string $name, string $of = self::NameNormal): string
 	{
@@ -196,16 +198,18 @@ final class PhpNamespace
 
 
 	/**
-	 * Simplifies type hint with relative names.
+	 * Simplifies all class/function/constant names in a type string using current use statements.
+	 * @param  self::Name*  $of
 	 */
 	public function simplifyType(string $type, string $of = self::NameNormal): string
 	{
-		return preg_replace_callback('~[\w\x7f-\xff\\\\]+~', fn($m) => $this->simplifyName($m[0], $of), $type);
+		return preg_replace_callback('~[\w\x7f-\xff\\\]+~', fn($m) => $this->simplifyName($m[0], $of), $type);
 	}
 
 
 	/**
-	 * Simplifies the full name of a class, function, or constant to a relative name.
+	 * Simplifies a fully qualified name to the shortest possible form using current use statements.
+	 * @param  self::Name*  $of
 	 */
 	public function simplifyName(string $name, string $of = self::NameNormal): string
 	{
@@ -252,69 +256,78 @@ final class PhpNamespace
 
 
 	/**
-	 * Adds a class-like type to the namespace. If it already exists, throws an exception.
+	 * Adds a class-like type or function to the namespace.
+	 * @throws Nette\InvalidStateException if an item with the same name already exists
 	 */
-	public function add(ClassType|InterfaceType|TraitType|EnumType $class): static
+	public function add(ClassType|InterfaceType|TraitType|EnumType|GlobalFunction $item): static
 	{
-		$name = $class->getName();
-		if ($name === null) {
-			throw new Nette\InvalidArgumentException('Class does not have a name.');
-		}
-
+		$name = $item->getName() ?? throw new Nette\InvalidArgumentException('Class does not have a name.');
 		$lower = strtolower($name);
-		if (isset($this->classes[$lower]) && $this->classes[$lower] !== $class) {
+		[$list, $type] = $item instanceof GlobalFunction ? [$this->functions, self::NameFunction] : [$this->classes, self::NameNormal];
+		if (isset($list[$lower]) && $list[$lower] !== $item) {
 			throw new Nette\InvalidStateException("Cannot add '$name', because it already exists.");
-		} elseif ($orig = array_change_key_case($this->aliases[self::NameNormal])[$lower] ?? null) {
+		} elseif ($orig = array_change_key_case($this->aliases[$type])[$lower] ?? null) {
 			throw new Nette\InvalidStateException("Name '$name' used already as alias for $orig.");
 		}
 
-		$this->classes[$lower] = $class;
+		if ($item instanceof GlobalFunction) {
+			$this->functions[$lower] = $item;
+		} else {
+			$this->classes[$lower] = $item;
+			$item->setNamespace($this);
+		}
+
 		return $this;
 	}
 
 
 	/**
-	 * Adds a class to the namespace. If it already exists, throws an exception.
+	 * Adds a class to the namespace.
+	 * @throws Nette\InvalidStateException if the class already exists
 	 */
 	public function addClass(string $name): ClassType
 	{
-		$this->add($class = new ClassType($name, $this));
+		$this->add($class = (new ClassType($name))->setNamespace($this));
 		return $class;
 	}
 
 
 	/**
-	 * Adds an interface to the namespace. If it already exists, throws an exception.
+	 * Adds an interface to the namespace.
+	 * @throws Nette\InvalidStateException if the interface already exists
 	 */
 	public function addInterface(string $name): InterfaceType
 	{
-		$this->add($iface = new InterfaceType($name, $this));
+		$this->add($iface = (new InterfaceType($name))->setNamespace($this));
 		return $iface;
 	}
 
 
 	/**
-	 * Adds a trait to the namespace. If it already exists, throws an exception.
+	 * Adds a trait to the namespace.
+	 * @throws Nette\InvalidStateException if the trait already exists
 	 */
 	public function addTrait(string $name): TraitType
 	{
-		$this->add($trait = new TraitType($name, $this));
+		$this->add($trait = (new TraitType($name))->setNamespace($this));
 		return $trait;
 	}
 
 
 	/**
-	 * Adds an enum to the namespace. If it already exists, throws an exception.
+	 * Adds an enum to the namespace.
+	 * @throws Nette\InvalidStateException if the enum already exists
 	 */
 	public function addEnum(string $name): EnumType
 	{
-		$this->add($enum = new EnumType($name, $this));
+		$this->add($enum = (new EnumType($name))->setNamespace($this));
 		return $enum;
 	}
 
 
 	/**
-	 * Returns a class-like type from the namespace.
+	 * Returns a class-like type by name.
+	 * @throws Nette\InvalidArgumentException if the class is not found
 	 */
 	public function getClass(string $name): ClassType|InterfaceType|TraitType|EnumType
 	{
@@ -322,15 +335,14 @@ final class PhpNamespace
 	}
 
 
-	/**
-	 * Returns all class-like types in the namespace.
-	 * @return (ClassType|InterfaceType|TraitType|EnumType)[]
-	 */
+	/** @return array<string, ClassType|InterfaceType|TraitType|EnumType> */
 	public function getClasses(): array
 	{
 		$res = [];
 		foreach ($this->classes as $class) {
-			$res[$class->getName()] = $class;
+			$name = $class->getName();
+			assert($name !== null);
+			$res[$name] = $class;
 		}
 
 		return $res;
@@ -338,7 +350,7 @@ final class PhpNamespace
 
 
 	/**
-	 * Removes a class-like type from namespace.
+	 * Removes a class-like type from the namespace.
 	 */
 	public function removeClass(string $name): static
 	{
@@ -348,23 +360,19 @@ final class PhpNamespace
 
 
 	/**
-	 * Adds a function to the namespace. If it already exists, throws an exception.
+	 * Adds a function to the namespace.
+	 * @throws Nette\InvalidStateException if the function already exists
 	 */
 	public function addFunction(string $name): GlobalFunction
 	{
-		$lower = strtolower($name);
-		if (isset($this->functions[$lower])) {
-			throw new Nette\InvalidStateException("Cannot add '$name', because it already exists.");
-		} elseif ($orig = array_change_key_case($this->aliases[self::NameFunction])[$lower] ?? null) {
-			throw new Nette\InvalidStateException("Name '$name' used already as alias for $orig.");
-		}
-
-		return $this->functions[$lower] = new GlobalFunction($name);
+		$this->add($function = new GlobalFunction($name));
+		return $function;
 	}
 
 
 	/**
-	 * Returns a function from the namespace.
+	 * Returns a function by name.
+	 * @throws Nette\InvalidArgumentException if the function is not found
 	 */
 	public function getFunction(string $name): GlobalFunction
 	{
@@ -372,10 +380,7 @@ final class PhpNamespace
 	}
 
 
-	/**
-	 * Returns all functions in the namespace.
-	 * @return GlobalFunction[]
-	 */
+	/** @return array<string, GlobalFunction> */
 	public function getFunctions(): array
 	{
 		$res = [];
@@ -388,7 +393,7 @@ final class PhpNamespace
 
 
 	/**
-	 * Removes a function type from namespace.
+	 * Removes a function from the namespace.
 	 */
 	public function removeFunction(string $name): static
 	{

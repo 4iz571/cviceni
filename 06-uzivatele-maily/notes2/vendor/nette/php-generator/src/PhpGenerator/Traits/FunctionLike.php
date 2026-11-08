@@ -1,19 +1,17 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator\Traits;
 
 use JetBrains\PhpStorm\Language;
 use Nette;
-use Nette\PhpGenerator\Dumper;
-use Nette\PhpGenerator\Parameter;
+use Nette\PhpGenerator\{Dumper, Parameter};
 use Nette\Utils\Type;
+use function func_num_args;
 
 
 /**
@@ -23,7 +21,7 @@ trait FunctionLike
 {
 	private string $body = '';
 
-	/** @var Parameter[] */
+	/** @var array<string, Parameter> */
 	private array $parameters = [];
 	private bool $variadic = false;
 	private ?string $returnType = null;
@@ -31,7 +29,10 @@ trait FunctionLike
 	private bool $returnNullable = false;
 
 
-	/** @param  ?mixed[]  $args */
+	/**
+	 * Sets the function body. Optionally accepts Dumper-style placeholders resolved against $args.
+	 * @param  ?mixed[]  $args
+	 */
 	public function setBody(
 		#[Language('PHP')]
 		string $code,
@@ -51,7 +52,10 @@ trait FunctionLike
 	}
 
 
-	/** @param  ?mixed[]  $args */
+	/**
+	 * Appends a line to the function body. Optionally accepts Dumper-style placeholders resolved against $args.
+	 * @param  ?mixed[]  $args
+	 */
 	public function addBody(
 		#[Language('PHP')]
 		string $code,
@@ -63,9 +67,7 @@ trait FunctionLike
 	}
 
 
-	/**
-	 * @param  Parameter[]  $val
-	 */
+	/** @param list<Parameter>  $val */
 	public function setParameters(array $val): static
 	{
 		(function (Parameter ...$val) {})(...$val);
@@ -78,7 +80,7 @@ trait FunctionLike
 	}
 
 
-	/** @return Parameter[] */
+	/** @return array<string, Parameter> */
 	public function getParameters(): array
 	{
 		return $this->parameters;

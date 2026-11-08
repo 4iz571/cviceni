@@ -1,0 +1,55 @@
+build: off
+cache:
+    - c:\php -> appveyor.yml
+    - '%LOCALAPPDATA%\Composer\files -> appveyor.yml'
+
+clone_folder: c:\projects\dibi
+
+environment:
+    MYSQL_PWD: Password12!
+
+services:
+    - mssql2012sp1
+#    - mssql2014
+    - mysql
+
+init:
+    - SET PATH=c:\php;c:\Program Files\MySQL\MySQL Server 5.7\bin;%PATH%
+    - SET ANSICON=121x90 (121x90)
+
+install:
+    # Install PHP 8.0
+    - IF EXIST c:\php (SET PHP=0) ELSE (SET PHP=1)
+    - IF %PHP%==1 mkdir c:\php
+    - IF %PHP%==1 cd c:\php
+    - IF %PHP%==1 curl https://windows.php.net/downloads/releases/archives/php-8.0.1-Win32-vs16-x64.zip --output php.zip
+    - IF %PHP%==1 7z x php.zip >nul
+    - IF %PHP%==1 echo extension_dir=ext >> php.ini
+    - IF %PHP%==1 echo extension=php_openssl.dll >> php.ini
+    - IF %PHP%==1 curl https://github.com/microsoft/msphpsql/releases/download/v5.9.0/Windows-8.0.zip -L --output sqlsrv.zip
+    - IF %PHP%==1 7z x sqlsrv.zip >nul
+    - IF %PHP%==1 copy Windows-8.0\x64\php_sqlsrv_80_ts.dll ext\php_sqlsrv_ts.dll
+    - IF %PHP%==1 del /Q *.zip
+
+    # Install Microsoft Access Database Engine x64
+    - IF %PHP%==1 curl https://download.microsoft.com/download/2/4/3/24375141-E08D-4803-AB0E-10F2E3A07AAA/AccessDatabaseEngine_X64.exe --output AccessDatabaseEngine_X64.exe
+    - cmd /c start /wait AccessDatabaseEngine_X64.exe /passive
+
+    # Install Nette Tester
+    - cd c:\projects\dibi
+    - appveyor DownloadFile https://getcomposer.org/composer.phar
+    - php composer.phar install --prefer-dist --no-interaction --no-progress
+
+    # Create databases.ini
+    - copy tests\databases.appveyor.ini tests\databases.ini
+
+before_test:
+    # Create MySQL database
+    - mysql --user=root -e "CREATE DATABASE dibi_test"
+
+test_script:
+    - vendor\bin\tester tests -s -p c:\php\php -c tests\php-win.ini
+
+on_failure:
+    # Print *.actual content
+    - for /r %%x in (*.actual) do ( type "%%x" )

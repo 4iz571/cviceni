@@ -1,17 +1,18 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Tracy (https://tracy.nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Tracy;
+
+use function count, function_exists, in_array;
+use const INFO_CONFIGURATION, INFO_MODULES, PHP_VERSION_ID;
 
 
 /**
- * Red BlueScreen.
+ * Renders a beautiful error/exception page with syntax-highlighted stack trace.
  */
 class BlueScreen
 {
@@ -20,14 +21,17 @@ class BlueScreen
 	/** @var string[] */
 	public array $info = [];
 
-	/** @var string[] paths to be collapsed in stack trace (e.g. core libraries) */
+	/**
+	 * @var string[]
+	 * @deprecated use Debugger::$transparentPaths instead
+	 */
 	public array $collapsePaths = [];
 
 	public int $maxDepth = 5;
 	public int $maxLength = 150;
 	public int $maxItems = 100;
 
-	/** @var callable|null  a callable returning true for sensitive data; fn(string $key, mixed $val): bool */
+	/** @var ?(callable(string $key, mixed $value, ?string $class): bool)  callable returning true for sensitive data */
 	public $scrubber;
 
 	/** @var string[] */
@@ -38,34 +42,36 @@ class BlueScreen
 
 	public bool $showEnvironment = true;
 
-	/** @var callable[] */
+	/** @var array<\Closure(?\Throwable): ?array{tab: string, panel: string}> */
 	private array $panels = [];
 
-	/** @var callable[] functions that returns action for exceptions */
+	/** @var array<\Closure(\Throwable): ?array{link: string, label: string}> */
 	private array $actions = [];
-	private array $fileGenerators = [];
-	private ?array $snapshot = null;
 
-	/** @var \WeakMap<\Fiber|\Generator> */
+	/** @var array<\Closure(string, ?string): ?string> */
+	private array $fileGenerators = [];
+
+	/** @var array{0?: Dumper\Value[], 1?: mixed[]} */
+	private array $snapshot = [];
+
+	/** @var \WeakMap<\Fiber|\Generator, true> */
 	private \WeakMap $fibers;
 
 
 	public function __construct()
 	{
-		$this->collapsePaths = preg_match('#(.+/vendor)/tracy/tracy/src/Tracy/BlueScreen$#', strtr(__DIR__, '\\', '/'), $m)
-			? [$m[1] . '/tracy', $m[1] . '/nette', $m[1] . '/latte']
-			: [dirname(__DIR__)];
-		$this->fileGenerators[] = [self::class, 'generateNewPhpFileContents'];
+		$this->fileGenerators[] = self::generateNewPhpFileContents(...);
 		$this->fibers = new \WeakMap;
 	}
 
 
 	/**
-	 * Add custom panel as function (?\Throwable $e): ?array
-	 * @return static
+	 * Add custom panel.
+	 * @param  callable(?\Throwable): ?array{tab: string, panel: string}  $panel
 	 */
-	public function addPanel(callable $panel): self
+	public function addPanel(callable $panel): static
 	{
+		$panel = $panel(...);
 		if (!in_array($panel, $this->panels, true)) {
 			$this->panels[] = $panel;
 		}
@@ -76,23 +82,22 @@ class BlueScreen
 
 	/**
 	 * Add action.
-	 * @return static
+	 * @param  callable(\Throwable): ?array{link: string, label: string}  $action
 	 */
-	public function addAction(callable $action): self
+	public function addAction(callable $action): static
 	{
-		$this->actions[] = $action;
+		$this->actions[] = $action(...);
 		return $this;
 	}
 
 
 	/**
 	 * Add new file generator.
-	 * @param  callable(string): ?string  $generator
-	 * @return static
+	 * @param  callable(string, ?string): ?string  $generator
 	 */
-	public function addFileGenerator(callable $generator): self
+	public function addFileGenerator(callable $generator): static
 	{
-		$this->fileGenerators[] = $generator;
+		$this->fileGenerators[] = $generator(...);
 		return $this;
 	}
 
@@ -113,29 +118,55 @@ class BlueScreen
 			header('Content-Type: text/html; charset=UTF-8');
 		}
 
-		$this->renderTemplate($exception, __DIR__ . '/assets/page.phtml');
+		$this->renderTemplate($exception, __DIR__ . '/dist/page.phtml');
+	}
+
+
+	/**
+	 * Captures blue screen as plain text (markdown).
+	 * @param  ?array{file: string, line: int}  $logLocation
+	 */
+	public function renderAgent(\Throwable $exception, ?array $logLocation = null): string
+	{
+		return Helpers::capture(fn() => $this->renderTemplate($exception, __DIR__ . '/dist/agent.phtml', logLocation: $logLocation));
 	}
 
 
 	/** @internal */
 	public function renderToAjax(\Throwable $exception, DeferredContent $defer): void
 	{
-		$defer->addSetup('Tracy.BlueScreen.loadAjax', Helpers::capture(fn() => $this->renderTemplate($exception, __DIR__ . '/assets/content.phtml')));
+		$defer->addSetup(
+			'Tracy.BlueScreen.loadAjax',
+			Helpers::capture(fn() => $this->renderTemplate($exception, __DIR__ . '/dist/content.phtml')),
+		);
+		if (Helpers::isAgent()) {
+			$defer->addSetup('console.error', $this->renderAgent($exception));
+		}
 	}
 
 
 	/**
 	 * Renders blue screen to file (if file exists, it will not be overwritten).
+	 * @param  ?array{file: string, line: int}  $logLocation  location from which Debugger::log() was called
 	 */
-	public function renderToFile(\Throwable $exception, string $file): bool
+	public function renderToFile(\Throwable $exception, string $file, ?array $logLocation = null): bool
 	{
-		if ($handle = @fopen($file, 'x')) {
+		if ($handle = @fopen($file, 'x')) { // @ file may already exist
 			ob_start(); // double buffer prevents sending HTTP headers in some PHP
-			ob_start(function ($buffer) use ($handle): void { fwrite($handle, $buffer); }, 4096);
-			$this->renderTemplate($exception, __DIR__ . '/assets/page.phtml', toScreen: false);
+			ob_start(function ($buffer) use ($handle) {
+				fwrite($handle, $buffer);
+				return '';
+			}, 4096);
+			$this->renderTemplate($exception, __DIR__ . '/dist/page.phtml', toScreen: false, logLocation: $logLocation);
 			ob_end_flush();
 			ob_end_clean();
 			fclose($handle);
+
+			if ($handle = @fopen(substr($file, 0, -5) . '.md', 'x')) { // @ file may already exist
+				fwrite($handle, $this->renderAgent($exception, $logLocation));
+				fclose($handle);
+			}
+
 			return true;
 		}
 
@@ -143,7 +174,15 @@ class BlueScreen
 	}
 
 
-	private function renderTemplate(\Throwable $exception, string $template, bool $toScreen = true): void
+	/**
+	 * @param  ?array{file: string, line: int}  $logLocation
+	 */
+	private function renderTemplate(
+		\Throwable $exception,
+		string $template,
+		bool $toScreen = true,
+		?array $logLocation = null,
+	): void
 	{
 		[$generators, $fibers] = $this->findGeneratorsAndFibers($exception);
 		$headersSent = headers_sent($headersFile, $headersLine);
@@ -151,9 +190,6 @@ class BlueScreen
 		$showEnvironment = $this->showEnvironment && (!str_contains($exception->getMessage(), 'Allowed memory size'));
 		$info = array_filter($this->info);
 		$source = Helpers::getSource();
-		$title = $exception instanceof \ErrorException
-			? Helpers::errorTypeToString($exception->getSeverity())
-			: get_debug_type($exception);
 		$lastError = $exception instanceof \ErrorException || $exception instanceof \Error
 			? null
 			: error_get_last();
@@ -161,33 +197,50 @@ class BlueScreen
 		if (function_exists('apache_request_headers')) {
 			$httpHeaders = apache_request_headers();
 		} else {
-			$httpHeaders = array_filter($_SERVER, fn($k) => strncmp($k, 'HTTP_', 5) === 0, ARRAY_FILTER_USE_KEY);
-			$httpHeaders = array_combine(array_map(fn($k) => strtolower(strtr(substr($k, 5), '_', '-')), array_keys($httpHeaders)), $httpHeaders);
+			$httpHeaders = array_filter($_SERVER, fn($k) => str_starts_with($k, 'HTTP_'), ARRAY_FILTER_USE_KEY);
+			$httpHeaders = array_combine(
+				array_map(fn($k) => strtolower(strtr(substr($k, 5), '_', '-')), array_keys($httpHeaders)),
+				$httpHeaders,
+			);
 		}
 
-		$snapshot = &$this->snapshot;
-		$snapshot = [];
+		$this->snapshot = [];
+		$snapshot = &$this->snapshot[0];
 		$dump = $this->getDumper();
+		$agentDump = $this->getAgentDumper();
 
-		$css = array_map('file_get_contents', array_merge([
+		$css = array_map(file_get_contents(...), [
 			__DIR__ . '/../assets/reset.css',
 			__DIR__ . '/assets/bluescreen.css',
 			__DIR__ . '/../assets/toggle.css',
 			__DIR__ . '/../assets/table-sort.css',
 			__DIR__ . '/../assets/tabs.css',
 			__DIR__ . '/../Dumper/assets/dumper-light.css',
-		], Debugger::$customCssFiles));
+			...Debugger::$customCssFiles,
+		]);
 		$css = Helpers::minifyCss(implode('', $css));
 
-		$nonceAttr = $toScreen ? Helpers::getNonceAttr() : null;
+		$js = array_map(fn($file) => '(function(){' . file_get_contents($file) . '})();', [
+			__DIR__ . '/../assets/toggle.js',
+			__DIR__ . '/../assets/table-sort.js',
+			__DIR__ . '/../assets/tabs.js',
+			__DIR__ . '/../assets/helpers.js',
+			__DIR__ . '/../Dumper/assets/dumper.js',
+			__DIR__ . '/assets/bluescreen.js',
+		]);
+		$js = Helpers::minifyJs(implode('', $js));
+
+		$nonce = $toScreen ? Helpers::getNonce() : null;
 		$actions = $toScreen ? $this->renderActions($exception) : [];
+		$blueScreen = $this;
 
 		require $template;
+		$this->snapshot = [];
 	}
 
 
 	/**
-	 * @return \stdClass[]
+	 * @return list<\stdClass>
 	 */
 	private function renderPanels(?\Throwable $ex): array
 	{
@@ -221,7 +274,7 @@ class BlueScreen
 
 
 	/**
-	 * @return array[]
+	 * @return list<array{link: string, label: string, external?: bool}>
 	 */
 	private function renderActions(\Throwable $ex): array
 	{
@@ -244,7 +297,7 @@ class BlueScreen
 		if (preg_match('# ([\'"])(\w{3,}(?:\\\\\w{2,})+)\1#i', $ex->getMessage(), $m)) {
 			$class = $m[2];
 			if (
-				!class_exists($class, false) && !interface_exists($class, false) && !trait_exists($class, false)
+				!class_exists($class, false) && !interface_exists($class, autoload: false) && !trait_exists($class, autoload: false)
 				&& ($file = Helpers::guessClassFile($class)) && !@is_file($file) // @ - may trigger error
 			) {
 				[$content, $line] = $this->generateNewFileContents($file, $class);
@@ -255,7 +308,7 @@ class BlueScreen
 			}
 		}
 
-		if (preg_match('# ([\'"])((?:/|[a-z]:[/\\\\])\w[^\'"]+\.\w{2,5})\1#i', $ex->getMessage(), $m)) {
+		if (preg_match('# ([\'"])((?:/|[a-z]:[/\\\])\w[^\'"]+\.\w{2,5})\1#i', $ex->getMessage(), $m)) {
 			$file = $m[2];
 			if (@is_file($file)) { // @ - may trigger error
 				$label = 'open';
@@ -295,8 +348,17 @@ class BlueScreen
 	}
 
 
+	/** @internal */
+	public static function getExceptionTitle(\Throwable $exception): string
+	{
+		return $exception instanceof \ErrorException
+			? Helpers::errorTypeToString($exception->getSeverity())
+			: get_debug_type($exception);
+	}
+
+
 	/**
-	 * Returns syntax highlighted source code.
+	 * Returns syntax highlighted snippet from a file, or null if the file cannot be read.
 	 */
 	public static function highlightFile(
 		string $file,
@@ -313,10 +375,17 @@ class BlueScreen
 
 		$source = $php
 			? CodeHighlighter::highlightPhp($source, $line, $column)
-			: '<pre class=tracy-code><div>' . CodeHighlighter::highlightLine(htmlspecialchars($source, ENT_IGNORE, 'UTF-8'), $line, $column) . '</div></pre>';
+			: '<pre class=tracy-code><div>'
+				. CodeHighlighter::highlightLine(htmlspecialchars($source, ENT_IGNORE, 'UTF-8'), $line, $column)
+				. '</div></pre>';
 
 		if ($editor = Helpers::editorUri($file, $line)) {
-			$source = substr_replace($source, ' title="Ctrl-Click to open in editor" data-tracy-href="' . Helpers::escapeHtml($editor) . '"', 4, 0);
+			$source = substr_replace(
+				$source,
+				' title="Ctrl-Click to open in editor" data-tracy-href="' . Helpers::escapeHtml($editor) . '"',
+				4,
+				0,
+			);
 		}
 
 		return $source;
@@ -324,7 +393,7 @@ class BlueScreen
 
 
 	/**
-	 * Returns syntax highlighted source code.
+	 * Returns syntax highlighted PHP source code with the given line emphasized.
 	 */
 	public static function highlightPhp(string $source, int $line, int $lines = 15, int $column = 0): string
 	{
@@ -333,7 +402,7 @@ class BlueScreen
 
 
 	/**
-	 * Returns highlighted line in HTML code.
+	 * Returns highlighted line in already-tokenized HTML code.
 	 */
 	public static function highlightLine(string $html, int $line, int $lines = 15, int $column = 0): string
 	{
@@ -343,23 +412,56 @@ class BlueScreen
 
 	/**
 	 * Should a file be collapsed in stack trace?
+	 * @deprecated use Helpers::countTransparentFrames()
 	 * @internal
 	 */
 	public function isCollapsed(string $file): bool
 	{
-		$file = strtr($file, '\\', '/') . '/';
-		foreach ($this->collapsePaths as $path) {
-			$path = strtr($path, '\\', '/') . '/';
-			if (strncmp($file, $path, strlen($path)) === 0) {
-				return true;
-			}
-		}
-
-		return false;
+		return Helpers::countTransparentFrames([['file' => $file]], [...$this->collapsePaths, ...Debugger::$transparentPaths]) > 0;
 	}
 
 
-	/** @internal */
+	/**
+	 * Returns the exception's stack trace with Tracy-internal handler frames stripped, together with the
+	 * index of the frame that should be expanded by default (or null).
+	 * Strips top frames belonging to DevelopmentStrategy/ProductionStrategy and Debugger error/shutdown handlers.
+	 * @return array{list<array{file?: string, line?: int, class?: string, type?: string, function: string, args?: array<mixed>}>, ?int}
+	 * @internal
+	 */
+	public function prepareStack(\Throwable $ex): array
+	{
+		$stack = $ex->getTrace();
+		while (
+			$stack
+			&& (
+				in_array($stack[0]['class'] ?? null, [DevelopmentStrategy::class, ProductionStrategy::class], true)
+				|| (($stack[0]['class'] ?? null) === Debugger::class
+					&& in_array($stack[0]['function'], ['shutdownHandler', 'errorHandler'], true))
+			)
+		) {
+			array_shift($stack);
+		}
+
+		$expanded = null;
+		if (
+			!$ex instanceof \ErrorException
+			|| in_array($ex->getSeverity(), [E_USER_NOTICE, E_USER_WARNING, E_USER_DEPRECATED], true)
+		) {
+			$n = Helpers::countTransparentFrames(
+				[['file' => $ex->getFile(), 'line' => $ex->getLine()], ...$stack],
+				[...$this->collapsePaths, ...Debugger::$transparentPaths],
+			);
+			$expanded = $n > 0 && $n <= count($stack) ? $n - 1 : null;
+		}
+
+		return [$stack, $expanded];
+	}
+
+
+	/**
+	 * @return \Closure(mixed, int|string): string
+	 * @internal
+	 */
 	public function getDumper(): \Closure
 	{
 		return fn($v, $k = null): string => Dumper::toHtml($v, [
@@ -374,24 +476,39 @@ class BlueScreen
 	}
 
 
+	/**
+	 * @return \Closure(mixed, int|string): string
+	 * @internal
+	 */
+	public function getAgentDumper(): \Closure
+	{
+		return fn($v, $k = null): string => Dumper::toText($v, [
+			Dumper::DEPTH => 3,
+			Dumper::SCRUBBER => $this->scrubber,
+			Dumper::KEYS_TO_HIDE => $this->keysToHide,
+		], $k);
+	}
+
+
 	public function formatMessage(\Throwable $exception): string
 	{
-		$msg = Helpers::encodeString(trim((string) $exception->getMessage()), self::MaxMessageLength, showWhitespaces: false);
+		$msg = Helpers::encodeString(trim($exception->getMessage()), self::MaxMessageLength, showWhitespaces: false);
 
 		// highlight 'string'
 		$msg = preg_replace(
-			'#\'\S(?:[^\']|\\\\\')*\S\'|"\S(?:[^"]|\\\\")*\S"#',
+			'#\'\S(?:[^\']|\\\\\')*\S\'|"\S(?:[^"]|\\\")*\S"#',
 			'<i>$0</i>',
 			$msg,
 		);
 
 		// clickable class & methods
 		$msg = preg_replace_callback(
-			'#(\w+\\\\[\w\\\\]+\w)(?:::(\w+))?#',
+			'#(\w+\\\[\w\\\]+\w)(?:::(\w+))?#',
 			function ($m) {
-				if (isset($m[2]) && method_exists($m[1], $m[2])) {
+				$classLike = class_exists($m[1], false) || interface_exists($m[1], autoload: false) || trait_exists($m[1], autoload: false);
+				if ($classLike && isset($m[2]) && method_exists($m[1], $m[2])) {
 					$r = new \ReflectionMethod($m[1], $m[2]);
-				} elseif (class_exists($m[1], false) || interface_exists($m[1], false)) {
+				} elseif ($classLike) {
 					$r = new \ReflectionClass($m[1]);
 				}
 
@@ -399,16 +516,24 @@ class BlueScreen
 					return $m[0];
 				}
 
-				return '<a href="' . Helpers::escapeHtml(Helpers::editorUri($r->getFileName(), $r->getStartLine())) . '" class="tracy-editor">' . $m[0] . '</a>';
+				return '<a href="'
+					. Helpers::escapeHtml(Helpers::editorUri($r->getFileName(), $r->getStartLine() ?: null))
+					. '" class="tracy-editor">'
+					. $m[0]
+					. '</a>';
 			},
 			$msg,
 		);
 
 		// clickable file name
 		$msg = preg_replace_callback(
-			'#([\w\\\\/.:-]+\.(?:php|phpt|phtml|latte|neon))(?|:(\d+)| on line (\d+))?#',
+			'#([\w\\\/.:-]+\.(?:php|phpt|phtml|latte|neon))(?|:(\d+)| on line (\d+))?#',
 			fn($m) => @is_file($m[1]) // @ - may trigger error
-				? '<a href="' . Helpers::escapeHtml(Helpers::editorUri($m[1], isset($m[2]) ? (int) $m[2] : null)) . '" class="tracy-editor">' . $m[0] . '</a>'
+				? '<a href="'
+					. Helpers::escapeHtml(Helpers::editorUri($m[1], isset($m[2]) ? (int) $m[2] : null))
+					. '" class="tracy-editor">'
+					. $m[0]
+					. '</a>'
 				: $m[0],
 			$msg,
 		);
@@ -435,7 +560,7 @@ class BlueScreen
 	}
 
 
-	/** @internal */
+	/** @return array{string, int} */
 	private function generateNewFileContents(string $file, ?string $class = null): array
 	{
 		foreach (array_reverse($this->fileGenerators) as $generator) {
@@ -456,10 +581,9 @@ class BlueScreen
 	}
 
 
-	/** @internal */
-	public static function generateNewPhpFileContents(string $file, ?string $class = null): ?string
+	private static function generateNewPhpFileContents(string $file, ?string $class = null): ?string
 	{
-		if (substr($file, -4) !== '.php') {
+		if (!str_ends_with($file, '.php')) {
 			return null;
 		}
 
@@ -477,13 +601,19 @@ class BlueScreen
 	}
 
 
+	/** @return array{array<int, \Generator>, array<int, \Fiber>} */
 	private function findGeneratorsAndFibers(object $object): array
 	{
 		$generators = $fibers = [];
 		$add = function ($obj) use (&$generators, &$fibers) {
 			if ($obj instanceof \Generator) {
 				try {
-					new \ReflectionGenerator($obj);
+					$ref = new \ReflectionGenerator($obj);
+					// Before PHP 8.4 the ReflectionGenerator cannot be constructed from closed generator.
+					// Since PHP 8.4 it can, but getTrace throws ReflectionException.
+					if (PHP_VERSION_ID >= 80400 && $ref->isClosed()) {
+						return;
+					}
 					$generators[spl_object_id($obj)] = $obj;
 				} catch (\ReflectionException) {
 				}

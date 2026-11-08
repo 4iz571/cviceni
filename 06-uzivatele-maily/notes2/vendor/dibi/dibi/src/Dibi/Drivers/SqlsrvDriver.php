@@ -1,16 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
 use Dibi\Helpers;
+use function is_resource, sprintf;
 
 
 /**
@@ -30,10 +29,12 @@ class SqlsrvDriver implements Dibi\Driver
 	/** @var resource */
 	private $connection;
 	private ?int $affectedRows;
-	private string $version = '';
 
 
-	/** @throws Dibi\NotSupportedException */
+	/**
+	 * @param  array<string, mixed>  $config
+	 * @throws Dibi\NotSupportedException
+	 */
 	public function __construct(array $config)
 	{
 		if (!extension_loaded('sqlsrv')) {
@@ -63,13 +64,11 @@ class SqlsrvDriver implements Dibi\Driver
 			$this->connection = sqlsrv_connect($config['host'], $options);
 			if (!is_resource($this->connection)) {
 				$info = sqlsrv_errors(SQLSRV_ERR_ERRORS);
-				throw new Dibi\DriverException($info[0]['message'], $info[0]['code']);
+				throw new Dibi\DriverException($info[0]['message'] ?? 'Unknown error.', $info[0]['code'] ?? 0);
 			}
 
 			sqlsrv_configure('WarningsReturnAsErrors', 1);
 		}
-
-		$this->version = sqlsrv_server_info($this->connection)['SQLServerVersion'];
 	}
 
 
@@ -91,18 +90,16 @@ class SqlsrvDriver implements Dibi\Driver
 		$this->affectedRows = null;
 		$res = sqlsrv_query($this->connection, $sql);
 
-		if ($res === false) {
-			$info = sqlsrv_errors();
-			throw new Dibi\DriverException($info[0]['message'], $info[0]['code'], $sql);
-
-		} elseif (is_resource($res)) {
+		if (is_resource($res)) {
 			$this->affectedRows = Helpers::false2Null(sqlsrv_rows_affected($res));
 			return sqlsrv_num_fields($res)
 				? $this->createResultDriver($res)
 				: null;
-		}
 
-		return null;
+		} else {
+			$info = sqlsrv_errors();
+			throw new Dibi\DriverException($info[0]['message'] ?? 'Unknown error.', $info[0]['code'] ?? 0, $sql);
+		}
 	}
 
 
@@ -123,7 +120,7 @@ class SqlsrvDriver implements Dibi\Driver
 		$res = sqlsrv_query($this->connection, 'SELECT SCOPE_IDENTITY()');
 		if (is_resource($res)) {
 			$row = sqlsrv_fetch_array($res, SQLSRV_FETCH_NUMERIC);
-			return Dibi\Helpers::intVal($row[0]);
+			return $row ? Dibi\Helpers::intVal($row[0]) : null;
 		}
 
 		return null;
@@ -256,13 +253,6 @@ class SqlsrvDriver implements Dibi\Driver
 		if ($limit < 0 || $offset < 0) {
 			throw new Dibi\NotSupportedException('Negative offset or limit.');
 
-		} elseif (version_compare($this->version, '11', '<')) { // 11 == SQL Server 2012
-			if ($offset) {
-				throw new Dibi\NotSupportedException('Offset is not supported by this database.');
-
-			} elseif ($limit !== null) {
-				$sql = sprintf('SELECT TOP (%d) * FROM (%s) t', $limit, $sql);
-			}
 		} elseif ($limit !== null) {
 			// requires ORDER BY, see https://technet.microsoft.com/en-us/library/gg699618(v=sql.110).aspx
 			$sql = sprintf('%s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY', rtrim($sql), $offset, $limit);

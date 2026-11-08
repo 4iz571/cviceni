@@ -1,32 +1,26 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
 
 /**
- * Dibi common exception.
+ * A database operation failed.
  */
 class Exception extends \Exception
 {
-	private ?string $sql;
-
-
 	public function __construct(
 		string $message = '',
 		int|string $code = 0,
-		?string $sql = null,
+		private readonly ?string $sql = null,
 		?\Throwable $previous = null,
 	) {
 		parent::__construct($message, 0, $previous);
 		$this->code = $code;
-		$this->sql = $sql;
 	}
 
 
@@ -44,7 +38,7 @@ class Exception extends \Exception
 
 
 /**
- * database server exception.
+ * The database server reported an error.
  */
 class DriverException extends Exception
 {
@@ -52,7 +46,7 @@ class DriverException extends Exception
 
 
 /**
- * PCRE exception.
+ * Regular expression pattern or execution failed.
  */
 class PcreException extends Exception
 {
@@ -63,31 +57,37 @@ class PcreException extends Exception
 }
 
 
+/**
+ * The requested feature is not implemented.
+ */
 class NotImplementedException extends Exception
 {
 }
 
 
+/**
+ * The requested operation is not supported.
+ */
 class NotSupportedException extends Exception
 {
 }
 
 
 /**
- * Database procedure exception.
+ * A database stored procedure failed.
  */
 class ProcedureException extends Exception
 {
-	protected string $severity;
-
-
 	/**
 	 * Construct the exception.
 	 */
-	public function __construct(string $message = '', int $code = 0, string $severity = '', ?string $sql = null)
-	{
+	public function __construct(
+		string $message = '',
+		int $code = 0,
+		protected string $severity = '',
+		?string $sql = null,
+	) {
 		parent::__construct($message, $code, $sql);
-		$this->severity = $severity;
 	}
 
 
@@ -102,7 +102,7 @@ class ProcedureException extends Exception
 
 
 /**
- * Base class for all constraint violation related exceptions.
+ * A database constraint was violated.
  */
 class ConstraintViolationException extends DriverException
 {
@@ -110,7 +110,7 @@ class ConstraintViolationException extends DriverException
 
 
 /**
- * Exception for a foreign key constraint violation.
+ * The foreign key constraint check failed.
  */
 class ForeignKeyConstraintViolationException extends ConstraintViolationException
 {
@@ -118,7 +118,7 @@ class ForeignKeyConstraintViolationException extends ConstraintViolationExceptio
 
 
 /**
- * Exception for a NOT NULL constraint violation.
+ * The NOT NULL constraint check failed.
  */
 class NotNullConstraintViolationException extends ConstraintViolationException
 {
@@ -126,7 +126,7 @@ class NotNullConstraintViolationException extends ConstraintViolationException
 
 
 /**
- * Exception for a unique constraint violation.
+ * The unique constraint check failed.
  */
 class UniqueConstraintViolationException extends ConstraintViolationException
 {

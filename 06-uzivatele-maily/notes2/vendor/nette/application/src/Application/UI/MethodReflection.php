@@ -1,15 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Application\UI;
-
-use Nette;
 
 
 /**
@@ -17,23 +13,18 @@ use Nette;
  */
 final class MethodReflection extends \ReflectionMethod
 {
-	use Nette\SmartObject;
-
-	/**
-	 * Has method specified annotation?
-	 */
+	#[\Deprecated]
 	public function hasAnnotation(string $name): bool
 	{
+		trigger_error(__METHOD__ . '() is deprecated', E_USER_DEPRECATED);
 		return (bool) ComponentReflection::parseAnnotation($this, $name);
 	}
 
 
-	/**
-	 * Returns an annotation value.
-	 * @return mixed
-	 */
-	public function getAnnotation(string $name)
+	#[\Deprecated]
+	public function getAnnotation(string $name): mixed
 	{
+		trigger_error(__METHOD__ . '() is deprecated', E_USER_DEPRECATED);
 		$res = ComponentReflection::parseAnnotation($this, $name);
 		return $res ? end($res) : null;
 	}

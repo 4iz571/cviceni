@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
@@ -13,14 +11,14 @@ use Nette;
 
 
 /**
- * use Trait
+ * Definition of a trait use statement.
  */
 final class TraitUse
 {
 	use Traits\NameAware;
 	use Traits\CommentAware;
 
-	/** @var string[] */
+	/** @var list<string> */
 	private array $resolutions = [];
 
 
@@ -34,6 +32,9 @@ final class TraitUse
 	}
 
 
+	/**
+	 * Adds a conflict resolution rule (e.g., 'methodA insteadof TraitB' or 'methodA as protected').
+	 */
 	public function addResolution(string $resolution): static
 	{
 		$this->resolutions[] = $resolution;
@@ -41,7 +42,7 @@ final class TraitUse
 	}
 
 
-	/** @return string[] */
+	/** @return list<string> */
 	public function getResolutions(): array
 	{
 		return $this->resolutions;

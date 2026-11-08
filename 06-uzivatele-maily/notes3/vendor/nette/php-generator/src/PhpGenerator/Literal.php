@@ -1,22 +1,22 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 
 /**
- * PHP literal value.
+ * Raw PHP expression written to output as-is without escaping.
+ * Supports Dumper-style placeholders when created with arguments.
  */
 class Literal
 {
 	/**
-	 * Creates a literal representing the creation of an object using the new operator.
+	 * Creates a literal representing a `new ClassName(...)` expression with named arguments.
+	 * @param  mixed[]  $args
 	 */
 	public static function new(string $class, array $args = []): self
 	{
@@ -25,9 +25,9 @@ class Literal
 
 
 	public function __construct(
-		private string $value,
+		private readonly string $value,
 		/** @var ?mixed[] */
-		private ?array $args = null,
+		private readonly ?array $args = null,
 	) {
 	}
 

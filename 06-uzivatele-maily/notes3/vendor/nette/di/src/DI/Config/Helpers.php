@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI\Config;
 
 use Nette;
+use function is_array;
 
 
 /**
@@ -24,14 +23,14 @@ final class Helpers
 
 
 	/** @deprecated */
-	public static function merge($left, $right)
+	public static function merge(mixed $left, mixed $right): mixed
 	{
 		return Nette\Schema\Helpers::merge($left, $right);
 	}
 
 
 	/** @deprecated */
-	public static function takeParent(&$data): bool
+	public static function takeParent(mixed &$data): bool
 	{
 		if (is_array($data) && isset($data[self::PREVENT_MERGING])) {
 			unset($data[self::PREVENT_MERGING]);

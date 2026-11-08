@@ -1,74 +1,84 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 use Nette;
+use function func_num_args, is_object;
 
 
 /**
- * Class/Interface/Trait/Enum description.
+ * Base for class, interface, trait, and enum definitions.
  */
 abstract class ClassLike
 {
 	use Traits\CommentAware;
 	use Traits\AttributeAware;
 
-	public const
-		VisibilityPublic = 'public',
-		VisibilityProtected = 'protected',
-		VisibilityPrivate = 'private';
+	#[\Deprecated('Use Visibility::Public')]
+	public const VisibilityPublic = Visibility::Public,
+		VISIBILITY_PUBLIC = Visibility::Public;
 
-	/** @deprecated use ClassLike::VisibilityPublic */
-	public const VISIBILITY_PUBLIC = self::VisibilityPublic;
+	#[\Deprecated('Use Visibility::Protected')]
+	public const VisibilityProtected = Visibility::Protected,
+		VISIBILITY_PROTECTED = Visibility::Protected;
 
-	/** @deprecated use ClassLike::VisibilityProtected */
-	public const VISIBILITY_PROTECTED = self::VisibilityProtected;
-
-	/** @deprecated use ClassLike::VisibilityPrivate */
-	public const VISIBILITY_PRIVATE = self::VisibilityPrivate;
+	#[\Deprecated('Use Visibility::Private')]
+	public const VisibilityPrivate = Visibility::Private,
+		VISIBILITY_PRIVATE = Visibility::Private;
 
 	private ?PhpNamespace $namespace;
 	private ?string $name;
 
 
-	public static function from(string|object $class, bool $withBodies = false): self
+	/**
+	 * Creates an instance from a class reflection.
+	 * @param  class-string|object  $class
+	 * @param  bool  $withBodies  load method bodies (requires nikic/php-parser)
+	 */
+	public static function from(string|object $class, bool $withBodies = false): static
 	{
 		$instance = (new Factory)
 			->fromClassReflection(new \ReflectionClass($class), $withBodies);
 
 		if (!$instance instanceof static) {
 			$class = is_object($class) ? $class::class : $class;
-			trigger_error("$class cannot be represented with " . static::class . '. Call ' . $instance::class . '::' . __FUNCTION__ . '() or ' . __METHOD__ . '() instead.', E_USER_WARNING);
+			throw new Nette\InvalidArgumentException("$class cannot be represented with " . static::class . '. Call ' . $instance::class . '::' . __FUNCTION__ . '() or ' . __METHOD__ . '() instead.');
 		}
 
 		return $instance;
 	}
 
 
-	public static function fromCode(string $code): self
+	/**
+	 * Creates an instance by parsing PHP source code containing a class definition.
+	 */
+	public static function fromCode(string $code): static
 	{
 		$instance = (new Factory)
 			->fromClassCode($code);
 
 		if (!$instance instanceof static) {
-			trigger_error('Provided code cannot be represented with ' . static::class . '. Call ' . $instance::class . '::' . __FUNCTION__ . '() or ' . __METHOD__ . '() instead.', E_USER_WARNING);
+			throw new Nette\InvalidArgumentException('Provided code cannot be represented with ' . static::class . '. Call ' . $instance::class . '::' . __FUNCTION__ . '() or ' . __METHOD__ . '() instead.');
 		}
 
 		return $instance;
 	}
 
 
-	public function __construct(string $name, ?PhpNamespace $namespace = null)
+	public function __construct(string $name)
 	{
-		$this->setName($name);
-		$this->namespace = $namespace;
+		if (str_contains($name, '\\')) {
+			$this->namespace = new PhpNamespace(Helpers::extractNamespace($name));
+			$this->setName(Helpers::extractShortName($name));
+		} else {
+			$this->namespace = func_num_args() > 1 ? func_get_arg(1) : null; // backward compatibility
+			$this->setName($name);
+		}
 	}
 
 
@@ -78,7 +88,14 @@ abstract class ClassLike
 	}
 
 
-	/** @deprecated  an object can be in multiple namespaces */
+	/** @internal */
+	public function setNamespace(?PhpNamespace $namespace): static
+	{
+		$this->namespace = $namespace;
+		return $this;
+	}
+
+
 	public function getNamespace(): ?PhpNamespace
 	{
 		return $this->namespace;
@@ -99,6 +116,17 @@ abstract class ClassLike
 	public function getName(): ?string
 	{
 		return $this->name;
+	}
+
+
+	/**
+	 * Returns the fully qualified name including namespace, or just the short name if no namespace is set.
+	 */
+	public function getFullName(): ?string
+	{
+		return $this->name && ($namespace = $this->namespace?->getName())
+			? $namespace . '\\' . $this->name
+			: $this->name;
 	}
 
 
@@ -126,7 +154,7 @@ abstract class ClassLike
 	}
 
 
-	/** @param  string[]  $names */
+	/** @param list<string>  $names */
 	protected function validateNames(array $names): void
 	{
 		foreach ($names as $name) {

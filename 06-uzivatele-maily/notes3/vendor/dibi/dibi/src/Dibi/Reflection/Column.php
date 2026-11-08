@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Reflection;
 
@@ -19,7 +17,7 @@ use Dibi;
  * @property-read string $fullName
  * @property-read Table $table
  * @property-read string $type
- * @property-read mixed $nativeType
+ * @property-read string $nativeType
  * @property-read int|null $size
  * @property-read bool $nullable
  * @property-read bool $autoIncrement
@@ -27,17 +25,11 @@ use Dibi;
  */
 class Column
 {
-	/** when created by Result */
-	private ?Dibi\Reflector $reflector;
-
-	/** @var array (name, nativetype, [table], [fullname], [size], [nullable], [default], [autoincrement], [vendor]) */
-	private array $info;
-
-
-	public function __construct(?Dibi\Reflector $reflector, array $info)
-	{
-		$this->reflector = $reflector;
-		$this->info = $info;
+	public function __construct(
+		private readonly ?Dibi\Reflector $reflector,
+		/** @var  array{name: string, nativetype: string, table?: ?string, fullname?: ?string, size?: int|null, nullable?: bool, default?: mixed, autoincrement?: bool, vendor?: array<string, mixed>} */
+		private array $info,
+	) {
 	}
 
 
@@ -49,7 +41,7 @@ class Column
 
 	public function getFullName(): string
 	{
-		return $this->info['fullname'] ?? null;
+		return $this->info['fullname'] ?? $this->info['name'];
 	}
 
 

@@ -1,33 +1,29 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\CacheLatte;
 
 use Latte;
-use Latte\Compiler\Nodes\AuxiliaryNode;
-use Latte\Compiler\Nodes\TemplateNode;
+use Latte\Compiler\Nodes\{AuxiliaryNode, TemplateNode};
 use Latte\Compiler\Tag;
 use Nette\Caching\Storage;
 
 
 /**
- * Latte v3 extension for Nette Caching
+ * Latte v3 extension providing the {cache} tag.
  */
 final class CacheExtension extends Latte\Extension
 {
 	private bool $used;
-	private Storage $storage;
 
 
-	public function __construct(Storage $storage)
-	{
-		$this->storage = $storage;
+	public function __construct(
+		private readonly Storage $storage,
+	) {
 	}
 
 
@@ -68,7 +64,7 @@ final class CacheExtension extends Latte\Extension
 	}
 
 
-	public function getCacheKey(Latte\Engine $engine): array
+	public function getCacheKey(Latte\Engine $engine): mixed
 	{
 		return ['version' => 2];
 	}

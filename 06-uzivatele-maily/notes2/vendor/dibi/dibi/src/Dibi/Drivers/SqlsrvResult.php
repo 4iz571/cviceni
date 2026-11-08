@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
+use function is_resource;
 
 
 /**
@@ -17,16 +16,10 @@ use Dibi;
  */
 class SqlsrvResult implements Dibi\ResultDriver
 {
-	/** @var resource */
-	private $resultSet;
-
-
-	/**
-	 * @param  resource  $resultSet
-	 */
-	public function __construct($resultSet)
-	{
-		$this->resultSet = $resultSet;
+	public function __construct(
+		/** @var resource */
+		private $resultSet,
+	) {
 	}
 
 

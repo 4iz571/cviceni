@@ -1,23 +1,20 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\FormsLatte\Nodes;
 
-use Latte\Compiler\Nodes\Php\Expression\VariableNode;
 use Latte\Compiler\Nodes\Php\ExpressionNode;
 use Latte\Compiler\Nodes\StatementNode;
-use Latte\Compiler\PrintContext;
-use Latte\Compiler\Tag;
+use Latte\Compiler\{PrintContext, Tag};
 
 
 /**
- * {inputError ...}
+ * {inputError name}
+ * Renders form control error message.
  */
 class InputErrorNode extends StatementNode
 {
@@ -27,13 +24,10 @@ class InputErrorNode extends StatementNode
 	public static function create(Tag $tag): static
 	{
 		$tag->outputMode = $tag::OutputKeepIndentation;
+		$tag->expectArguments();
+
 		$node = new static;
-		if ($tag->parser->isEnd()) {
-			trigger_error("Missing argument in {inputError} (on line {$tag->position->line})", E_USER_DEPRECATED);
-			$node->name = new VariableNode('ʟ_input');
-		} else {
-			$node->name = $tag->parser->parseUnquotedStringOrExpression();
-		}
+		$node->name = $tag->parser->parseUnquotedStringOrExpression();
 		return $node;
 	}
 
@@ -41,7 +35,7 @@ class InputErrorNode extends StatementNode
 	public function print(PrintContext $context): string
 	{
 		return $context->format(
-			'echo %escape(Nette\Bridges\FormsLatte\Runtime::item(%node, $this->global)->getError()) %line;',
+			'echo %escape($this->global->forms->get(%node)->getError()) %line;',
 			$this->name,
 			$this->position,
 		);

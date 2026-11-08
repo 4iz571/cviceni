@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
@@ -17,23 +15,26 @@ namespace Dibi;
 #[\AllowDynamicProperties]
 abstract class HashMapBase
 {
-	/** @var callable */
-	private $callback;
+	/** @var \Closure(string): mixed */
+	private \Closure $callback;
 
 
+	/** @param  callable(string): mixed  $callback */
 	public function __construct(callable $callback)
 	{
-		$this->callback = $callback;
+		$this->callback = $callback(...);
 	}
 
 
+	/** @param  callable(string): mixed  $callback */
 	public function setCallback(callable $callback): void
 	{
-		$this->callback = $callback;
+		$this->callback = $callback(...);
 	}
 
 
-	public function getCallback(): callable
+	/** @return \Closure(string): mixed */
+	public function getCallback(): \Closure
 	{
 		return $this->callback;
 	}

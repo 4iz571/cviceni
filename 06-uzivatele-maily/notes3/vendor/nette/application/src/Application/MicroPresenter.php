@@ -1,20 +1,18 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace NetteModule;
 
 use Latte;
 use Nette;
-use Nette\Application;
+use Nette\{Application, Http};
 use Nette\Application\Responses;
-use Nette\Http;
 use Nette\Routing\Router;
+use function is_array, is_object, is_string;
 
 
 /**
@@ -22,35 +20,17 @@ use Nette\Routing\Router;
  */
 final class MicroPresenter implements Application\IPresenter
 {
-	use Nette\SmartObject;
-
-	/** @var Nette\DI\Container|null */
-	private $context;
-
-	/** @var Nette\Http\IRequest|null */
-	private $httpRequest;
-
-	/** @var Router|null */
-	private $router;
-
-	/** @var Application\Request|null */
-	private $request;
+	private ?Application\Request $request = null;
 
 
 	public function __construct(
-		?Nette\DI\Container $context = null,
-		?Http\IRequest $httpRequest = null,
-		?Router $router = null
+		private readonly ?Nette\DI\Container $context = null,
+		private readonly ?Nette\Http\IRequest $httpRequest = null,
+		private readonly ?Router $router = null,
 	) {
-		$this->context = $context;
-		$this->httpRequest = $httpRequest;
-		$this->router = $router;
 	}
 
 
-	/**
-	 * Gets the context.
-	 */
 	public function getContext(): ?Nette\DI\Container
 	{
 		return $this->context;
@@ -67,10 +47,10 @@ final class MicroPresenter implements Application\IPresenter
 			&& !$this->httpRequest->isAjax()
 			&& ($request->isMethod('get') || $request->isMethod('head'))
 		) {
-			$refUrl = $this->httpRequest->getUrl()->withoutUserInfo();
+			$refUrl = $this->httpRequest->getUrl();
 			$url = $this->router->constructUrl($request->toArray(), $refUrl);
 			if ($url !== null && !$refUrl->isEqual($url)) {
-				return new Responses\RedirectResponse($url, Http\IResponse::S301_MOVED_PERMANENTLY);
+				return new Responses\RedirectResponse($url, Http\IResponse::S301_MovedPermanently);
 			}
 		}
 
@@ -86,19 +66,19 @@ final class MicroPresenter implements Application\IPresenter
 			foreach ($reflection->getParameters() as $param) {
 				$type = $param->getType();
 				if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
-					$params[$param->getName()] = $this->context->getByType($type->getName(), false);
+					$params[$param->getName()] = $this->context->getByType($type->getName(), throw: false);
 				}
 			}
 		}
 
 		$params['presenter'] = $this;
 		try {
-			$params = Application\UI\ComponentReflection::combineArgs($reflection, $params);
+			$params = Application\UI\ParameterConverter::toArguments($reflection, $params);
 		} catch (Nette\InvalidArgumentException $e) {
 			$this->error($e->getMessage());
 		}
 
-		$response = $callback(...array_values($params));
+		$response = $callback(...$params);
 
 		if (is_string($response)) {
 			$response = [$response, []];
@@ -114,22 +94,24 @@ final class MicroPresenter implements Application\IPresenter
 			$response->setFile((string) $templateSource);
 		}
 
-		if ($response instanceof Application\UI\Template) {
-			return new Responses\TextResponse($response);
-		} else {
-			return $response ?: new Responses\VoidResponse;
-		}
+		return $response instanceof Application\UI\Template
+			? new Responses\TextResponse($response)
+			: ($response ?: new Responses\VoidResponse);
 	}
 
 
 	/**
-	 * Template factory.
+	 * Creates a template instance with default variables pre-populated.
+	 * @param  ?class-string<Application\UI\Template>  $class
+	 * @param  ?callable(): Latte\Engine  $latteFactory
 	 */
 	public function createTemplate(?string $class = null, ?callable $latteFactory = null): Application\UI\Template
 	{
 		$latte = $latteFactory
 			? $latteFactory()
-			: $this->getContext()->getByType(Nette\Bridges\ApplicationLatte\LatteFactory::class)->create();
+			: ($this->context ?? throw new Nette\InvalidStateException('Unable to create template, provide the $latteFactory parameter or DI container.'))
+				->getByType(Nette\Bridges\ApplicationLatte\LatteFactory::class)
+				->create();
 		$template = $class
 			? new $class
 			: new Nette\Bridges\ApplicationLatte\DefaultTemplate($latte);
@@ -138,7 +120,7 @@ final class MicroPresenter implements Application\IPresenter
 		$template->presenter = $this;
 		$template->context = $this->context;
 		if ($this->httpRequest) {
-			$url = $this->httpRequest->getUrl()->withoutUserInfo();
+			$url = $this->httpRequest->getUrl();
 			$template->baseUrl = rtrim($url->getBaseUrl(), '/');
 			$template->basePath = rtrim($url->getBasePath(), '/');
 		}
@@ -150,7 +132,7 @@ final class MicroPresenter implements Application\IPresenter
 	/**
 	 * Redirects to another URL.
 	 */
-	public function redirectUrl(string $url, int $httpCode = Http\IResponse::S302_FOUND): Responses\RedirectResponse
+	public function redirectUrl(string $url, int $httpCode = Http\IResponse::S302_Found): Responses\RedirectResponse
 	{
 		return new Responses\RedirectResponse($url, $httpCode);
 	}
@@ -160,7 +142,7 @@ final class MicroPresenter implements Application\IPresenter
 	 * Throws HTTP error.
 	 * @throws Nette\Application\BadRequestException
 	 */
-	public function error(string $message = '', int $httpCode = Http\IResponse::S404_NOT_FOUND): void
+	public function error(string $message = '', int $httpCode = Http\IResponse::S404_NotFound): never
 	{
 		throw new Application\BadRequestException($message, $httpCode);
 	}

@@ -1,24 +1,21 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Caching;
 
 use Nette;
+use function count, func_get_args, is_array, is_object, is_scalar;
 
 
 /**
- * Implements the cache for a application.
+ * Caching with namespace isolation, dependency tracking, and stampede prevention.
  */
 class Cache
 {
-	use Nette\SmartObject;
-
 	/** dependency */
 	public const
 		Priority = 'priority',
@@ -66,33 +63,28 @@ class Cache
 	public const ALL = self::All;
 
 	/** @internal */
-	public const
-		NamespaceSeparator = "\x00",
-		NAMESPACE_SEPARATOR = self::NamespaceSeparator;
+	public const NamespaceSeparator = "\x00";
 
-	private Storage $storage;
-	private string $namespace;
+	/** @deprecated use Cache::NamespaceSeparator */
+	public const NAMESPACE_SEPARATOR = self::NamespaceSeparator;
+
+	private readonly string $namespace;
 
 
-	public function __construct(Storage $storage, ?string $namespace = null)
-	{
-		$this->storage = $storage;
+	public function __construct(
+		private readonly Storage $storage,
+		?string $namespace = null,
+	) {
 		$this->namespace = $namespace . self::NamespaceSeparator;
 	}
 
 
-	/**
-	 * Returns cache storage.
-	 */
 	final public function getStorage(): Storage
 	{
 		return $this->storage;
 	}
 
 
-	/**
-	 * Returns cache namespace.
-	 */
 	final public function getNamespace(): string
 	{
 		return substr($this->namespace, 0, -1);
@@ -100,7 +92,7 @@ class Cache
 
 
 	/**
-	 * Returns new nested cache object.
+	 * Returns a new cache object scoped to a sub-namespace.
 	 */
 	public function derive(string $namespace): static
 	{
@@ -109,7 +101,9 @@ class Cache
 
 
 	/**
-	 * Reads the specified item from the cache or generate it.
+	 * Returns a cached item, or generates and stores it using the given callback.
+	 * @param ?(\Closure(mixed &$dependencies): mixed)  $generator
+	 * @param ?array<string, mixed>  $dependencies
 	 */
 	public function load(mixed $key, ?callable $generator = null, ?array $dependencies = null): mixed
 	{
@@ -132,7 +126,11 @@ class Cache
 
 
 	/**
-	 * Reads multiple items from the cache.
+	 * Returns multiple cached items at once, generating missing ones using the given callback.
+	 * @template TKey of int|string
+	 * @param list<TKey>  $keys
+	 * @param ?(\Closure(TKey $key, mixed &$dependencies): mixed)  $generator
+	 * @return array<TKey, mixed>
 	 */
 	public function bulkLoad(array $keys, ?callable $generator = null): array
 	{
@@ -160,7 +158,7 @@ class Cache
 			return $result;
 		}
 
-		$storageKeys = array_map([$this, 'generateKey'], $keys);
+		$storageKeys = array_map($this->generateKey(...), $keys);
 		$cacheData = $this->storage->bulkRead($storageKeys);
 		foreach ($keys as $i => $key) {
 			$storageKey = $storageKeys[$i];
@@ -178,15 +176,16 @@ class Cache
 
 
 	/**
-	 * Writes item into the cache.
-	 * Dependencies are:
+	 * Stores item in the cache and returns it.
+	 * Dependencies:
 	 * - Cache::Priority => (int) priority
-	 * - Cache::Expire => (timestamp) expiration
+	 * - Cache::Expire => (string|int) expiration time, infinite if null
 	 * - Cache::Sliding => (bool) use sliding expiration?
 	 * - Cache::Tags => (array) tags
-	 * - Cache::Files => (array|string) file names
-	 * - Cache::Items => (array|string) cache items
-	 * - Cache::Constants => (array|string) cache items
+	 * - Cache::Files => (array|string) file paths
+	 * - Cache::Items => (array|string) dependent cache keys
+	 * - Cache::Constants => (array|string) PHP constant names
+	 * @param ?array<string, mixed>  $dependencies
 	 * @return mixed  value itself
 	 * @throws Nette\InvalidArgumentException
 	 */
@@ -220,6 +219,51 @@ class Cache
 	}
 
 
+	/**
+	 * Stores multiple items in the cache at once.
+	 * @param mixed[]  $items
+	 * @param ?array<string, mixed>  $dependencies
+	 */
+	public function bulkSave(array $items, ?array $dependencies = null): void
+	{
+		$write = $remove = [];
+
+		if (!$this->storage instanceof BulkWriter) {
+			foreach ($items as $key => $data) {
+				$this->save($key, $data, $dependencies);
+			}
+			return;
+		}
+
+		$dependencies = $this->completeDependencies($dependencies);
+		if (isset($dependencies[self::Expire]) && $dependencies[self::Expire] <= 0) {
+			$this->storage->bulkRemove(array_map($this->generateKey(...), array_keys($items)));
+			return;
+		}
+
+		foreach ($items as $key => $data) {
+			$key = $this->generateKey($key);
+			if ($data === null) {
+				$remove[] = $key;
+			} else {
+				$write[$key] = $data;
+			}
+		}
+
+		if ($remove) {
+			$this->storage->bulkRemove($remove);
+		}
+
+		if ($write) {
+			$this->storage->bulkWrite($write, $dependencies);
+		}
+	}
+
+
+	/**
+	 * @param ?array<string, mixed>  $dp
+	 * @return array<string, mixed>
+	 */
 	private function completeDependencies(?array $dp): array
 	{
 		// convert expire into relative amount of seconds
@@ -240,7 +284,7 @@ class Cache
 		// convert FILES into CALLBACKS
 		if (isset($dp[self::Files])) {
 			foreach (array_unique((array) $dp[self::Files]) as $item) {
-				$dp[self::Callbacks][] = [[self::class, 'checkFile'], $item, @filemtime($item) ?: null]; // @ - stat may fail
+				$dp[self::Callbacks][] = [[self::class, 'checkFile'], $item, @filemtime($item) ?: null]; // @ file may not exist
 			}
 
 			unset($dp[self::Files]);
@@ -248,7 +292,7 @@ class Cache
 
 		// add namespaces to items
 		if (isset($dp[self::Items])) {
-			$dp[self::Items] = array_unique(array_map([$this, 'generateKey'], (array) $dp[self::Items]));
+			$dp[self::Items] = array_unique(array_map($this->generateKey(...), (array) $dp[self::Items]));
 		}
 
 		// convert CONSTS into CALLBACKS
@@ -268,9 +312,6 @@ class Cache
 	}
 
 
-	/**
-	 * Removes item from the cache.
-	 */
 	public function remove(mixed $key): void
 	{
 		$this->save($key, null);
@@ -278,11 +319,11 @@ class Cache
 
 
 	/**
-	 * Removes items from the cache by conditions.
-	 * Conditions are:
-	 * - Cache::Priority => (int) priority
-	 * - Cache::Tags => (array) tags
-	 * - Cache::All => true
+	 * Removes items from the cache by conditions:
+	 * - Cache::Priority => (int) removes items with equal or lower priority
+	 * - Cache::Tags => (array) removes items with matching tags
+	 * - Cache::All => true clears the entire cache
+	 * @param ?array<string, mixed>  $conditions
 	 */
 	public function clean(?array $conditions = null): void
 	{
@@ -296,13 +337,13 @@ class Cache
 
 
 	/**
-	 * Caches results of function/method calls.
+	 * Calls a function and caches its result. Subsequent calls with the same arguments return the cached value.
 	 */
 	public function call(callable $function): mixed
 	{
 		$key = func_get_args();
 		if (is_array($function) && is_object($function[0])) {
-			$key[0][0] = get_class($function[0]);
+			$key[0][0] = $function[0]::class;
 		}
 
 		return $this->load($key, fn() => $function(...array_slice($key, 1)));
@@ -310,14 +351,16 @@ class Cache
 
 
 	/**
-	 * Caches results of function/method calls.
+	 * Returns a cached wrapper around a function. Each unique set of arguments is cached separately.
+	 * @param  ?array<string, mixed>  $dependencies
+	 * @return \Closure(mixed...): mixed
 	 */
 	public function wrap(callable $function, ?array $dependencies = null): \Closure
 	{
 		return function () use ($function, $dependencies) {
 			$key = [$function, $args = func_get_args()];
 			if (is_array($function) && is_object($function[0])) {
-				$key[0][0] = get_class($function[0]);
+				$key[0][0] = $function[0]::class;
 			}
 
 			return $this->load($key, function (&$deps) use ($function, $args, $dependencies) {
@@ -329,7 +372,8 @@ class Cache
 
 
 	/**
-	 * Starts the output cache.
+	 * Starts output buffering for caching. Returns null and echoes cached content if already cached,
+	 * or returns an OutputHelper to capture and save new output.
 	 */
 	public function capture(mixed $key): ?OutputHelper
 	{
@@ -346,18 +390,18 @@ class Cache
 	/**
 	 * @deprecated  use capture()
 	 */
-	public function start($key): ?OutputHelper
+	public function start(mixed $key): ?OutputHelper
 	{
 		return $this->capture($key);
 	}
 
 
 	/**
-	 * Generates internal cache key.
+	 * Generates a namespaced storage key from a user-provided key.
 	 */
-	protected function generateKey($key): string
+	protected function generateKey(mixed $key): string
 	{
-		return $this->namespace . md5(is_scalar($key) ? (string) $key : serialize($key));
+		return $this->namespace . hash('xxh128', is_scalar($key) ? (string) $key : serialize($key));
 	}
 
 
@@ -365,7 +409,8 @@ class Cache
 
 
 	/**
-	 * Checks CALLBACKS dependencies.
+	 * Validates all callback dependencies. Returns false if any callback returns false.
+	 * @param list<array{0: callable, 1?: mixed, 2?: mixed}>  $callbacks
 	 */
 	public static function checkCallbacks(array $callbacks): bool
 	{
@@ -380,19 +425,19 @@ class Cache
 
 
 	/**
-	 * Checks CONSTS dependency.
+	 * Checks whether a PHP constant still has the same value as when cached.
 	 */
-	private static function checkConst(string $const, $value): bool
+	private static function checkConst(string $const, mixed $value): bool
 	{
 		return defined($const) && constant($const) === $value;
 	}
 
 
 	/**
-	 * Checks FILES dependency.
+	 * Checks whether a file's modification time matches the recorded value.
 	 */
 	private static function checkFile(string $file, ?int $time): bool
 	{
-		return @filemtime($file) == $time; // @ - stat may fail
+		return @filemtime($file) == $time; // @ file may not exist; intentionally ==, so that false equals null
 	}
 }
