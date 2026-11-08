@@ -1,19 +1,18 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 use Nette;
+use function func_num_args;
 
 
 /**
- * Class method.
+ * Definition of a class method.
  */
 final class Method
 {
@@ -30,6 +29,10 @@ final class Method
 	private bool $abstract = false;
 
 
+	/**
+	 * Creates an instance from a method name, callable array, or closure reflection.
+	 * @param  string|array{object|string, string}|(\Closure(): mixed)  $method
+	 */
 	public static function from(string|array|\Closure $method): static
 	{
 		return (new Factory)->fromMethodReflection(Nette\Utils\Callback::toReflection($method));
@@ -82,6 +85,7 @@ final class Method
 
 
 	/**
+	 * Adds a constructor-promoted parameter. If it already exists, overwrites it.
 	 * @param  string  $name without $
 	 */
 	public function addPromotedParameter(string $name, mixed $defaultValue = null): PromotedParameter
@@ -98,7 +102,7 @@ final class Method
 	/** @throws Nette\InvalidStateException */
 	public function validate(): void
 	{
-		if ($this->abstract && ($this->final || $this->visibility === ClassLike::VisibilityPrivate)) {
+		if ($this->abstract && ($this->final || $this->visibility === Visibility::Private)) {
 			throw new Nette\InvalidStateException("Method $this->name() cannot be abstract and final or private at the same time.");
 		}
 	}

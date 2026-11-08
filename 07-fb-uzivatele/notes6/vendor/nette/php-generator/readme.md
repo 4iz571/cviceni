@@ -8,7 +8,7 @@ Are you looking for a tool to generate PHP code for [classes](#classes), [functi
 
 <h3>
 
-✅ Supports all the latest PHP features like [enums](#enums), [attributes](#attributes), etc.<br>
+✅ Supports all the latest PHP features like [property hooks](#property-hooks), [enums](#enums), [attributes](#attributes), etc.<br>
 ✅ Allows you to easily modify [existing classes](#generating-from-existing-ones)<br>
 ✅ Output compliant with [PSR-12 / PER coding style](#printer-and-psr-compliance)<br>
 ✅ Highly mature, stable, and widely used library
@@ -26,7 +26,7 @@ Download and install the library using the [Composer](https://doc.nette.org/en/b
 composer require nette/php-generator
 ```
 
-PhpGenerator 4.1 is compatible with PHP 8.0 to 8.4. Documentation can be found on the [library's website](https://doc.nette.org/php-generator).
+PhpGenerator 4.2 is compatible with PHP 8.1 to 8.6. Documentation can be found on the [library's website](https://doc.nette.org/php-generator).
 
  <!---->
 
@@ -156,7 +156,7 @@ public function __construct(
 }
 ```
 
-Readonly properties and classes be marked using the `setReadOnly()` function.
+Readonly properties and classes can be marked using the `setReadOnly()` function.
 
 ------
 
@@ -253,9 +253,24 @@ enum Suit
 You can also define scalar equivalents and create a "backed" enum:
 
 ```php
+$enum = new Nette\PhpGenerator\EnumType('Suit');
 $enum->addCase('Clubs', '♣');
 $enum->addCase('Diamonds', '♦');
+
+echo $enum;
 ```
+
+The result is:
+
+```php
+enum Suit: string
+{
+	case Clubs = '♣';
+	case Diamonds = '♦';
+}
+```
+
+The backing type is inferred from the case values, or it can be set explicitly using `setType()`.
 
 For each *case*, you can add a comment or [attributes](#attributes) using `addComment()` or `addAttribute()`.
 
@@ -384,21 +399,21 @@ $method->addParameter('items', []) // $items = []
 	->setReference()           // &$items = []
 	->setType('array');        // array &$items = []
 
-// function count(&$items = [])
+// final protected function count(array &$items = []): ?int
 ```
 
-To define the so-called variadics parameters (or also the splat, spread, ellipsis, unpacking or three dots operator), use `setVariadics()`:
+To define the so-called variadics parameters (or also the splat, spread, ellipsis, unpacking or three dots operator), use `setVariadic()`:
 
 ```php
-$method = $class->addMethod('count');
-$method->setVariadics(true);
+$method = $class->addMethod('sum');
+$method->setVariadic(true);
 $method->addParameter('items');
 ```
 
 This generates:
 
 ```php
-function count(...$items)
+public function sum(...$items)
 {
 }
 ```
@@ -539,6 +554,8 @@ class MyPrinter extends Nette\PhpGenerator\Printer
 	public bool $singleParameterOnOneLine = false;
 	// omits namespaces that do not contain any class or function
 	public bool $omitEmptyNamespaces = true;
+	// places declare(strict_types=1) on the same line as the opening tag <?php
+	public bool $declareOnOpenTag = false;
 	// separator between the right parenthesis and return type of functions and methods
 	public string $returnTypeColon = ': ';
 }
@@ -660,6 +677,104 @@ class Demo
 		$items,
 	) {
 	}
+}
+```
+
+ <!---->
+
+Property Hooks
+--------------
+
+You can also define property hooks (represented by the class [PropertyHook](https://api.nette.org/php-generator/master/Nette/PhpGenerator/PropertyHook.html)) for get and set operations, a feature introduced in PHP 8.4:
+
+```php
+$class = new Nette\PhpGenerator\ClassType('Demo');
+$prop = $class->addProperty('firstName')
+	->setType('string');
+
+$prop->addHook('set', 'strtolower($value)')
+	->addParameter('value')
+		->setType('string');
+
+$prop->addHook('get')
+	->setBody('return ucfirst($this->firstName);');
+
+echo $class;
+```
+
+This generates:
+
+```php
+class Demo
+{
+	public string $firstName {
+		set(string $value) => strtolower($value);
+		get {
+			return ucfirst($this->firstName);
+		}
+	}
+}
+```
+
+Properties and property hooks can be abstract or final:
+
+```php
+$class = new Nette\PhpGenerator\ClassType('Demo');
+$class->setAbstract();
+$class->addProperty('id')
+	->setType('int')
+	->setAbstract()
+	->addHook('get')
+		->setAbstract();
+
+$class->addProperty('role')
+	->setType('string')
+	->addHook('set', 'strtolower($value)')
+		->setFinal();
+```
+
+This generates:
+
+```php
+abstract class Demo
+{
+	abstract public int $id { get; }
+
+	public string $role {
+		final set => strtolower($value);
+	}
+}
+```
+
+ <!---->
+
+Asymmetric Visibility
+---------------------
+
+PHP 8.4 introduces asymmetric visibility for properties. You can set different access levels for reading and writing.
+The visibility can be set using either the `setVisibility()` method with two parameters, or by using `setPublic()`, `setProtected()`, or `setPrivate()` with the `mode` parameter that specifies whether the visibility applies to getting or setting the property. The default mode is 'get'.
+
+```php
+$class = new Nette\PhpGenerator\ClassType('Demo');
+
+$class->addProperty('name')
+	->setType('string')
+	->setVisibility('public', 'private'); // public for read, private for write
+
+$class->addProperty('id')
+	->setType('int')
+	->setProtected('set'); // protected for write
+
+echo $class;
+```
+
+This generates:
+
+```php
+class Demo
+{
+	public private(set) string $name;
+	protected(set) int $id;
 }
 ```
 
@@ -836,7 +951,7 @@ $closure = Nette\PhpGenerator\Closure::from(
 ```
 
 By default, function and method bodies are empty. If you also want to load them, use this method
-(requires the `nikic/php-parser` package to be installed):
+(requires the `nikic/php-parser` package, version 5 or newer):
 
 ```php
 $class = Nette\PhpGenerator\ClassType::from(Foo::class, withBodies: true);
@@ -872,7 +987,7 @@ $file = Nette\PhpGenerator\PhpFile::fromCode(file_get_contents('classes.php'));
 
 The file's initial comment and `strict_types` declaration are also loaded. However, all other global code is ignored.
 
-It requires `nikic/php-parser` to be installed.
+It requires `nikic/php-parser` version 5 or newer.
 
 *(If you need to manipulate global code in files or individual statements in method bodies, it's better to use the `nikic/php-parser` library directly.)*
 
@@ -902,10 +1017,10 @@ $property = $manipulator->inheritProperty('foo');
 $property->setValue('new value');
 ```
 
-The `implementInterface()` method automatically implements all methods from the given interface in your class:
+The `implement()` method automatically implements all methods and properties from the given interface or abstract class:
 
 ```php
-$manipulator->implementInterface(SomeInterface::class);
+$manipulator->implement(SomeInterface::class);
 // Now your class implements SomeInterface and includes all its methods
 ```
 

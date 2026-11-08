@@ -4,37 +4,38 @@ declare(strict_types=1);
 
 namespace Endroid\QrCode\Matrix;
 
+use Endroid\QrCode\Exception\BlockSizeTooSmallException;
 use Endroid\QrCode\RoundBlockSizeMode;
 
-final class Matrix implements MatrixInterface
+final readonly class Matrix implements MatrixInterface
 {
-    private readonly float $blockSize;
-    private readonly int $innerSize;
-    private readonly int $outerSize;
-    private readonly int $marginLeft;
-    private readonly int $marginRight;
+    private float $blockSize;
+    private int $innerSize;
+    private int $outerSize;
+    private int $marginLeft;
+    private int $marginRight;
 
-    /** @param array<array<int>> $blockValues */
+    /** @param array<array<int<0, 1>>> $blockValues */
     public function __construct(
         private array $blockValues,
         int $size,
         int $margin,
-        RoundBlockSizeMode $roundBlockSizeMode
+        RoundBlockSizeMode $roundBlockSizeMode,
     ) {
         $blockSize = $size / $this->getBlockCount();
         $innerSize = $size;
-        $outerSize = $size + 2 * $margin;
+        $outerSize = $size + (2 * $margin);
 
         switch ($roundBlockSizeMode) {
             case RoundBlockSizeMode::Enlarge:
                 $blockSize = intval(ceil($blockSize));
                 $innerSize = intval($blockSize * $this->getBlockCount());
-                $outerSize = $innerSize + 2 * $margin;
+                $outerSize = $innerSize + (2 * $margin);
                 break;
             case RoundBlockSizeMode::Shrink:
                 $blockSize = intval(floor($blockSize));
                 $innerSize = intval($blockSize * $this->getBlockCount());
-                $outerSize = $innerSize + 2 * $margin;
+                $outerSize = $innerSize + (2 * $margin);
                 break;
             case RoundBlockSizeMode::Margin:
                 $blockSize = intval(floor($blockSize));
@@ -43,7 +44,9 @@ final class Matrix implements MatrixInterface
         }
 
         if ($blockSize < 1) {
-            throw new \Exception('Too much data: increase image dimensions or lower error correction level');
+            throw new BlockSizeTooSmallException(
+                'Too much data: increase image dimensions or lower error correction level',
+            );
         }
 
         $this->blockSize = $blockSize;
@@ -53,36 +56,47 @@ final class Matrix implements MatrixInterface
         $this->marginRight = $this->outerSize - $this->innerSize - $this->marginLeft;
     }
 
+    /** @return int<0, 1> */
+    #[\Override]
     public function getBlockValue(int $rowIndex, int $columnIndex): int
     {
-        return $this->blockValues[$rowIndex][$columnIndex];
+        return (
+            $this->blockValues[$rowIndex][$columnIndex] ?? throw new \TypeError('Matrix coordinates are out of bounds')
+        );
     }
 
+    /** @return non-negative-int */
+    #[\Override]
     public function getBlockCount(): int
     {
-        return count($this->blockValues[0]);
+        return count($this->blockValues[0] ?? throw new \TypeError('Matrix has no first row'));
     }
 
+    #[\Override]
     public function getBlockSize(): float
     {
         return $this->blockSize;
     }
 
+    #[\Override]
     public function getInnerSize(): int
     {
         return $this->innerSize;
     }
 
+    #[\Override]
     public function getOuterSize(): int
     {
         return $this->outerSize;
     }
 
+    #[\Override]
     public function getMarginLeft(): int
     {
         return $this->marginLeft;
     }
 
+    #[\Override]
     public function getMarginRight(): int
     {
         return $this->marginRight;

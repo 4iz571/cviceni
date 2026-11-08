@@ -1,33 +1,28 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Application\Routers;
 
 use Nette;
+use function is_array;
 
 
 /**
  * The unidirectional router for CLI. (experimental)
  */
-final class CliRouter implements Nette\Routing\Router
+final readonly class CliRouter implements Nette\Routing\Router
 {
-	use Nette\SmartObject;
-
 	private const PresenterKey = 'action';
 
-	/** @var array */
-	private $defaults;
 
-
-	public function __construct(array $defaults = [])
-	{
-		$this->defaults = $defaults;
+	public function __construct(
+		/** @var array<string, mixed> */
+		private array $defaults = [],
+	) {
 	}
 
 
@@ -103,6 +98,7 @@ final class CliRouter implements Nette\Routing\Router
 
 	/**
 	 * Returns default values.
+	 * @return array<string, mixed>
 	 */
 	public function getDefaults(): array
 	{

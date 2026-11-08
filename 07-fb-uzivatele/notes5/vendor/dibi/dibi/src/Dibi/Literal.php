@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
@@ -15,10 +13,10 @@ namespace Dibi;
  */
 class Literal
 {
-	private string $value;
+	private readonly string $value;
 
 
-	public function __construct($value)
+	public function __construct(mixed $value)
 	{
 		$this->value = (string) $value;
 	}

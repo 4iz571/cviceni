@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
@@ -13,7 +11,7 @@ use Nette;
 
 
 /**
- * PHP return, property and parameter types.
+ * Constants and helpers for PHP type declarations.
  */
 class Type
 {
@@ -36,55 +34,58 @@ class Type
 		Parent = 'parent',
 		Static = 'static';
 
-	/** @deprecated use Type::String */
+	#[\Deprecated('use Type::String')]
 	public const STRING = self::String;
 
-	/** @deprecated use Type::Int */
+	#[\Deprecated('use Type::Int')]
 	public const INT = self::Int;
 
-	/** @deprecated use Type::Float */
+	#[\Deprecated('use Type::Float')]
 	public const FLOAT = self::Float;
 
-	/** @deprecated use Type::Bool */
+	#[\Deprecated('use Type::Bool')]
 	public const BOOL = self::Bool;
 
-	/** @deprecated use Type::Array */
+	#[\Deprecated('use Type::Array')]
 	public const ARRAY = self::Array;
 
-	/** @deprecated use Type::Object */
+	#[\Deprecated('use Type::Object')]
 	public const OBJECT = self::Object;
 
-	/** @deprecated use Type::Callable */
+	#[\Deprecated('use Type::Callable')]
 	public const CALLABLE = self::Callable;
 
-	/** @deprecated use Type::Iterable */
+	#[\Deprecated('use Type::Iterable')]
 	public const ITERABLE = self::Iterable;
 
-	/** @deprecated use Type::Void */
+	#[\Deprecated('use Type::Void')]
 	public const VOID = self::Void;
 
-	/** @deprecated use Type::Never */
+	#[\Deprecated('use Type::Never')]
 	public const NEVER = self::Never;
 
-	/** @deprecated use Type::Mixed */
+	#[\Deprecated('use Type::Mixed')]
 	public const MIXED = self::Mixed;
 
-	/** @deprecated use Type::False */
+	#[\Deprecated('use Type::False')]
 	public const FALSE = self::False;
 
-	/** @deprecated use Type::Null */
+	#[\Deprecated('use Type::Null')]
 	public const NULL = self::Null;
 
-	/** @deprecated use Type::Self */
+	#[\Deprecated('use Type::Self')]
 	public const SELF = self::Self;
 
-	/** @deprecated use Type::Parent */
+	#[\Deprecated('use Type::Parent')]
 	public const PARENT = self::Parent;
 
-	/** @deprecated use Type::Static */
+	#[\Deprecated('use Type::Static')]
 	public const STATIC = self::Static;
 
 
+	/**
+	 * Adds or removes the nullable modifier from a type. For union types, appends or removes |null.
+	 */
 	public static function nullable(string $type, bool $nullable = true): string
 	{
 		if (str_contains($type, '&')) {
@@ -95,17 +96,13 @@ class Type
 
 		$nnType = preg_replace('#^\?|^null\||\|null(?=\||$)#i', '', $type);
 		$always = (bool) preg_match('#^(null|mixed)$#i', $nnType);
-		if ($nullable) {
-			return match (true) {
+		return $nullable
+			? match (true) {
 				$always, $type !== $nnType => $type,
 				str_contains($type, '|') => $type . '|null',
 				default => '?' . $type,
-			};
-		} else {
-			return $always
-				? throw new Nette\InvalidArgumentException("Type $type cannot be not nullable.")
-				: $nnType;
-		}
+			}
+			: ($always ? throw new Nette\InvalidArgumentException("Type $type cannot be not nullable.") : $nnType);
 	}
 
 

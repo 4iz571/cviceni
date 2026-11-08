@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
@@ -13,7 +11,7 @@ use Nette;
 
 
 /**
- * Trait description.
+ * Definition of a trait with properties, methods, constants and traits.
  */
 final class TraitType extends ClassLike
 {
@@ -23,7 +21,8 @@ final class TraitType extends ClassLike
 	use Traits\TraitsAware;
 
 	/**
-	 * Adds a member. If it already exists, throws an exception or overwrites it if $overwrite is true.
+	 * Adds a member to the trait.
+	 * @throws Nette\InvalidStateException if the member already exists and $overwrite is false
 	 */
 	public function addMember(Method|Property|Constant|TraitUse $member, bool $overwrite = false): static
 	{
@@ -45,10 +44,9 @@ final class TraitType extends ClassLike
 	public function __clone(): void
 	{
 		parent::__clone();
-		$clone = fn($item) => clone $item;
-		$this->consts = array_map($clone, $this->consts);
-		$this->methods = array_map($clone, $this->methods);
-		$this->properties = array_map($clone, $this->properties);
-		$this->traits = array_map($clone, $this->traits);
+		$this->consts = array_map(fn(Constant $c) => clone $c, $this->consts);
+		$this->methods = array_map(fn(Method $m) => clone $m, $this->methods);
+		$this->properties = array_map(fn(Property $p) => clone $p, $this->properties);
+		$this->traits = array_map(fn(TraitUse $t) => clone $t, $this->traits);
 	}
 }

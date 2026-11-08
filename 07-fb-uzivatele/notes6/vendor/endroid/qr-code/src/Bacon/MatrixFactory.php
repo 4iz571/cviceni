@@ -10,12 +10,19 @@ use Endroid\QrCode\Matrix\MatrixFactoryInterface;
 use Endroid\QrCode\Matrix\MatrixInterface;
 use Endroid\QrCode\QrCodeInterface;
 
-final class MatrixFactory implements MatrixFactoryInterface
+final readonly class MatrixFactory implements MatrixFactoryInterface
 {
+    #[\Override]
     public function create(QrCodeInterface $qrCode): MatrixInterface
     {
-        $baconErrorCorrectionLevel = ErrorCorrectionLevelConverter::convertToBaconErrorCorrectionLevel($qrCode->getErrorCorrectionLevel());
-        $baconMatrix = Encoder::encode($qrCode->getData(), $baconErrorCorrectionLevel, strval($qrCode->getEncoding()))->getMatrix();
+        $baconErrorCorrectionLevel = ErrorCorrectionLevelConverter::convertToBaconErrorCorrectionLevel(
+            $qrCode->getErrorCorrectionLevel(),
+        );
+        $baconMatrix = Encoder::encode(
+            $qrCode->getData(),
+            $baconErrorCorrectionLevel,
+            strval($qrCode->getEncoding()),
+        )->getMatrix();
 
         $blockValues = [];
         $columnCount = $baconMatrix->getWidth();
@@ -23,7 +30,7 @@ final class MatrixFactory implements MatrixFactoryInterface
         for ($rowIndex = 0; $rowIndex < $rowCount; ++$rowIndex) {
             $blockValues[$rowIndex] = [];
             for ($columnIndex = 0; $columnIndex < $columnCount; ++$columnIndex) {
-                $blockValues[$rowIndex][$columnIndex] = $baconMatrix->get($columnIndex, $rowIndex);
+                $blockValues[$rowIndex][$columnIndex] = 1 === $baconMatrix->get($columnIndex, $rowIndex) ? 1 : 0;
             }
         }
 

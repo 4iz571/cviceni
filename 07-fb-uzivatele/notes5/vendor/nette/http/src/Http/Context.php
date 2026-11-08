@@ -1,15 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Http;
-
-use Nette;
 
 
 /**
@@ -17,27 +13,18 @@ use Nette;
  */
 class Context
 {
-	use Nette\SmartObject;
-
-	/** @var IRequest */
-	private $request;
-
-	/** @var IResponse */
-	private $response;
-
-
-	public function __construct(IRequest $request, IResponse $response)
-	{
-		$this->request = $request;
-		$this->response = $response;
+	public function __construct(
+		private readonly IRequest $request,
+		private readonly IResponse $response,
+	) {
 	}
 
 
 	/**
-	 * Attempts to cache the sent entity by its last modification date.
-	 * @param  string|int|\DateTimeInterface  $lastModified
+	 * Checks whether the response has been modified since the client's cached version.
+	 * Sets Last-Modified and ETag headers if provided. Returns false and sends 304 Not Modified if unchanged.
 	 */
-	public function isModified($lastModified = null, ?string $etag = null): bool
+	public function isModified(string|int|\DateTimeInterface|null $lastModified = null, ?string $etag = null): bool
 	{
 		if ($lastModified) {
 			$this->response->setHeader('Last-Modified', Helpers::formatDate($lastModified));
@@ -54,7 +41,7 @@ class Context
 		} elseif ($ifNoneMatch !== null) {
 			$etag = $this->response->getHeader('ETag');
 
-			if ($etag === null || strpos(' ' . strtr($ifNoneMatch, ",\t", '  '), ' ' . $etag) === false) {
+			if ($etag === null || !str_contains(' ' . strtr($ifNoneMatch, ",\t", '  '), ' ' . $etag)) {
 				return true;
 
 			} else {

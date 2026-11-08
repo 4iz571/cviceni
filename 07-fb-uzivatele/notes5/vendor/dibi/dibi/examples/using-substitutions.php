@@ -1,6 +1,4 @@
-<?php
-declare(strict_types=1);
-?>
+<?php declare(strict_types=1); ?>
 <!DOCTYPE html><link rel="stylesheet" href="data/style.css">
 
 <h1>Using Substitutions | Dibi</h1>
@@ -45,7 +43,7 @@ function substFallBack($expr)
 
 
 // define callback
-$dibi->getSubstitutes()->setCallback('substFallBack');
+$dibi->getSubstitutes()->setCallback(substFallBack(...));
 
 // define substitutes as constants
 define('SUBST_ACCOUNT', 'eshop_');

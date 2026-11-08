@@ -1,16 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms\Controls;
 
 use Nette;
 use Nette\Forms\Form;
+use Stringable;
+use function in_array, is_scalar;
 
 
 /**
@@ -18,10 +18,7 @@ use Nette\Forms\Form;
  */
 class TextInput extends TextBase
 {
-	/**
-	 * @param  string|object  $label
-	 */
-	public function __construct($label = null, ?int $maxLength = null)
+	public function __construct(string|Stringable|null $label = null, ?int $maxLength = null)
 	{
 		parent::__construct($label);
 		$this->control->maxlength = $maxLength;
@@ -37,9 +34,8 @@ class TextInput extends TextBase
 
 	/**
 	 * Changes control's type attribute.
-	 * @return static
 	 */
-	public function setHtmlType(string $type)
+	public function setHtmlType(string $type): static
 	{
 		$this->control->type = $type;
 		return $this;
@@ -48,9 +44,8 @@ class TextInput extends TextBase
 
 	/**
 	 * @deprecated  use setHtmlType()
-	 * @return static
 	 */
-	public function setType(string $type)
+	public function setType(string $type): static
 	{
 		return $this->setHtmlType($type);
 	}
@@ -60,14 +55,20 @@ class TextInput extends TextBase
 	{
 		return parent::getControl()->addAttributes([
 			'value' => $this->control->type === 'password' ? $this->control->value : $this->getRenderedValue(),
-			'type' => $this->control->type ?: 'text',
+			'type' => $this->control->type ?? 'text',
 		]);
 	}
 
 
-	/** @return static */
-	public function addRule($validator, $errorMessage = null, $arg = null)
-	{
+	/**
+	 * @param  (callable(never, never): bool)|string  $validator
+	 * @return static
+	 */
+	public function addRule(
+		callable|string $validator,
+		string|Stringable|null $errorMessage = null,
+		mixed $arg = null,
+	) {
 		foreach ($this->getRules() as $rule) {
 			if (!$rule->canExport() && !$rule->branch) {
 				return parent::addRule($validator, $errorMessage, $arg);
@@ -107,7 +108,7 @@ class TextInput extends TextBase
 			&& is_scalar($arg)
 			&& in_array($this->control->type, [null, 'text', 'search', 'tel', 'url', 'email', 'password'], true)
 		) {
-			$this->control->pattern = $arg;
+			$this->control->pattern = (string) $arg;
 		}
 
 		return parent::addRule($validator, $errorMessage, $arg);

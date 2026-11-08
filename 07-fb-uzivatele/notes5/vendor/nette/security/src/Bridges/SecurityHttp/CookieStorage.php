@@ -1,17 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\SecurityHttp;
 
 use Nette;
 use Nette\Http;
 use Nette\Security\IIdentity;
+use function is_string, strlen;
 
 
 /**
@@ -19,36 +18,18 @@ use Nette\Security\IIdentity;
  */
 final class CookieStorage implements Nette\Security\UserStorage
 {
-	use Nette\SmartObject;
-
 	private const MinLength = 13;
-
-	/** @var Http\IRequest */
-	private $request;
-
-	/** @var Http\IResponse */
-	private $response;
-
-	/** @var ?string */
-	private $uid;
-
-	/** @var string */
-	private $cookieName = 'userid';
-
-	/** @var ?string */
-	private $cookieDomain;
-
-	/** @var string */
-	private $cookieSameSite = 'Lax';
-
-	/** @var ?string */
-	private $cookieExpiration;
+	private ?string $uid = null;
+	private string $cookieName = 'userid';
+	private ?string $cookieDomain = null;
+	private string $cookieSameSite = 'Lax';
+	private ?string $cookieExpiration = null;
 
 
-	public function __construct(Http\IRequest $request, Http\IResponse $response)
-	{
-		$this->response = $response;
-		$this->request = $request;
+	public function __construct(
+		private readonly Http\IRequest $request,
+		private readonly Http\IResponse $response,
+	) {
 	}
 
 
@@ -68,7 +49,7 @@ final class CookieStorage implements Nette\Security\UserStorage
 			$this->cookieDomain,
 			null,
 			true,
-			$this->cookieSameSite
+			$this->cookieSameSite,
 		);
 	}
 
@@ -79,7 +60,7 @@ final class CookieStorage implements Nette\Security\UserStorage
 		$this->response->deleteCookie(
 			$this->cookieName,
 			null,
-			$this->cookieDomain
+			$this->cookieDomain,
 		);
 	}
 
@@ -103,11 +84,13 @@ final class CookieStorage implements Nette\Security\UserStorage
 	}
 
 
+	/** @param  'Lax'|'Strict'|'None'|null  $sameSite */
 	public function setCookieParameters(
 		?string $name = null,
 		?string $domain = null,
-		?string $sameSite = null
-	) {
+		?string $sameSite = null,
+	): void
+	{
 		$this->cookieName = $name ?? $this->cookieName;
 		$this->cookieDomain = $domain ?? $this->cookieDomain;
 		$this->cookieSameSite = $sameSite ?? $this->cookieSameSite;

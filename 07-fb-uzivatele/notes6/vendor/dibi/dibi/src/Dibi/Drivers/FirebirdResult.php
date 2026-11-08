@@ -1,16 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
 use Dibi\Helpers;
+use function is_resource;
 
 
 /**
@@ -18,16 +17,10 @@ use Dibi\Helpers;
  */
 class FirebirdResult implements Dibi\ResultDriver
 {
-	/** @var resource */
-	private $resultSet;
-
-
-	/**
-	 * @param  resource  $resultSet
-	 */
-	public function __construct($resultSet)
-	{
-		$this->resultSet = $resultSet;
+	public function __construct(
+		/** @var resource */
+		private $resultSet,
+	) {
 	}
 
 
@@ -51,12 +44,12 @@ class FirebirdResult implements Dibi\ResultDriver
 			: @ibase_fetch_row($this->resultSet, IBASE_TEXT); // intentionally @
 
 		if (ibase_errcode()) {
-			if (ibase_errcode() === FirebirdDriver::ERROR_EXCEPTION_THROWN) {
+			if ((int) ibase_errcode() === FirebirdDriver::ERROR_EXCEPTION_THROWN) {
 				preg_match('/exception (\d+) (\w+) (.*)/is', ibase_errmsg(), $match);
-				throw new Dibi\ProcedureException($match[3], $match[1], $match[2]);
+				throw new Dibi\ProcedureException($match[3], (int) $match[1], $match[2]);
 
 			} else {
-				throw new Dibi\DriverException(ibase_errmsg(), ibase_errcode());
+				throw new Dibi\DriverException(ibase_errmsg(), (int) ibase_errcode());
 			}
 		}
 

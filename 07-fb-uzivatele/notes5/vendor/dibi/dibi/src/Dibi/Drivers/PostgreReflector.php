@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -17,14 +15,9 @@ use Dibi;
  */
 class PostgreReflector implements Dibi\Reflector
 {
-	private Dibi\Driver $driver;
-	private string $version;
-
-
-	public function __construct(Dibi\Driver $driver, string $version)
-	{
-		$this->driver = $driver;
-		$this->version = $version;
+	public function __construct(
+		private readonly Dibi\Driver $driver,
+	) {
 	}
 
 
@@ -43,25 +36,23 @@ class PostgreReflector implements Dibi\Reflector
 			FROM
 				information_schema.tables
 			WHERE
-				table_schema = ANY (current_schemas(false))";
+				table_schema = ANY (current_schemas(false))
 
-		if ($this->version >= 9.3) {
-			$query .= '
-				UNION ALL
-				SELECT
-					matviewname, 1
-				FROM
-					pg_matviews
-				WHERE
-					schemaname = ANY (current_schemas(false))';
-		}
+			UNION ALL
+			SELECT
+				matviewname, 1
+			FROM
+				pg_matviews
+			WHERE
+				schemaname = ANY (current_schemas(false))";
 
-		$res = $this->driver->query($query);
+		$res = $this->driver->query($query) ?? throw new \LogicException('Unexpected null result.');
 		$tables = [];
 		while ($row = $res->fetch(true)) {
 			$tables[] = $row;
 		}
 
+		/** @var list<array{name: string, view: bool}> */
 		return $tables;
 	}
 
@@ -80,7 +71,7 @@ class PostgreReflector implements Dibi\Reflector
 			JOIN pg_namespace nsp ON nsp.oid = pg_class.relnamespace AND nsp.nspname = c.table_schema
 			WHERE pg_class.oid = $_table::regclass
 			ORDER BY c.ordinal_position
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		if (!$res->getRowCount()) {
 			$res = $this->driver->query("
@@ -104,7 +95,7 @@ class PostgreReflector implements Dibi\Reflector
 					AND a.attnum > 0
 					AND NOT a.attisdropped
 				ORDER BY ordinal_position
-			");
+			") ?? throw new \LogicException('Unexpected null result.');
 		}
 
 		$columns = [];
@@ -144,7 +135,7 @@ class PostgreReflector implements Dibi\Reflector
 				AND a.attnum > 0
 				AND NOT a.attisdropped
 			ORDER BY ordinal_position
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		$columns = [];
 		while ($row = $res->fetch(true)) {
@@ -157,7 +148,7 @@ class PostgreReflector implements Dibi\Reflector
 			LEFT JOIN pg_index on pg_class.oid = pg_index.indrelid
 			INNER JOIN pg_class as pg_class2 on pg_class2.oid = pg_index.indexrelid
 			WHERE pg_class.oid = $_table::regclass
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		$indexes = [];
 		while ($row = $res->fetch(true)) {
@@ -220,7 +211,7 @@ class PostgreReflector implements Dibi\Reflector
 				c.contype = 'f'
 				AND
 				c.conrelid = $_table::regclass
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		$fKeys = $references = [];
 		while ($row = $res->fetch(true)) {

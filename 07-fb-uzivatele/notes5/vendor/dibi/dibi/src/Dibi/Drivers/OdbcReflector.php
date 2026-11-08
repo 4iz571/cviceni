@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -17,12 +15,9 @@ use Dibi;
  */
 class OdbcReflector implements Dibi\Reflector
 {
-	private Dibi\Driver $driver;
-
-
-	public function __construct(Dibi\Driver $driver)
-	{
-		$this->driver = $driver;
+	public function __construct(
+		private readonly Dibi\Driver $driver,
+	) {
 	}
 
 

@@ -1,13 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Dibi;
+
+use function count, dirname, microtime, preg_match, str_starts_with, strtoupper, trim;
+use const DIRECTORY_SEPARATOR;
 
 
 /**
@@ -29,12 +30,14 @@ class Event
 		TRANSACTION = 448, // BEGIN | COMMIT | ROLLBACK
 		ALL = 1023;
 
-	public Connection $connection;
+	public readonly Connection $connection;
 	public int $type;
-	public string $sql;
-	public Result|DriverException|null $result;
+	public readonly string $sql;
+	public Result|DriverException|null $result = null;
 	public float $time;
 	public ?int $count = null;
+
+	/** @var array{string, int}|null  [file, line] */
 	public ?array $source = null;
 
 
@@ -43,7 +46,7 @@ class Event
 		$this->connection = $connection;
 		$this->type = $type;
 		$this->sql = trim((string) $sql);
-		$this->time = -microtime(true);
+		$this->time = -microtime(as_float: true);
 
 		if ($type === self::QUERY && preg_match('#\(?\s*(SELECT|UPDATE|INSERT|DELETE)#iA', $this->sql, $matches)) {
 			$types = [
@@ -53,14 +56,14 @@ class Event
 			$this->type = $types[strtoupper($matches[1])];
 		}
 
-		$dibiDir = dirname((new \ReflectionClass('dibi'))->getFileName()) . DIRECTORY_SEPARATOR;
+		$dibiDir = dirname((string) (new \ReflectionClass('dibi'))->getFileName()) . DIRECTORY_SEPARATOR;
 		foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $row) {
 			if (
 				isset($row['file'])
 				&& preg_match('~\.(php.?|phtml)$~', $row['file'])
 				&& !str_starts_with($row['file'], $dibiDir)
 			) {
-				$this->source = [$row['file'], (int) $row['line']];
+				$this->source = [$row['file'], (int) ($row['line'] ?? 0)];
 				break;
 			}
 		}
@@ -76,11 +79,11 @@ class Event
 		$this->result = $result;
 		try {
 			$this->count = $result instanceof Result ? count($result) : null;
-		} catch (Exception $e) {
+		} catch (Exception) {
 			$this->count = null;
 		}
 
-		$this->time += microtime(true);
+		$this->time += microtime(as_float: true);
 		\dibi::$elapsedTime = $this->time;
 		\dibi::$totalTime += $this->time;
 		return $this;

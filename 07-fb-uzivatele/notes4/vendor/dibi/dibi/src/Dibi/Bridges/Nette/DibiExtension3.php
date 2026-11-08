@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Bridges\Nette;
 
@@ -13,6 +11,7 @@ use Dibi;
 use Nette;
 use Nette\Schema\Expect;
 use Tracy;
+use function is_array;
 
 
 /**
@@ -20,14 +19,10 @@ use Tracy;
  */
 class DibiExtension3 extends Nette\DI\CompilerExtension
 {
-	private ?bool $debugMode;
-	private ?bool $cliMode;
-
-
-	public function __construct(?bool $debugMode = null, ?bool $cliMode = null)
-	{
-		$this->debugMode = $debugMode;
-		$this->cliMode = $cliMode;
+	public function __construct(
+		private ?bool $debugMode = null,
+		private ?bool $cliMode = null,
+	) {
 	}
 
 
@@ -55,9 +50,10 @@ class DibiExtension3 extends Nette\DI\CompilerExtension
 	}
 
 
-	public function loadConfiguration()
+	public function loadConfiguration(): void
 	{
 		$container = $this->getContainerBuilder();
+		/** @var array<string, mixed> $config */
 		$config = $this->getConfig();
 		$this->debugMode ??= $container->parameters['debugMode'];
 		$this->cliMode ??= $container->parameters['consoleMode'];

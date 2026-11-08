@@ -9,7 +9,7 @@ class BlueScreen {
 		let blueScreen = document.getElementById('tracy-bs');
 
 		document.documentElement.classList.add('tracy-bs-visible');
-		if (navigator.platform.indexOf('Mac') > -1) {
+		if (navigator.userAgent.includes('Mac')) {
 			blueScreen.classList.add('tracy-mac');
 		}
 
@@ -32,7 +32,7 @@ class BlueScreen {
 		(new ResizeObserver(stickyFooter)).observe(blueScreen);
 
 		if (document.documentElement.classList.contains('tracy-bs-visible')) {
-			window.scrollTo(0, 0);
+			blueScreen.scrollIntoView();
 		}
 	}
 
@@ -40,7 +40,7 @@ class BlueScreen {
 	static globalInit() {
 		// enables toggling via ESC
 		document.addEventListener('keyup', (e) => {
-			if (e.keyCode === 27 && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) { // ESC
+			if (e.key === 'Escape' && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
 				Tracy.Toggle.toggle(document.getElementById('tracy-bs-toggle'));
 			}
 		});

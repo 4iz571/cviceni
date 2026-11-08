@@ -1,32 +1,31 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
+
+use Nette;
+use function count;
 
 
 /**
- * Instance of PHP file.
- *
- * Generates:
- * - opening tag (<?php)
- * - doc comments
- * - one or more namespaces
+ * Represents a complete PHP file with namespaces, classes, and functions.
  */
 final class PhpFile
 {
 	use Traits\CommentAware;
 
-	/** @var PhpNamespace[] */
+	/** @var array<string, PhpNamespace> */
 	private array $namespaces = [];
 	private bool $strictTypes = false;
 
 
+	/**
+	 * Parses PHP source code and returns the resulting PhpFile representation.
+	 */
 	public static function fromCode(string $code): self
 	{
 		return (new Factory)->fromCode($code);
@@ -34,8 +33,32 @@ final class PhpFile
 
 
 	/**
-	 * Adds a class to the file. If it already exists, throws an exception.
-	 * As a parameter, pass the full name with namespace.
+	 * Adds a namespace, class-like type, or function to the file.
+	 * Class-like types and functions are placed into their respective namespace (created if needed).
+	 */
+	public function add(ClassType|InterfaceType|TraitType|EnumType|GlobalFunction|PhpNamespace $item): static
+	{
+		if ($item instanceof PhpNamespace) {
+			if (isset($this->namespaces[$name = $item->getName()])) {
+				throw new Nette\InvalidStateException("Namespace '$name' already exists in the file.");
+			}
+			$this->namespaces[$name] = $item;
+			$this->refreshBracketedSyntax();
+
+		} elseif ($item instanceof GlobalFunction) {
+			$this->addNamespace('')->add($item);
+
+		} else {
+			$this->addNamespace($item->getNamespace()?->getName() ?? '')->add($item);
+		}
+
+		return $this;
+	}
+
+
+	/**
+	 * Adds a class to the file. Accepts the fully qualified name including namespace.
+	 * @throws Nette\InvalidStateException if the class already exists
 	 */
 	public function addClass(string $name): ClassType
 	{
@@ -46,8 +69,8 @@ final class PhpFile
 
 
 	/**
-	 * Adds an interface to the file. If it already exists, throws an exception.
-	 * As a parameter, pass the full name with namespace.
+	 * Adds an interface to the file. Accepts the fully qualified name including namespace.
+	 * @throws Nette\InvalidStateException if the interface already exists
 	 */
 	public function addInterface(string $name): InterfaceType
 	{
@@ -58,8 +81,8 @@ final class PhpFile
 
 
 	/**
-	 * Adds a trait to the file. If it already exists, throws an exception.
-	 * As a parameter, pass the full name with namespace.
+	 * Adds a trait to the file. Accepts the fully qualified name including namespace.
+	 * @throws Nette\InvalidStateException if the trait already exists
 	 */
 	public function addTrait(string $name): TraitType
 	{
@@ -70,8 +93,8 @@ final class PhpFile
 
 
 	/**
-	 * Adds an enum to the file. If it already exists, throws an exception.
-	 * As a parameter, pass the full name with namespace.
+	 * Adds an enum to the file. Accepts the fully qualified name including namespace.
+	 * @throws Nette\InvalidStateException if the enum already exists
 	 */
 	public function addEnum(string $name): EnumType
 	{
@@ -82,8 +105,8 @@ final class PhpFile
 
 
 	/**
-	 * Adds a function to the file. If it already exists, throws an exception.
-	 * As a parameter, pass the full name with namespace.
+	 * Adds a function to the file. Accepts the fully qualified name including namespace.
+	 * @throws Nette\InvalidStateException if the function already exists
 	 */
 	public function addFunction(string $name): GlobalFunction
 	{
@@ -94,7 +117,7 @@ final class PhpFile
 
 
 	/**
-	 * Adds a namespace to the file. If it already exists, it returns the existing one.
+	 * Adds a namespace to the file, or returns the existing one if it already exists.
 	 */
 	public function addNamespace(string|PhpNamespace $namespace): PhpNamespace
 	{
@@ -102,16 +125,13 @@ final class PhpFile
 			? ($this->namespaces[$namespace->getName()] = $namespace)
 			: ($this->namespaces[$namespace] ??= new PhpNamespace($namespace));
 
-		foreach ($this->namespaces as $namespace) {
-			$namespace->setBracketedSyntax(count($this->namespaces) > 1 && isset($this->namespaces['']));
-		}
-
+		$this->refreshBracketedSyntax();
 		return $res;
 	}
 
 
 	/**
-	 * Removes the namespace from the file.
+	 * Removes a namespace from the file.
 	 */
 	public function removeNamespace(string|PhpNamespace $namespace): static
 	{
@@ -121,14 +141,14 @@ final class PhpFile
 	}
 
 
-	/** @return PhpNamespace[] */
+	/** @return array<string, PhpNamespace> */
 	public function getNamespaces(): array
 	{
 		return $this->namespaces;
 	}
 
 
-	/** @return (ClassType|InterfaceType|TraitType|EnumType)[] */
+	/** @return array<string, ClassType|InterfaceType|TraitType|EnumType>  fully qualified name => class */
 	public function getClasses(): array
 	{
 		$classes = [];
@@ -143,7 +163,7 @@ final class PhpFile
 	}
 
 
-	/** @return GlobalFunction[] */
+	/** @return array<string, GlobalFunction>  fully qualified name => function */
 	public function getFunctions(): array
 	{
 		$functions = [];
@@ -159,7 +179,8 @@ final class PhpFile
 
 
 	/**
-	 * Adds a use statement to the file, to the global namespace.
+	 * Adds a use statement to the root (unnamed) namespace.
+	 * @param  PhpNamespace::Name*  $of
 	 */
 	public function addUse(string $name, ?string $alias = null, string $of = PhpNamespace::NameNormal): static
 	{
@@ -169,7 +190,7 @@ final class PhpFile
 
 
 	/**
-	 * Adds declare(strict_types=1) to output.
+	 * Enables or disables the declare(strict_types=1) statement.
 	 */
 	public function setStrictTypes(bool $state = true): static
 	{
@@ -187,5 +208,13 @@ final class PhpFile
 	public function __toString(): string
 	{
 		return (new Printer)->printFile($this);
+	}
+
+
+	private function refreshBracketedSyntax(): void
+	{
+		foreach ($this->namespaces as $namespace) {
+			$namespace->setBracketedSyntax(count($this->namespaces) > 1 && isset($this->namespaces['']));
+		}
 	}
 }

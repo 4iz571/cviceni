@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
@@ -13,20 +11,19 @@ use Nette;
 
 
 /**
- * Interface description.
+ * Definition of an interface with properties, methods and constants.
  */
 final class InterfaceType extends ClassLike
 {
 	use Traits\ConstantsAware;
 	use Traits\MethodsAware;
+	use Traits\PropertiesAware;
 
-	/** @var string[] */
+	/** @var list<string> */
 	private array $extends = [];
 
 
-	/**
-	 * @param  string|string[]  $names
-	 */
+	/** @param string|list<string>  $names */
 	public function setExtends(string|array $names): static
 	{
 		$names = (array) $names;
@@ -36,13 +33,16 @@ final class InterfaceType extends ClassLike
 	}
 
 
-	/** @return string[] */
+	/** @return list<string> */
 	public function getExtends(): array
 	{
 		return $this->extends;
 	}
 
 
+	/**
+	 * Adds a parent interface.
+	 */
 	public function addExtend(string $name): static
 	{
 		$this->validateNames([$name]);
@@ -52,14 +52,16 @@ final class InterfaceType extends ClassLike
 
 
 	/**
-	 * Adds a member. If it already exists, throws an exception or overwrites it if $overwrite is true.
+	 * Adds a member to the interface.
+	 * @throws Nette\InvalidStateException if the member already exists and $overwrite is false
 	 */
-	public function addMember(Method|Constant $member, bool $overwrite = false): static
+	public function addMember(Method|Constant|Property $member, bool $overwrite = false): static
 	{
 		$name = $member->getName();
 		[$type, $n] = match (true) {
 			$member instanceof Constant => ['consts', $name],
 			$member instanceof Method => ['methods', strtolower($name)],
+			$member instanceof Property => ['properties', $name],
 		};
 		if (!$overwrite && isset($this->$type[$n])) {
 			throw new Nette\InvalidStateException("Cannot add member '$name', because it already exists.");
@@ -69,11 +71,24 @@ final class InterfaceType extends ClassLike
 	}
 
 
+	/** @throws Nette\InvalidStateException */
+	public function validate(): void
+	{
+		foreach ($this->getProperties() as $property) {
+			if ($property->isInitialized()) {
+				throw new Nette\InvalidStateException("Property {$this->getName()}::\${$property->getName()}: Interface cannot have initialized properties.");
+			} elseif (!$property->getHooks()) {
+				throw new Nette\InvalidStateException("Property {$this->getName()}::\${$property->getName()}: Interface cannot have properties without hooks.");
+			}
+		}
+	}
+
+
 	public function __clone(): void
 	{
 		parent::__clone();
-		$clone = fn($item) => clone $item;
-		$this->consts = array_map($clone, $this->consts);
-		$this->methods = array_map($clone, $this->methods);
+		$this->consts = array_map(fn(Constant $c) => clone $c, $this->consts);
+		$this->methods = array_map(fn(Method $m) => clone $m, $this->methods);
+		$this->properties = array_map(fn(Property $p) => clone $p, $this->properties);
 	}
 }

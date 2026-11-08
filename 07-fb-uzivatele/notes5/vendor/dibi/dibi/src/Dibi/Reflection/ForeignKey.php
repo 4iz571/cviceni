@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Reflection;
 
@@ -15,20 +13,15 @@ namespace Dibi\Reflection;
  * Reflection metadata class for a foreign key.
  *
  * @property-read string $name
- * @property-read array $references
+ * @property-read list<mixed[]> $references
  */
 class ForeignKey
 {
-	private string $name;
-
-	/** @var array of [local, foreign, onDelete, onUpdate] */
-	private array $references;
-
-
-	public function __construct(string $name, array $references)
-	{
-		$this->name = $name;
-		$this->references = $references;
+	public function __construct(
+		private readonly string $name,
+		/** @var  list<mixed[]> */
+		private readonly array $references,
+	) {
 	}
 
 
@@ -38,6 +31,7 @@ class ForeignKey
 	}
 
 
+	/** @return list<mixed[]> */
 	public function getReferences(): array
 	{
 		return $this->references;

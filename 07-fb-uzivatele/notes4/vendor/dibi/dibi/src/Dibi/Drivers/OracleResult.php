@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
+use function is_resource;
 
 
 /**
@@ -17,16 +16,10 @@ use Dibi;
  */
 class OracleResult implements Dibi\ResultDriver
 {
-	/** @var resource */
-	private $resultSet;
-
-
-	/**
-	 * @param  resource  $resultSet
-	 */
-	public function __construct($resultSet)
-	{
-		$this->resultSet = $resultSet;
+	public function __construct(
+		/** @var resource */
+		private $resultSet,
+	) {
 	}
 
 
@@ -75,11 +68,11 @@ class OracleResult implements Dibi\ResultDriver
 		$count = oci_num_fields($this->resultSet);
 		$columns = [];
 		for ($i = 1; $i <= $count; $i++) {
-			$type = oci_field_type($this->resultSet, $i);
+			$type = (string) oci_field_type($this->resultSet, $i);
 			$columns[] = [
-				'name' => oci_field_name($this->resultSet, $i),
+				'name' => (string) oci_field_name($this->resultSet, $i),
 				'table' => null,
-				'fullname' => oci_field_name($this->resultSet, $i),
+				'fullname' => (string) oci_field_name($this->resultSet, $i),
 				'type' => $type === 'LONG' ? Dibi\Type::Text : null,
 				'nativetype' => $type === 'NUMBER' && oci_field_scale($this->resultSet, $i) === 0 ? 'INTEGER' : $type,
 			];

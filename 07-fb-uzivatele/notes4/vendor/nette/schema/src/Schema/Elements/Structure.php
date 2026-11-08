@@ -1,51 +1,47 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Schema\Elements;
 
 use Nette;
-use Nette\Schema\Context;
-use Nette\Schema\Helpers;
-use Nette\Schema\Schema;
+use Nette\Schema\{Context, Helpers, Kind, MergeMode, Schema};
+use function array_key_exists, is_array, is_object;
 
 
 final class Structure implements Schema
 {
 	use Base;
-	use Nette\SmartObject;
 
 	/** @var Schema[] */
-	private $items;
+	private array $items;
 
-	/** @var Schema|null  for array|list */
-	private $otherItems;
+	/** for array|list */
+	private ?Schema $otherItems = null;
 
 	/** @var array{?int, ?int} */
-	private $range = [null, null];
+	private array $range = [null, null];
+	private bool $skipDefaults = false;
+	private ?MergeMode $mergeMode = null;
 
-	/** @var bool */
-	private $skipDefaults = false;
 
-
-	/**
-	 * @param  Schema[]  $items
-	 */
-	public function __construct(array $items)
+	/** @param Schema[]  $shape */
+	public function __construct(array $shape)
 	{
-		(function (Schema ...$items) {})(...array_values($items));
-		$this->items = $items;
+		(function (Schema ...$items) {})(...array_values($shape));
+		$this->items = $shape;
 		$this->castTo('object');
 		$this->required = true;
 	}
 
 
-	public function default($value): self
+	/**
+	 * Not supported for structures; always throws.
+	 */
+	public function default(mixed $value): self
 	{
 		throw new Nette\InvalidStateException('Structure cannot have default value.');
 	}
@@ -66,15 +62,18 @@ final class Structure implements Schema
 
 
 	/**
-	 * @param  string|Schema  $type
+	 * Allows extra keys not defined in the shape, validating their values against the given type.
 	 */
-	public function otherItems($type = 'mixed'): self
+	public function otherItems(string|Schema $type = 'mixed'): self
 	{
-		$this->otherItems = $type instanceof Schema ? $type : new Type($type);
+		$this->otherItems = $type instanceof Schema ? $type : Nette\Schema\Expect::type($type);
 		return $this;
 	}
 
 
+	/**
+	 * When enabled, missing properties are not filled with their default values.
+	 */
 	public function skipDefaults(bool $state = true): self
 	{
 		$this->skipDefaults = $state;
@@ -82,10 +81,57 @@ final class Structure implements Schema
 	}
 
 
+	/**
+	 * Sets how the structure is combined when merging multiple configuration layers.
+	 */
+	public function mergeMode(MergeMode $mode): self
+	{
+		$this->mergeMode = $mode;
+		return $this;
+	}
+
+
+	/**
+	 * Creates a new structure by merging this shape with additional properties.
+	 * @param  Schema[]|self  $shape
+	 */
+	public function extend(array|self $shape): self
+	{
+		$shape = $shape instanceof self ? $shape->items : $shape;
+		return new self([...$this->items, ...$shape]);
+	}
+
+
+	/** @return Schema[] */
+	public function getShape(): array
+	{
+		return $this->items;
+	}
+
+
+	/********************* inspection ****************d*g**/
+
+
+	/**
+	 * @return array<string, mixed>
+	 * @internal
+	 */
+	public function describe(): array
+	{
+		return [
+			'kind' => Kind::Structure,
+			'shape' => $this->items,
+			'otherItems' => $this->otherItems,
+			'min' => $this->range[0],
+			'max' => $this->range[1],
+		] + $this->describeBase();
+	}
+
+
 	/********************* processing ****************d*g**/
 
 
-	public function normalize($value, Context $context)
+	public function normalize(mixed $value, Context $context): mixed
 	{
 		if ($prevent = (is_array($value) && isset($value[Helpers::PreventMerging]))) {
 			unset($value[Helpers::PreventMerging]);
@@ -115,39 +161,51 @@ final class Structure implements Schema
 	}
 
 
-	public function merge($value, $base)
+	public function merge(mixed $value, mixed $base): mixed
 	{
 		if (is_array($value) && isset($value[Helpers::PreventMerging])) {
 			unset($value[Helpers::PreventMerging]);
-			$base = null;
+			return $value;
+		}
+
+		if ($this->mergeWith) {
+			return ($this->mergeWith)($value, $base);
+		}
+
+		$mode = $this->mergeMode ?? ($this->otherItems === null ? MergeMode::OverwriteKeys : MergeMode::AppendKeys);
+		if ($mode === MergeMode::Replace) {
+			return $value;
 		}
 
 		if (is_array($value) && is_array($base)) {
-			$index = 0;
+			$index = $mode === MergeMode::OverwriteKeys ? null : 0;
 			foreach ($value as $key => $val) {
 				if ($key === $index) {
 					$base[] = $val;
 					$index++;
-				} elseif (array_key_exists($key, $base)) {
-					$itemSchema = $this->items[$key] ?? $this->otherItems;
-					$base[$key] = $itemSchema
-						? $itemSchema->merge($val, $base[$key])
-						: Helpers::merge($val, $base[$key]);
 				} else {
-					$base[$key] = $val;
+					$base[$key] = array_key_exists($key, $base) && ($itemSchema = $this->items[$key] ?? $this->otherItems)
+						? $itemSchema->merge($val, $base[$key])
+						: $val;
 				}
 			}
 
 			return $base;
 		}
 
-		return Helpers::merge($value, $base);
+		return $value ?? $base;
 	}
 
 
-	public function complete($value, Context $context)
+	public function complete(mixed $value, Context $context): mixed
 	{
-		if ($value === null) {
+		// the marker travels with the value through normalize() and merge() consumes it; the layer that has
+		// nothing under it keeps it, and it is not an item of the shape
+		if (is_array($value)) {
+			unset($value[Helpers::PreventMerging]);
+		}
+
+		if ($value === null && $context->keepNullAt !== $context->path) {
 			$value = []; // is unable to distinguish null from array in NEON
 		}
 
@@ -162,6 +220,7 @@ final class Structure implements Schema
 	}
 
 
+	/** @param  array<mixed>  $value */
 	private function validateItems(array &$value, Context $context): void
 	{
 		$items = $this->items;
@@ -169,13 +228,13 @@ final class Structure implements Schema
 			if ($this->otherItems) {
 				$items += array_fill_keys($extraKeys, $this->otherItems);
 			} else {
-				$keys = array_map('strval', array_keys($items));
+				$keys = array_map(strval(...), array_keys($items));
 				foreach ($extraKeys as $key) {
-					$hint = Nette\Utils\ObjectHelpers::getSuggestion($keys, (string) $key);
+					$hint = Nette\Utils\Helpers::getSuggestion($keys, (string) $key);
 					$context->addError(
 						'Unexpected item %path%' . ($hint ? ", did you mean '%hint%'?" : '.'),
 						Nette\Schema\Message::UnexpectedItem,
-						['hint' => $hint]
+						['hint' => $hint],
 					)->path[] = $key;
 				}
 			}
@@ -197,10 +256,19 @@ final class Structure implements Schema
 	}
 
 
-	public function completeDefault(Context $context)
+	public function completeDefault(Context $context): mixed
 	{
-		return $this->required
-			? $this->complete([], $context)
-			: null;
+		if (!$this->required) {
+			return null;
+		}
+
+		// the item is missing in the input, do not report it as used deprecated
+		$deprecated = $this->deprecated;
+		$this->deprecated = null;
+		try {
+			return $this->complete([], $context);
+		} finally {
+			$this->deprecated = $deprecated;
+		}
 	}
 }

@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator\Traits;
 
@@ -24,7 +22,7 @@ trait MethodsAware
 
 	/**
 	 * Replaces all methods.
-	 * @param  Method[]  $methods
+	 * @param list<Method>  $methods
 	 */
 	public function setMethods(array $methods): static
 	{
@@ -38,7 +36,7 @@ trait MethodsAware
 	}
 
 
-	/** @return Method[] */
+	/** @return array<string, Method> */
 	public function getMethods(): array
 	{
 		$res = [];
@@ -57,7 +55,8 @@ trait MethodsAware
 
 
 	/**
-	 * Adds a method. If it already exists, throws an exception or overwrites it if $overwrite is true.
+	 * Adds a method.
+	 * @throws Nette\InvalidStateException if the method already exists and $overwrite is false
 	 */
 	public function addMethod(string $name, bool $overwrite = false): Method
 	{

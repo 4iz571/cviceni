@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
@@ -14,12 +12,12 @@ use Nette\Utils\Type;
 
 
 /**
- * Class property description.
+ * Definition of a class property.
  */
 final class Property
 {
 	use Traits\NameAware;
-	use Traits\VisibilityAware;
+	use Traits\PropertyLike;
 	use Traits\CommentAware;
 	use Traits\AttributeAware;
 
@@ -28,7 +26,7 @@ final class Property
 	private ?string $type = null;
 	private bool $nullable = false;
 	private bool $initialized = false;
-	private bool $readOnly = false;
+	private bool $abstract = false;
 
 
 	public function setValue(mixed $val): static
@@ -100,16 +98,16 @@ final class Property
 	}
 
 
-	public function setReadOnly(bool $state = true): static
+	public function setAbstract(bool $state = true): static
 	{
-		$this->readOnly = $state;
+		$this->abstract = $state;
 		return $this;
 	}
 
 
-	public function isReadOnly(): bool
+	public function isAbstract(): bool
 	{
-		return $this->readOnly;
+		return $this->abstract;
 	}
 
 
@@ -118,6 +116,27 @@ final class Property
 	{
 		if ($this->readOnly && !$this->type) {
 			throw new Nette\InvalidStateException("Property \$$this->name: Read-only properties are only supported on typed property.");
+
+		} elseif ($this->readOnly && $this->static) {
+			throw new Nette\InvalidStateException("Property \$$this->name cannot be static and readonly at the same time.");
+
+		} elseif ($this->readOnly && $this->isInitialized()) {
+			throw new Nette\InvalidStateException("Property \$$this->name: Read-only property cannot have a default value.");
+
+		} elseif ($this->abstract && $this->final) {
+			throw new Nette\InvalidStateException("Property \$$this->name cannot be abstract and final at the same time.");
+
+		} elseif (
+			$this->abstract
+			&& !Nette\Utils\Arrays::some($this->getHooks(), fn($hook) => $hook->isAbstract())
+		) {
+			throw new Nette\InvalidStateException("Property \$$this->name: Abstract property must have at least one abstract hook.");
 		}
+	}
+
+
+	public function __clone(): void
+	{
+		$this->hooks = array_map(fn($item) => $item ? clone $item : $item, $this->hooks);
 	}
 }
