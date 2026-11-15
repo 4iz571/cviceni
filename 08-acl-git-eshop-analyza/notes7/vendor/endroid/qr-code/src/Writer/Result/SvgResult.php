@@ -11,7 +11,7 @@ final class SvgResult extends AbstractResult
     public function __construct(
         MatrixInterface $matrix,
         private readonly \SimpleXMLElement $xml,
-        private readonly bool $excludeXmlDeclaration = false
+        private readonly bool $excludeXmlDeclaration = false,
     ) {
         parent::__construct($matrix);
     }
@@ -21,6 +21,7 @@ final class SvgResult extends AbstractResult
         return $this->xml;
     }
 
+    #[\Override]
     public function getString(): string
     {
         $string = $this->xml->asXML();
@@ -30,12 +31,13 @@ final class SvgResult extends AbstractResult
         }
 
         if ($this->excludeXmlDeclaration) {
-            $string = str_replace("<?xml version=\"1.0\"?>\n", '', $string);
+            $string = str_replace("<?xml version=\"1.0\"?>\n", replace: '', subject: $string);
         }
 
         return $string;
     }
 
+    #[\Override]
     public function getMimeType(): string
     {
         return 'image/svg+xml';

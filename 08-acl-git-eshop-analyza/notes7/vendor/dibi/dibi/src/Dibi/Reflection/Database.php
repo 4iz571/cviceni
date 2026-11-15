@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Reflection;
 
@@ -16,9 +14,9 @@ use function array_values, strtolower;
 /**
  * Reflection metadata class for a database.
  *
- * @property-read string $name
- * @property-read array $tables
- * @property-read array $tableNames
+ * @property-read string|null $name
+ * @property-read list<Table> $tables
+ * @property-read list<string> $tableNames
  */
 class Database
 {
@@ -28,7 +26,7 @@ class Database
 
 	public function __construct(
 		private readonly Dibi\Reflector $reflector,
-		private ?string $name = null,
+		private readonly ?string $name = null,
 	) {
 	}
 

@@ -1,19 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * Nette Forms live validation example.
  */
 
-declare(strict_types=1);
 
-
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
 use Nette\Forms\Form;
-use Tracy\Debugger;
-use Tracy\Dumper;
+use Tracy\{Debugger, Dumper};
 
 Debugger::enable();
 
@@ -52,7 +49,7 @@ $renderer->wrappers['pair']['.error'] = 'has-error';
 <meta charset="utf-8">
 <title>Nette Forms live validation example</title>
 <link rel="stylesheet" media="screen" href="assets/style.css" />
-<script src="https://unpkg.com/nette-forms@3/src/assets/netteForms.js"></script>
+<script src="https://unpkg.com/nette-forms@3"></script>
 <script src="https://code.jquery.com/jquery-3.0.0.min.js" integrity="sha256-JmvOoLtYsmqlsWxa7mDSLMwa6dZ9rrIdtrrVYRnDRH0=" crossorigin="anonymous"></script>
 
 <script>

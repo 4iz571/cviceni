@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
@@ -23,11 +21,13 @@ use const PHP_SAPI;
  */
 class Connection implements IConnection
 {
-	/** function (Event $event); Occurs after query is executed */
-	public ?array $onEvent = [];
+	/** @var array<callable(Event): void>  Occurs after query is executed */
+	public array $onEvent = [];
+
+	/** @var array<string, mixed> */
 	private array $config;
 
-	/** @var string[]  resultset formats */
+	/** @var array<string, ?string>  Type constant => format string */
 	private array $formats;
 	private ?Driver $driver = null;
 	private ?Translator $translator = null;
@@ -62,6 +62,7 @@ class Connection implements IConnection
 	 *       - errorsOnly (bool) => log only errors
 	 *   - substitutes (array) => map of driver specific substitutes (under development)
 	 *   - onConnect (array) => list of SQL queries to execute (by Connection::query()) after connection is established
+	 * @param  array<string, mixed>  $config
 	 * @throws Exception
 	 */
 	public function __construct(array $config, ?string $name = null)
@@ -187,7 +188,7 @@ class Connection implements IConnection
 	 * Returns configuration variable. If no $key is passed, returns the entire array.
 	 * @see self::__construct
 	 */
-	final public function getConfig(?string $key = null, $default = null): mixed
+	final public function getConfig(?string $key = null, mixed $default = null): mixed
 	{
 		return $key === null
 			? $this->config
@@ -202,6 +203,7 @@ class Connection implements IConnection
 	{
 		if (!$this->driver) {
 			$this->connect();
+			assert($this->driver !== null);
 		}
 
 		return $this->driver;
@@ -228,6 +230,7 @@ class Connection implements IConnection
 			$this->connect();
 		}
 
+		assert($this->translator !== null);
 		return (clone $this->translator)->translate($args);
 	}
 
@@ -271,6 +274,7 @@ class Connection implements IConnection
 	{
 		if (!$this->driver) {
 			$this->connect();
+			assert($this->driver !== null);
 		}
 
 		\dibi::$sql = $sql;
@@ -286,7 +290,7 @@ class Connection implements IConnection
 			throw $e;
 		}
 
-		$res = $this->createResultSet($res ?: new Drivers\NoDataResult(max(0, $this->driver->getAffectedRows())));
+		$res = $this->createResultSet($res ?? new Drivers\NoDataResult(max(0, $this->driver->getAffectedRows())));
 		if ($event) {
 			$this->onEvent($event->done($res));
 		}
@@ -303,6 +307,7 @@ class Connection implements IConnection
 	{
 		if (!$this->driver) {
 			$this->connect();
+			assert($this->driver !== null);
 		}
 
 		$rows = $this->driver->getAffectedRows();
@@ -322,6 +327,7 @@ class Connection implements IConnection
 	{
 		if (!$this->driver) {
 			$this->connect();
+			assert($this->driver !== null);
 		}
 
 		$id = $this->driver->getInsertId($sequence);
@@ -344,6 +350,7 @@ class Connection implements IConnection
 
 		if (!$this->driver) {
 			$this->connect();
+			assert($this->driver !== null);
 		}
 
 		$event = $this->onEvent ? new Event($this, Event::BEGIN, $savepoint) : null;
@@ -373,6 +380,7 @@ class Connection implements IConnection
 
 		if (!$this->driver) {
 			$this->connect();
+			assert($this->driver !== null);
 		}
 
 		$event = $this->onEvent ? new Event($this, Event::COMMIT, $savepoint) : null;
@@ -402,6 +410,7 @@ class Connection implements IConnection
 
 		if (!$this->driver) {
 			$this->connect();
+			assert($this->driver !== null);
 		}
 
 		$event = $this->onEvent ? new Event($this, Event::ROLLBACK, $savepoint) : null;
@@ -420,6 +429,11 @@ class Connection implements IConnection
 	}
 
 
+	/**
+	 * @template T
+	 * @param  callable(self): T  $callback
+	 * @return T
+	 */
 	public function transaction(callable $callback): mixed
 	{
 		if ($this->transactionDepth === 0) {
@@ -466,7 +480,7 @@ class Connection implements IConnection
 	}
 
 
-	public function select(...$args): Fluent
+	public function select(mixed ...$args): Fluent
 	{
 		return $this->command()->select(...$args);
 	}
@@ -474,6 +488,7 @@ class Connection implements IConnection
 
 	/**
 	 * @param  string|string[]  $table
+	 * @param  iterable<string, mixed>  $args
 	 */
 	public function update($table, iterable $args): Fluent
 	{
@@ -481,6 +496,7 @@ class Connection implements IConnection
 	}
 
 
+	/** @param  iterable<string, mixed>  $args */
 	public function insert(string $table, iterable $args): Fluent
 	{
 		if ($args instanceof Traversable) {
@@ -542,6 +558,10 @@ class Connection implements IConnection
 		};
 
 		foreach ($types as $type) {
+			if (!$type instanceof \ReflectionNamedType) {
+				continue;
+			}
+
 			if ($type->isBuiltin() || $type->allowsNull()) {
 				throw new Exception("Object translator must have exactly one parameter with non-nullable class typehint, got '$type'.");
 			}
@@ -604,7 +624,7 @@ class Connection implements IConnection
 
 	/**
 	 * Executes SQL query and fetch results - shortcut for query() & fetchAll().
-	 * @return Row[]|array[]
+	 * @return list<Row|mixed[]>
 	 * @throws Exception
 	 */
 	public function fetchAll(#[Language('GenericSQL')] mixed ...$args): array
@@ -625,6 +645,7 @@ class Connection implements IConnection
 
 	/**
 	 * Executes SQL query and fetch pairs - shortcut for query() & fetchPairs().
+	 * @return mixed[]
 	 * @throws Exception
 	 */
 	public function fetchPairs(#[Language('GenericSQL')] mixed ...$args): array
@@ -639,7 +660,7 @@ class Connection implements IConnection
 	}
 
 
-	public static function expression(...$args): Expression
+	public static function expression(mixed ...$args): Expression
 	{
 		return new Expression(...$args);
 	}
@@ -650,7 +671,7 @@ class Connection implements IConnection
 
 	/**
 	 * Import SQL dump from file.
-	 * @param  callable  $onProgress  function (int $count, ?float $percent): void
+	 * @param  ?(callable(int, ?float): void)  $onProgress
 	 * @return int  count of sql commands
 	 */
 	public function loadFile(string $file, ?callable $onProgress = null): int
@@ -666,6 +687,7 @@ class Connection implements IConnection
 	{
 		if (!$this->driver) {
 			$this->connect();
+			assert($this->driver !== null);
 		}
 
 		return new Reflection\Database($this->driver->getReflector(), $this->config['database'] ?? null);
@@ -674,8 +696,9 @@ class Connection implements IConnection
 
 	/**
 	 * Prevents unserialization.
+	 * @param  array<string, mixed>  $_
 	 */
-	public function __unserialize($_)
+	public function __unserialize(array $_): never
 	{
 		throw new NotSupportedException('You cannot serialize or unserialize ' . static::class . ' instances.');
 	}
@@ -683,14 +706,15 @@ class Connection implements IConnection
 
 	/**
 	 * Prevents serialization.
+	 * @return array<string, mixed>
 	 */
-	public function __serialize()
+	public function __serialize(): array
 	{
 		throw new NotSupportedException('You cannot serialize or unserialize ' . static::class . ' instances.');
 	}
 
 
-	protected function onEvent($arg): void
+	protected function onEvent(Event $arg): void
 	{
 		foreach ($this->onEvent as $handler) {
 			$handler($arg);

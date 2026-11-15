@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\Bridges\ApplicationLatte;
 
@@ -13,38 +11,25 @@ use Nette;
 
 
 /**
- * Default template for controls and presenters.
- *
- * @method bool isLinkCurrent(string $destination = null, ...$args)
- * @method bool isModuleCurrent(string $module)
+ * Default parameters of Latte templates for controls and presenters.
  */
 #[\AllowDynamicProperties]
 final class DefaultTemplate extends Template
 {
-	/** @var Nette\Application\UI\Presenter */
-	public $presenter;
-
-	/** @var Nette\Application\UI\Control */
-	public $control;
-
-	/** @var Nette\Security\User */
-	public $user;
-
-	/** @var string */
-	public $baseUrl;
-
-	/** @var string */
-	public $basePath;
+	public Nette\Application\IPresenter $presenter;
+	public Nette\Application\UI\Control $control;
+	public Nette\Security\User $user;
+	public string $baseUrl;
+	public string $basePath;
 
 	/** @var \stdClass[] */
-	public $flashes = [];
+	public array $flashes = [];
 
 
 	/**
 	 * Adds new template parameter.
-	 * @return static
 	 */
-	public function add(string $name, $value)
+	public function add(string $name, mixed $value): static
 	{
 		if (property_exists($this, $name)) {
 			throw new Nette\InvalidStateException("The variable '$name' already exists.");
@@ -57,9 +42,9 @@ final class DefaultTemplate extends Template
 
 	/**
 	 * Sets all parameters.
-	 * @return static
+	 * @param  array<string, mixed>  $params
 	 */
-	public function setParameters(array $params)
+	public function setParameters(array $params): static
 	{
 		return Nette\Utils\Arrays::toObject($params, $this);
 	}

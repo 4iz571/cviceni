@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Loggers;
 
@@ -56,7 +54,7 @@ class FileLogger
 				'OK: ' . $event->sql
 					. ($event->count ? ";\n-- rows: " . $event->count : '')
 					. "\n-- takes: " . sprintf('%0.3f ms', $event->time * 1000)
-					. "\n-- source: " . implode(':', $event->source),
+					. "\n-- source: " . implode(':', $event->source ?? []),
 			);
 		}
 	}

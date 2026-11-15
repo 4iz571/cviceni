@@ -1,17 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 use Nette;
 use Nette\Utils\Strings;
-use function array_filter, array_map, count, end, get_debug_type, implode, is_scalar, ltrim, preg_replace, rtrim, str_contains, str_repeat, str_replace, strlen, substr;
+use function count, is_scalar, strlen;
 
 
 /**
@@ -28,8 +26,9 @@ class Printer
 	public bool $bracesOnNextLine = true;
 	public bool $singleParameterOnOneLine = false;
 	public bool $omitEmptyNamespaces = true;
+	public bool $declareOnOpenTag = false;
 	protected ?PhpNamespace $namespace = null;
-	protected ?Dumper $dumper;
+	protected Dumper $dumper;
 	private bool $resolveTypes = true;
 
 
@@ -146,7 +145,7 @@ class Printer
 		$this->namespace = $this->resolveTypes ? $namespace : null;
 		$class->validate();
 		$resolver = $this->namespace
-			? [$namespace, 'simplifyType']
+			? $this->namespace->simplifyType(...)
 			: fn($s) => $s;
 
 		$traits = [];
@@ -179,23 +178,16 @@ class Printer
 		$readOnlyClass = $class instanceof ClassType && $class->isReadOnly();
 		$consts = [];
 		$methods = [];
-		if (
-			$class instanceof ClassType
-			|| $class instanceof InterfaceType
-			|| $class instanceof TraitType
-			|| $class instanceof EnumType
-		) {
-			foreach ($class->getConstants() as $const) {
-				$consts[] = $this->printConstant($const);
-			}
+		foreach ($class->getConstants() as $const) {
+			$consts[] = $this->printConstant($const);
+		}
 
-			foreach ($class->getMethods() as $method) {
-				if ($readOnlyClass && $method->getName() === Method::Constructor) {
-					$method = clone $method;
-					array_map(fn($param) => $param instanceof PromotedParameter ? $param->setReadOnly(false) : null, $method->getParameters());
-				}
-				$methods[] = $this->printMethod($method, $namespace, $class->isInterface());
+		foreach ($class->getMethods() as $method) {
+			if ($readOnlyClass && $method->getName() === Method::Constructor) {
+				$method = clone $method;
+				array_map(fn($param) => $param instanceof PromotedParameter ? $param->setReadOnly(false) : null, $method->getParameters());
 			}
+			$methods[] = $this->printMethod($method, $namespace, $class->isInterface());
 		}
 
 		$properties = [];
@@ -267,15 +259,12 @@ class Printer
 		$body = ($uses ? $uses . "\n" : '')
 			. implode("\n", $items);
 
-		if ($namespace->hasBracketedSyntax()) {
-			return 'namespace' . ($name ? " $name" : '') . "\n{\n"
+		return $namespace->hasBracketedSyntax()
+			? 'namespace' . ($name ? " $name" : '') . "\n{\n"
 				. $this->indent($body)
-				. "}\n";
-
-		} else {
-			return ($name ? "namespace $name;\n\n" : '')
+				. "}\n"
+			: ($name ? "namespace $name;\n\n" : '')
 				. $body;
-		}
 	}
 
 
@@ -288,14 +277,20 @@ class Printer
 			}
 		}
 
-		return "<?php\n"
+		$strictTypes = $file->hasStrictTypes();
+		return '<?php' . ($strictTypes && $this->declareOnOpenTag ? ' declare(strict_types=1);' : '')
+			. "\n"
 			. ($file->getComment() ? "\n" . $this->printDocComment($file) : '')
 			. "\n"
-			. ($file->hasStrictTypes() ? "declare(strict_types=1);\n\n" : '')
+			. ($strictTypes && !$this->declareOnOpenTag ? "declare(strict_types=1);\n\n" : '')
 			. implode("\n\n", $namespaces);
 	}
 
 
+	/**
+	 * Generates use statements for the given namespace.
+	 * @param  PhpNamespace::Name*  $of
+	 */
 	protected function printUses(PhpNamespace $namespace, string $of = PhpNamespace::NameNormal): string
 	{
 		$prefix = [
@@ -367,6 +362,7 @@ class Printer
 
 	private function printConstant(Constant $const): string
 	{
+		$const->validate();
 		$def = ($const->isFinal() ? 'final ' : '')
 			. ($const->getVisibility() ? $const->getVisibility() . ' ' : '')
 			. 'const '
@@ -408,7 +404,7 @@ class Printer
 
 	private function printPropertyVisibility(Property|PromotedParameter $param): string
 	{
-		$get = $param->getVisibility(PropertyAccessMode::Get);
+		$get = $param->getVisibility();
 		$set = $param->getVisibility(PropertyAccessMode::Set);
 		return $set
 			? ($get ? "$get $set(set)" : "$set(set)")
@@ -432,7 +428,8 @@ class Printer
 	}
 
 
-	protected function printDocComment(/*Traits\CommentAware*/ $commentable): string
+	/** @param  PhpFile|ClassLike|GlobalFunction|Method|Property|Constant|Parameter|EnumCase|TraitUse|PropertyHook  $commentable */
+	protected function printDocComment(/* Traits\CommentAware */ $commentable): string
 	{
 		$multiLine = $commentable instanceof GlobalFunction
 			|| $commentable instanceof Method
@@ -450,7 +447,7 @@ class Printer
 	}
 
 
-	/** @param  Attribute[]  $attrs */
+	/** @param  list<Attribute>  $attrs */
 	protected function printAttributes(array $attrs, bool $inline = false): string
 	{
 		if (!$attrs) {
@@ -481,6 +478,7 @@ class Printer
 
 		$simple = true;
 		foreach ($hooks as $type => $hook) {
+			$hook->validate();
 			$simple = $simple && ($hook->isAbstract() || $isInterface);
 			$hooks[$type] = $this->printDocComment($hook)
 				. $this->printAttributes($hook->getAttributes())
@@ -503,6 +501,9 @@ class Printer
 	}
 
 
+	/**
+	 * Enables or disables automatic simplification of fully qualified type names using namespace use statements.
+	 */
 	public function setTypeResolving(bool $state = true): static
 	{
 		$this->resolveTypes = $state;

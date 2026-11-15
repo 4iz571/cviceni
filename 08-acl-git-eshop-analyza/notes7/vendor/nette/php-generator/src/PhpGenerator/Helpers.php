@@ -1,16 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 use Nette;
-use function is_string, preg_match, preg_replace, preg_replace_callback, str_contains, str_repeat, str_replace, strrpos, strtolower, substr, trim;
+use function is_string;
 
 
 /**
@@ -41,7 +39,7 @@ final class Helpers
 		'__LINE__' => 1, '__METHOD__' => 1, '__NAMESPACE__' => 1, '__PROPERTY__' => 1, '__TRAIT__' => 1,
 	];
 
-	/** @deprecated  */
+	#[\Deprecated]
 	public const
 		PHP_IDENT = self::ReIdentifier,
 		KEYWORDS = self::Keywords;
@@ -62,6 +60,7 @@ final class Helpers
 	}
 
 
+	/** @param  PhpNamespace::Name*  $of */
 	public static function tagName(string $name, string $of = PhpNamespace::NameNormal): string
 	{
 		return isset(self::Keywords[strtolower($name)])
@@ -129,6 +128,7 @@ final class Helpers
 
 
 	/**
+	 * @param  class-string  $class
 	 * @param  mixed[]  $props
 	 * @internal
 	 */
@@ -138,6 +138,10 @@ final class Helpers
 	}
 
 
+	/**
+	 * Validates a type declaration. Strips the leading '?' and sets $nullable=true for nullable shorthand.
+	 * Returns null for empty/null types.
+	 */
 	public static function validateType(?string $type, bool &$nullable = false): ?string
 	{
 		if ($type === '' || $type === null) {

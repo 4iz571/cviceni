@@ -1,22 +1,17 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\FormsLatte\Nodes;
 
 use Latte;
-use Latte\Compiler\Nodes\AreaNode;
-use Latte\Compiler\Nodes\AuxiliaryNode;
+use Latte\Compiler\Nodes\{AreaNode, AuxiliaryNode, StatementNode};
 use Latte\Compiler\Nodes\Php\ExpressionNode;
 use Latte\Compiler\Nodes\Php\Scalar\StringNode;
-use Latte\Compiler\Nodes\StatementNode;
-use Latte\Compiler\PrintContext;
-use Latte\Compiler\Tag;
+use Latte\Compiler\{PrintContext, Tag};
 
 
 /**
@@ -28,6 +23,7 @@ final class FormNNameNode extends StatementNode
 	public AreaNode $content;
 
 
+	/** @return \Generator<int, ?list<string>, array{AreaNode, ?Tag}, static> */
 	public static function create(Tag $tag): \Generator
 	{
 		$tag->expectArguments();
@@ -42,14 +38,13 @@ final class FormNNameNode extends StatementNode
 	public function print(PrintContext $context): string
 	{
 		return $context->format(
-			'$form = $this->global->formsStack[] = '
+			'$this->global->forms->begin($form = '
 			. ($this->name instanceof StringNode
 				? '$this->global->uiControl[%node]'
-				: 'is_object($ʟ_tmp = %node) ? $ʟ_tmp : $this->global->uiControl[$ʟ_tmp]')
-			. ' %line;'
-			. 'Nette\Bridges\FormsLatte\Runtime::initializeForm($form);'
+				: '(is_object($ʟ_tmp = %node) ? $ʟ_tmp : $this->global->uiControl[$ʟ_tmp])')
+			. ', global: $this->global) %line;'
 			. '%node '
-			. 'array_pop($this->global->formsStack);',
+			. '$form = $this->global->forms->end() ?? $form;',
 			$this->name,
 			$this->position,
 			$this->content,
@@ -57,20 +52,22 @@ final class FormNNameNode extends StatementNode
 	}
 
 
-	private function init(Tag $tag)
+	private function init(Tag $tag): void
 	{
 		$el = $tag->htmlElement;
+		assert($el !== null);
 
 		$tag->replaceNAttribute(new AuxiliaryNode(fn(PrintContext $context) => $context->format(
-			'echo Nette\Bridges\FormsLatte\Runtime::renderFormBegin(end($this->global->formsStack), %dump, false) %line;',
+			'echo $this->global->forms->renderFormBegin(%dump, false) %line;',
 			array_fill_keys(FieldNNameNode::findUsedAttributes($el), null),
 			$this->position,
 		)));
 
+		assert($el->content !== null);
 		$el->content = new Latte\Compiler\Nodes\FragmentNode([
 			$el->content,
 			new AuxiliaryNode(fn(PrintContext $context) => $context->format(
-				'echo Nette\Bridges\FormsLatte\Runtime::renderFormEnd(end($this->global->formsStack), false) %line;',
+				'echo $this->global->forms->renderFormEnd(false) %line;',
 				$this->position,
 			)),
 		]);

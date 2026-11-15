@@ -6,17 +6,16 @@ namespace Endroid\QrCode\ImageData;
 
 use Endroid\QrCode\Logo\LogoInterface;
 
-final class LogoImageData
+final readonly class LogoImageData
 {
     private function __construct(
-        private readonly string $data,
-        private \GdImage|null $image,
-        private readonly string $mimeType,
-        private readonly int $width,
-        private readonly int $height,
-        private readonly bool $punchoutBackground
-    ) {
-    }
+        private string $data,
+        private ?\GdImage $image,
+        private string $mimeType,
+        private int $width,
+        private int $height,
+        private bool $punchoutBackground,
+    ) {}
 
     public static function createForLogo(LogoInterface $logo): self
     {
@@ -25,14 +24,16 @@ final class LogoImageData
 
         if (!is_string($data)) {
             $errorDetails = error_get_last()['message'] ?? 'invalid data';
-            throw new \Exception(sprintf('Could not read logo image data from path "%s": %s', $logo->getPath(), $errorDetails));
+            throw new \Exception(sprintf(
+                'Could not read logo image data from path "%s": %s',
+                $logo->getPath(),
+                $errorDetails,
+            ));
         }
 
-        if (false !== filter_var($logo->getPath(), FILTER_VALIDATE_URL)) {
-            $mimeType = self::detectMimeTypeFromUrl($logo->getPath());
-        } else {
-            $mimeType = self::detectMimeTypeFromPath($logo->getPath());
-        }
+        $mimeType = false !== filter_var($logo->getPath(), FILTER_VALIDATE_URL)
+            ? self::detectMimeTypeFromUrl($logo->getPath())
+            : self::detectMimeTypeFromPath($logo->getPath());
 
         $width = $logo->getResizeToWidth();
         $height = $logo->getResizeToHeight();
@@ -45,12 +46,20 @@ final class LogoImageData
             return new self($data, null, $mimeType, $width, $height, $logo->getPunchoutBackground());
         }
 
+        if (!function_exists('imagecreatefromstring')) {
+            throw new \Exception('Function "imagecreatefromstring" does not exist: check your GD installation');
+        }
+
         error_clear_last();
         $image = @imagecreatefromstring($data);
 
         if (!$image) {
             $errorDetails = error_get_last()['message'] ?? 'invalid data';
-            throw new \Exception(sprintf('Unable to parse image data at path "%s": %s', $logo->getPath(), $errorDetails));
+            throw new \Exception(sprintf(
+                'Unable to parse image data at path "%s": %s',
+                $logo->getPath(),
+                $errorDetails,
+            ));
         }
 
         // No target width and height specified: use from original image
@@ -59,13 +68,27 @@ final class LogoImageData
         }
 
         // Only target width specified: calculate height
-        if (null !== $width && null === $height) {
-            return new self($data, $image, $mimeType, $width, intval(imagesy($image) * $width / imagesx($image)), $logo->getPunchoutBackground());
+        if (null !== $width) {
+            return new self(
+                $data,
+                $image,
+                $mimeType,
+                $width,
+                intval((imagesy($image) * $width) / imagesx($image)),
+                $logo->getPunchoutBackground(),
+            );
         }
 
         // Only target height specified: calculate width
-        if (null === $width && null !== $height) {
-            return new self($data, $image, $mimeType, intval(imagesx($image) * $height / imagesy($image)), $height, $logo->getPunchoutBackground());
+        if (null !== $height) {
+            return new self(
+                $data,
+                $image,
+                $mimeType,
+                intval((imagesx($image) * $height) / imagesy($image)),
+                $height,
+                $logo->getPunchoutBackground(),
+            );
         }
 
         return new self($data, $image, $mimeType, imagesx($image), imagesy($image), $logo->getPunchoutBackground());
@@ -107,24 +130,35 @@ final class LogoImageData
 
     public function createDataUri(): string
     {
-        return 'data:'.$this->mimeType.';base64,'.base64_encode($this->data);
+        return 'data:' . $this->mimeType . ';base64,' . base64_encode($this->data);
     }
 
     private static function detectMimeTypeFromUrl(string $url): string
     {
-        $headers = get_headers($url, true);
+        /** @var array<string|int, string|list<string>>|false $headers */
+        $headers = get_headers($url, associative: true);
 
         if (!is_array($headers)) {
-            throw new \Exception(sprintf('Could not retrieve headers to determine content type for logo URL "%s"', $url));
+            throw new \Exception(sprintf(
+                'Could not retrieve headers to determine content type for logo URL "%s"',
+                $url,
+            ));
         }
 
-        $headers = array_combine(array_map('strtolower', array_keys($headers)), $headers);
+        $headers = array_combine(array_map(static fn(string|int $key): string => strtolower(strval(
+            $key,
+        )), array_keys($headers)), $headers);
 
-        if (!isset($headers['content-type'])) {
+        if (null === ($headers['content-type'] ?? null)) {
             throw new \Exception(sprintf('Content type could not be determined for logo URL "%s"', $url));
         }
 
-        return is_array($headers['content-type']) ? $headers['content-type'][1] : $headers['content-type'];
+        return is_array($headers['content-type'])
+            ? $headers['content-type'][1] ?? throw new \TypeError(sprintf(
+                'Content type could not be determined for logo URL "%s"',
+                $url,
+            ))
+            : $headers['content-type'];
     }
 
     private static function detectMimeTypeFromPath(string $path): string

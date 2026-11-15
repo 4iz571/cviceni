@@ -4,37 +4,41 @@ declare(strict_types=1);
 
 namespace Endroid\QrCode\Label\Margin;
 
-final class Margin implements MarginInterface
+final readonly class Margin implements MarginInterface
 {
     public function __construct(
-        private readonly int $top,
-        private readonly int $right,
-        private readonly int $bottom,
-        private readonly int $left
-    ) {
-    }
+        private int $top,
+        private int $right,
+        private int $bottom,
+        private int $left,
+    ) {}
 
+    #[\Override]
     public function getTop(): int
     {
         return $this->top;
     }
 
+    #[\Override]
     public function getRight(): int
     {
         return $this->right;
     }
 
+    #[\Override]
     public function getBottom(): int
     {
         return $this->bottom;
     }
 
+    #[\Override]
     public function getLeft(): int
     {
         return $this->left;
     }
 
     /** @return array<string, int> */
+    #[\Override]
     public function toArray(): array
     {
         return [

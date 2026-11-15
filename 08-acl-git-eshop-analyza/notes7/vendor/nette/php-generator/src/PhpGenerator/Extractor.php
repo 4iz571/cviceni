@@ -1,21 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
 
 use Nette;
 use PhpParser;
-use PhpParser\Modifiers;
-use PhpParser\Node;
-use PhpParser\NodeFinder;
-use PhpParser\ParserFactory;
-use function addcslashes, array_map, assert, class_exists, end, in_array, is_array, method_exists, rtrim, str_contains, str_repeat, str_replace, str_starts_with, strlen, substr, substr_replace, usort;
+use PhpParser\{Modifiers, Node, NodeFinder, ParserFactory};
+use function is_array, is_string, strlen;
 
 
 /**
@@ -26,15 +21,15 @@ final class Extractor
 {
 	private string $code;
 
-	/** @var Node[] */
+	/** @var array<Node> */
 	private array $statements;
 	private PhpParser\PrettyPrinterAbstract $printer;
 
 
 	public function __construct(string $code)
 	{
-		if (!class_exists(ParserFactory::class)) {
-			throw new Nette\NotSupportedException("PHP-Parser is required to load method bodies, install package 'nikic/php-parser' 4.7 or newer.");
+		if (!class_exists(PhpParser\PhpVersion::class)) { // exists since php-parser 5.0
+			throw new Nette\NotSupportedException("PHP-Parser is required to load method bodies, install package 'nikic/php-parser' 5.0 or newer.");
 		}
 
 		$this->printer = new PhpParser\PrettyPrinter\Standard;
@@ -48,9 +43,10 @@ final class Extractor
 			throw new Nette\InvalidStateException('The input string is not a PHP code.');
 		}
 
-		$this->code = Nette\Utils\Strings::normalizeNewlines($code);
+		$this->code = Nette\Utils\Strings::unixNewLines($code);
 		$parser = (new ParserFactory)->createForNewestSupportedVersion();
 		$stmts = $parser->parse($this->code);
+		assert($stmts !== null);
 
 		$traverser = new PhpParser\NodeTraverser;
 		$traverser->addVisitor(new PhpParser\NodeVisitor\ParentConnectingVisitor);
@@ -59,17 +55,38 @@ final class Extractor
 	}
 
 
+	private function findClassNode(string $className): ?Node\Stmt\ClassLike
+	{
+		$node = (new NodeFinder)->findFirst(
+			$this->statements,
+			fn(Node $node) => $node instanceof Node\Stmt\ClassLike && $node->namespacedName?->toString() === $className,
+		);
+		assert($node === null || $node instanceof Node\Stmt\ClassLike);
+		return $node;
+	}
+
+
+	private function findFunctionNode(string $name): ?Node\Stmt\Function_
+	{
+		$node = (new NodeFinder)->findFirst(
+			$this->statements,
+			fn(Node $node) => $node instanceof Node\Stmt\Function_ && $node->namespacedName?->toString() === $name,
+		);
+		assert($node === null || $node instanceof Node\Stmt\Function_);
+		return $node;
+	}
+
+
 	/** @return array<string, string> */
 	public function extractMethodBodies(string $className): array
 	{
-		$nodeFinder = new NodeFinder;
-		$classNode = $nodeFinder->findFirst(
-			$this->statements,
-			fn(Node $node) => $node instanceof Node\Stmt\ClassLike && $node->namespacedName->toString() === $className,
-		);
+		$classNode = $this->findClassNode($className);
+		if (!$classNode) {
+			return [];
+		}
 
 		$res = [];
-		foreach ($nodeFinder->findInstanceOf($classNode, Node\Stmt\ClassMethod::class) as $methodNode) {
+		foreach ($classNode->getMethods() as $methodNode) { // avoids methods of nested anonymous classes
 			if ($methodNode->stmts) {
 				$res[$methodNode->name->toString()] = $this->getReformattedContents($methodNode->stmts, 2);
 			}
@@ -86,14 +103,13 @@ final class Extractor
 			return [];
 		}
 
-		$nodeFinder = new NodeFinder;
-		$classNode = $nodeFinder->findFirst(
-			$this->statements,
-			fn(Node $node) => $node instanceof Node\Stmt\ClassLike && $node->namespacedName->toString() === $className,
-		);
+		$classNode = $this->findClassNode($className);
+		if (!$classNode) {
+			return [];
+		}
 
 		$res = [];
-		foreach ($nodeFinder->findInstanceOf($classNode, Node\Stmt\Property::class) as $propertyNode) {
+		foreach ($classNode->getProperties() as $propertyNode) { // avoids properties of nested anonymous classes
 			foreach ($propertyNode->props as $propNode) {
 				$propName = $propNode->name->toString();
 				foreach ($propertyNode->hooks as $hookNode) {
@@ -111,11 +127,8 @@ final class Extractor
 
 	public function extractFunctionBody(string $name): string
 	{
-		$functionNode = (new NodeFinder)->findFirst(
-			$this->statements,
-			fn(Node $node) => $node instanceof Node\Stmt\Function_ && $node->namespacedName->toString() === $name,
-		);
-		assert($functionNode instanceof Node\Stmt\Function_);
+		$functionNode = $this->findFunctionNode($name);
+		assert($functionNode !== null);
 
 		return $this->getReformattedContents($functionNode->stmts, 1);
 	}
@@ -159,7 +172,11 @@ final class Extractor
 
 			} elseif (
 				$node instanceof Node\Scalar\String_
-				&& in_array($node->getAttribute('kind'), [Node\Scalar\String_::KIND_SINGLE_QUOTED, Node\Scalar\String_::KIND_DOUBLE_QUOTED], true)
+				&& in_array(
+					$node->getAttribute('kind'),
+					[Node\Scalar\String_::KIND_SINGLE_QUOTED, Node\Scalar\String_::KIND_DOUBLE_QUOTED],
+					true,
+				)
 				&& str_contains($node->getAttribute('rawValue'), "\n")
 			) { // multi-line strings -> single line
 				$replacements[] = [
@@ -180,11 +197,11 @@ final class Extractor
 				];
 
 			} elseif (
-				$node instanceof Node\Scalar\Encapsed
+				$node instanceof Node\Scalar\InterpolatedString
 				&& $node->getAttribute('kind') === Node\Scalar\String_::KIND_DOUBLE_QUOTED
 			) { // multi-line strings -> single line
 				foreach ($node->parts as $part) {
-					if ($part instanceof Node\Scalar\EncapsedStringPart) {
+					if ($part instanceof Node\InterpolatedStringPart) {
 						$replacements[] = [
 							$part->getStartFilePos() - $start,
 							$part->getEndFilePos() - $start,
@@ -193,7 +210,7 @@ final class Extractor
 					}
 				}
 			} elseif (
-				$node instanceof Node\Scalar\Encapsed && $node->getAttribute('kind') === Node\Scalar\String_::KIND_HEREDOC
+				$node instanceof Node\Scalar\InterpolatedString && $node->getAttribute('kind') === Node\Scalar\String_::KIND_HEREDOC
 				&& Helpers::unindent($node->getAttribute('docIndentation'), $level) === $node->getAttribute('docIndentation')
 			) { // fix indentation of HEREDOC
 				$replacements[] = [
@@ -207,7 +224,7 @@ final class Extractor
 					$indent,
 				];
 				foreach ($node->parts as $part) {
-					if ($part instanceof Node\Scalar\EncapsedStringPart) {
+					if ($part instanceof Node\InterpolatedStringPart) {
 						$replacements[] = [
 							$part->getStartFilePos() - $start,
 							$part->getEndFilePos() - $start,
@@ -238,24 +255,35 @@ final class Extractor
 	{
 		$phpFile = new PhpFile;
 
+		$firstStmt = $this->statements[0] ?? null;
+		if ($firstStmt instanceof Node\Stmt\Declare_ && !$firstStmt->getDocComment()) {
+			$firstStmt = $this->statements[1] ?? null;
+		}
+
 		if (
-			$this->statements
-			&& !$this->statements[0] instanceof Node\Stmt\ClassLike
-			&& !$this->statements[0] instanceof Node\Stmt\Function_
+			$firstStmt
+			&& !$firstStmt instanceof Node\Stmt\ClassLike
+			&& !$firstStmt instanceof Node\Stmt\Function_
 		) {
-			$this->addCommentAndAttributes($phpFile, $this->statements[0]);
+			$comments = $firstStmt->getComments();
+			foreach ($comments as $comment) {
+				if ($comment instanceof PhpParser\Comment\Doc) {
+					$phpFile->setComment(Helpers::unformatDocComment($comment->getReformattedText()));
+					break;
+				}
+			}
 		}
 
 		$namespaces = ['' => $this->statements];
 		foreach ($this->statements as $node) {
 			if ($node instanceof Node\Stmt\Declare_
 				&& $node->declares[0]->key->name === 'strict_types'
-				&& $node->declares[0]->value instanceof Node\Scalar\LNumber
+				&& $node->declares[0]->value instanceof Node\Scalar\Int_
 			) {
 				$phpFile->setStrictTypes((bool) $node->declares[0]->value->value);
 
 			} elseif ($node instanceof Node\Stmt\Namespace_) {
-				$namespaces[$node->name->toString()] = $node->stmts;
+				$namespaces[$node->name?->toString() ?? ''] = $node->stmts;
 			}
 		}
 
@@ -289,11 +317,12 @@ final class Extractor
 
 	private function addClassLikeToFile(PhpFile $phpFile, Node\Stmt\ClassLike $node): ClassLike
 	{
+		assert($node->namespacedName !== null);
 		if ($node instanceof Node\Stmt\Class_) {
 			$class = $phpFile->addClass($node->namespacedName->toString());
 			$class->setFinal($node->isFinal());
 			$class->setAbstract($node->isAbstract());
-			$class->setReadOnly(method_exists($node, 'isReadonly') && $node->isReadonly());
+			$class->setReadOnly($node->isReadonly());
 			if ($node->extends) {
 				$class->setExtends($node->extends->toString());
 			}
@@ -314,6 +343,8 @@ final class Extractor
 			foreach ($node->implements as $item) {
 				$class->addImplement($item->toString());
 			}
+		} else {
+			throw new Nette\ShouldNotHappenException;
 		}
 
 		$this->addCommentAndAttributes($class, $node);
@@ -363,11 +394,11 @@ final class Extractor
 				$prop->setValue($this->toValue($item->default));
 			}
 
-			$prop->setReadOnly((method_exists($node, 'isReadonly') && $node->isReadonly()) || ($class instanceof ClassType && $class->isReadOnly()));
+			$prop->setReadOnly($node->isReadonly() || ($class instanceof ClassType && $class->isReadOnly()));
 			$this->addCommentAndAttributes($prop, $node);
 
-			$prop->setAbstract((bool) ($node->flags & Node\Stmt\Class_::MODIFIER_ABSTRACT));
-			$prop->setFinal((bool) ($node->flags & Node\Stmt\Class_::MODIFIER_FINAL));
+			$prop->setAbstract((bool) ($node->flags & Modifiers::ABSTRACT));
+			$prop->setFinal((bool) ($node->flags & Modifiers::FINAL));
 			$this->addHooksToProperty($prop, $node);
 		}
 	}
@@ -380,7 +411,9 @@ final class Extractor
 		}
 
 		foreach ($node->hooks as $hookNode) {
-			$hook = $prop->addHook($hookNode->name->toString());
+			/** @var 'set'|'get' $hookType */
+			$hookType = $hookNode->name->toString();
+			$hook = $prop->addHook($hookType);
 			$hook->setFinal((bool) ($hookNode->flags & Modifiers::FINAL));
 			$this->setupFunction($hook, $hookNode);
 			if ($hookNode->body === null) {
@@ -411,7 +444,8 @@ final class Extractor
 		foreach ($node->consts as $item) {
 			$const = $class->addConstant($item->name->toString(), $this->toValue($item->value));
 			$const->setVisibility($this->toVisibility($node->flags));
-			$const->setFinal(method_exists($node, 'isFinal') && $node->isFinal());
+			$const->setFinal($node->isFinal());
+			$const->setType($node->type ? $this->toPhp($node->type) : null);
 			$this->addCommentAndAttributes($const, $node);
 		}
 	}
@@ -421,7 +455,7 @@ final class Extractor
 	{
 		$value = match (true) {
 			$node->expr === null => null,
-			$node->expr instanceof Node\Scalar\LNumber, $node->expr instanceof Node\Scalar\String_ => $node->expr->value,
+			$node->expr instanceof Node\Scalar\Int_, $node->expr instanceof Node\Scalar\String_ => $node->expr->value,
 			default => $this->toValue($node->expr),
 		};
 		$case = $class->addCase($node->name->toString(), $value);
@@ -431,13 +465,14 @@ final class Extractor
 
 	private function addFunctionToFile(PhpFile $phpFile, Node\Stmt\Function_ $node): void
 	{
+		assert($node->namespacedName !== null);
 		$function = $phpFile->addFunction($node->namespacedName->toString());
 		$this->setupFunction($function, $node);
 	}
 
 
 	private function addCommentAndAttributes(
-		PhpFile|ClassLike|Constant|Property|GlobalFunction|Method|Parameter|EnumCase|TraitUse|PropertyHook $element,
+		ClassLike|Constant|Property|GlobalFunction|Method|Parameter|EnumCase|TraitUse|PropertyHook $element,
 		Node $node,
 	): void
 	{
@@ -473,13 +508,15 @@ final class Extractor
 		}
 
 		foreach ($node->getParams() as $item) {
+			assert($item->var instanceof Node\Expr\Variable && is_string($item->var->name));
 			$getVisibility = $this->toVisibility($item->flags);
 			$setVisibility = $this->toSetterVisibility($item->flags);
 			$final = (bool) ($item->flags & Modifiers::FINAL);
 			if ($getVisibility || $setVisibility || $final) {
+				assert($function instanceof Method);
 				$param = $function->addPromotedParameter($item->var->name)
 					->setVisibility($getVisibility, $setVisibility)
-					->setReadonly((bool) ($item->flags & Node\Stmt\Class_::MODIFIER_READONLY))
+					->setReadOnly($item->isReadonly())
 					->setFinal($final);
 				$this->addHooksToProperty($param, $item);
 			} else {
@@ -514,8 +551,8 @@ final class Extractor
 				'false' => false,
 				default => new Literal($this->getReformattedContents([$node], 0)),
 			};
-		} elseif ($node instanceof Node\Scalar\LNumber
-			|| $node instanceof Node\Scalar\DNumber
+		} elseif ($node instanceof Node\Scalar\Int_
+			|| $node instanceof Node\Scalar\Float_
 			|| $node instanceof Node\Scalar\String_
 		) {
 			return $node->value;
@@ -546,18 +583,18 @@ final class Extractor
 	}
 
 
-	private function toVisibility(int $flags): ?string
+	private function toVisibility(int $flags): ?Visibility
 	{
 		return match (true) {
-			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PUBLIC) => Visibility::Public,
-			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PROTECTED) => Visibility::Protected,
-			(bool) ($flags & Node\Stmt\Class_::MODIFIER_PRIVATE) => Visibility::Private,
+			(bool) ($flags & Modifiers::PUBLIC) => Visibility::Public,
+			(bool) ($flags & Modifiers::PROTECTED) => Visibility::Protected,
+			(bool) ($flags & Modifiers::PRIVATE) => Visibility::Private,
 			default => null,
 		};
 	}
 
 
-	private function toSetterVisibility(int $flags): ?string
+	private function toSetterVisibility(int $flags): ?Visibility
 	{
 		return match (true) {
 			!class_exists(Node\PropertyHook::class) => null,
@@ -580,7 +617,9 @@ final class Extractor
 	private function getNodeContents(Node ...$nodes): string
 	{
 		$start = $this->getNodeStartPos($nodes[0]);
-		return substr($this->code, $start, end($nodes)->getEndFilePos() - $start + 1);
+		$last = end($nodes);
+		assert($last !== false);
+		return substr($this->code, $start, $last->getEndFilePos() - $start + 1);
 	}
 
 

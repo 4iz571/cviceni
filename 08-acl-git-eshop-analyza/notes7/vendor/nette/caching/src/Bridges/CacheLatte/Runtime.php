@@ -1,18 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\CacheLatte;
 
 use Latte;
 use Nette;
-use Nette\Caching\Cache;
-use Nette\Caching\OutputHelper;
+use Nette\Caching\{Cache, OutputHelper};
+use function array_key_exists, count, is_string;
 
 
 /**
@@ -21,12 +19,12 @@ use Nette\Caching\OutputHelper;
  */
 class Runtime
 {
-	/** @var array<int, OutputHelper|\stdClass> */
+	/** @var list<OutputHelper|\stdClass> */
 	private array $stack = [];
 
 
 	public function __construct(
-		private Nette\Caching\Storage $storage,
+		private readonly Nette\Caching\Storage $storage,
 	) {
 	}
 
@@ -35,7 +33,7 @@ class Runtime
 	{
 		if ($this->stack) {
 			$file = (new \ReflectionClass($template))->getFileName();
-			if (@is_file($file)) { // @ - may trigger error
+			if (is_string($file) && @is_file($file)) { // @ - may trigger error
 				end($this->stack)->dependencies[Cache::Files][] = $file;
 			}
 		}
@@ -44,6 +42,7 @@ class Runtime
 
 	/**
 	 * Starts the output cache. Returns true if buffering was started.
+	 * @param ?array<string, mixed>  $args {if?: bool, tags?: string[], expire?: string, expiration?: string, dependencies?: callable}
 	 */
 	public function createCache(string $key, ?array $args = null): bool
 	{
@@ -53,7 +52,7 @@ class Runtime
 				return true;
 			}
 
-			$key = array_merge([$key], array_intersect_key($args, range(0, count($args))));
+			$key = [$key, ...array_intersect_key($args, range(0, count($args)))];
 		}
 
 		if ($this->stack) {
@@ -88,6 +87,9 @@ class Runtime
 	}
 
 
+	/**
+	 * Discards the buffered output without saving to the cache.
+	 */
 	public function rollback(): void
 	{
 		$helper = array_pop($this->stack);

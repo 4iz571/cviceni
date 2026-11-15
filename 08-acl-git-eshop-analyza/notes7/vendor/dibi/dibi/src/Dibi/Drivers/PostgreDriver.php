@@ -1,18 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
 use Dibi\Helpers;
 use PgSql;
-use function in_array, is_array, is_resource, strlen;
+use function in_array, is_array, strlen;
 
 
 /**
@@ -33,7 +31,10 @@ class PostgreDriver implements Dibi\Driver
 	private ?int $affectedRows;
 
 
-	/** @throws Dibi\NotSupportedException */
+	/**
+	 * @param  array<string, mixed>  $config
+	 * @throws Dibi\NotSupportedException
+	 */
 	public function __construct(array $config)
 	{
 		if (!extension_loaded('pgsql')) {
@@ -63,17 +64,20 @@ class PostgreDriver implements Dibi\Driver
 
 			$connectType = $config['connect_type'] ?? PGSQL_CONNECT_FORCE_NEW;
 
-			set_error_handler(function (int $severity, string $message) use (&$error) {
+			set_error_handler(function (int $severity, string $message, string $file, int $line) use (&$error): bool {
 				$error = $message;
+				return false;
 			});
-			$this->connection = empty($config['persistent'])
+			$conn = empty($config['persistent'])
 				? pg_connect($string, $connectType)
 				: pg_pconnect($string, $connectType);
 			restore_error_handler();
-		}
 
-		if (!$this->connection instanceof PgSql\Connection) {
-			throw new Dibi\DriverException($error ?: 'Connecting error.');
+			if (!$conn instanceof PgSql\Connection) {
+				throw new Dibi\DriverException($error ?: 'Connecting error.');
+			}
+
+			$this->connection = $conn;
 		}
 
 		pg_set_error_verbosity($this->connection, PGSQL_ERRORS_VERBOSE);
@@ -114,24 +118,26 @@ class PostgreDriver implements Dibi\Driver
 	{
 		$this->affectedRows = null;
 		$res = @pg_query($this->connection, $sql); // intentionally @
+		if (!$res instanceof PgSql\Result) {
+			throw static::createException(pg_last_error($this->connection), sql: $sql);
+		}
 
-		if ($res === false) {
-			throw static::createException(pg_last_error($this->connection), null, $sql);
-
-		} elseif ($res instanceof PgSql\Result) {
-			$this->affectedRows = Helpers::false2Null(pg_affected_rows($res));
-			if (pg_num_fields($res)) {
-				return $this->createResultDriver($res);
-			}
+		$this->affectedRows = Helpers::false2Null(pg_affected_rows($res));
+		if (pg_num_fields($res)) {
+			return $this->createResultDriver($res);
 		}
 
 		return null;
 	}
 
 
-	public static function createException(string $message, $code = null, ?string $sql = null): Dibi\DriverException
+	public static function createException(
+		string $message,
+		int|string $code = 0,
+		?string $sql = null,
+	): Dibi\DriverException
 	{
-		if ($code === null && preg_match('#^ERROR:\s+(\S+):\s*#', $message, $m)) {
+		if ($code === 0 && preg_match('#^ERROR:\s+(\S+):\s*#', $message, $m)) {
 			$code = $m[1];
 			$message = substr($message, strlen($m[0]));
 		}
@@ -216,7 +222,7 @@ class PostgreDriver implements Dibi\Driver
 	 */
 	public function inTransaction(): bool
 	{
-		return !in_array(pg_transaction_status($this->connection), [PGSQL_TRANSACTION_UNKNOWN, PGSQL_TRANSACTION_IDLE], true);
+		return !in_array(pg_transaction_status($this->connection), [PGSQL_TRANSACTION_UNKNOWN, PGSQL_TRANSACTION_IDLE], strict: true);
 	}
 
 

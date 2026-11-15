@@ -10,7 +10,7 @@ class GdResult extends AbstractResult
 {
     public function __construct(
         MatrixInterface $matrix,
-        protected readonly \GdImage $image
+        protected readonly \GdImage $image,
     ) {
         parent::__construct($matrix);
     }
@@ -20,11 +20,13 @@ class GdResult extends AbstractResult
         return $this->image;
     }
 
+    #[\Override]
     public function getString(): string
     {
         throw new \Exception('You can only use this method in a concrete implementation');
     }
 
+    #[\Override]
     public function getMimeType(): string
     {
         throw new \Exception('You can only use this method in a concrete implementation');

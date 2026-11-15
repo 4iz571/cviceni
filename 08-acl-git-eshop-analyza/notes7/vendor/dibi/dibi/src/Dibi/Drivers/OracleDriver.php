@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -35,7 +33,10 @@ class OracleDriver implements Dibi\Driver
 	private ?int $affectedRows;
 
 
-	/** @throws Dibi\NotSupportedException */
+	/**
+	 * @param  array<string, mixed>  $config
+	 * @throws Dibi\NotSupportedException
+	 */
 	public function __construct(array $config)
 	{
 		if (!extension_loaded('oci8')) {
@@ -47,15 +48,17 @@ class OracleDriver implements Dibi\Driver
 
 		if (isset($config['resource'])) {
 			$this->connection = $config['resource'];
-		} elseif (empty($config['persistent'])) {
-			$this->connection = @oci_new_connect($config['username'], $config['password'], $config['database'], $config['charset']); // intentionally @
 		} else {
-			$this->connection = @oci_pconnect($config['username'], $config['password'], $config['database'], $config['charset']); // intentionally @
-		}
+			$conn = empty($config['persistent'])
+				? @oci_new_connect($config['username'], $config['password'], $config['database'], $config['charset']) // intentionally @
+				: @oci_pconnect($config['username'], $config['password'], $config['database'], $config['charset']); // intentionally @
 
-		if (!$this->connection) {
-			$err = oci_error();
-			throw new Dibi\DriverException($err['message'], $err['code']);
+			if (!$conn) {
+				$err = oci_error() ?: ['message' => 'Unknown error', 'code' => 0];
+				throw new Dibi\DriverException($err['message'], $err['code']);
+			}
+
+			$this->connection = $conn;
 		}
 
 		if (isset($config['schema'])) {
@@ -95,22 +98,22 @@ class OracleDriver implements Dibi\Driver
 			}
 		} else {
 			$err = oci_error($this->connection);
-			throw new Dibi\DriverException($err['message'], $err['code'], $sql);
+			throw new Dibi\DriverException($err['message'] ?? 'Unknown error', $err['code'] ?? 0, $sql);
 		}
 
 		return null;
 	}
 
 
-	public static function createException(string $message, $code, string $sql): Dibi\DriverException
+	public static function createException(string $message, int|string $code, string $sql): Dibi\DriverException
 	{
-		if (in_array($code, [1, 2299, 38911], true)) {
+		if (in_array($code, [1, 2299, 38911], strict: true)) {
 			return new Dibi\UniqueConstraintViolationException($message, $code, $sql);
 
-		} elseif (in_array($code, [1400], true)) {
+		} elseif (in_array($code, [1400], strict: true)) {
 			return new Dibi\NotNullConstraintViolationException($message, $code, $sql);
 
-		} elseif (in_array($code, [2266, 2291, 2292], true)) {
+		} elseif (in_array($code, [2266, 2291, 2292], strict: true)) {
 			return new Dibi\ForeignKeyConstraintViolationException($message, $code, $sql);
 
 		} else {
@@ -133,7 +136,7 @@ class OracleDriver implements Dibi\Driver
 	 */
 	public function getInsertId(?string $sequence): ?int
 	{
-		$row = $this->query("SELECT $sequence.CURRVAL AS ID FROM DUAL")->fetch(true);
+		$row = ($this->query("SELECT $sequence.CURRVAL AS ID FROM DUAL") ?? throw new \LogicException('Unexpected null result.'))->fetch(true);
 		return isset($row['ID']) ? Dibi\Helpers::intVal($row['ID']) : null;
 	}
 
@@ -155,7 +158,7 @@ class OracleDriver implements Dibi\Driver
 	{
 		if (!oci_commit($this->connection)) {
 			$err = oci_error($this->connection);
-			throw new Dibi\DriverException($err['message'], $err['code']);
+			throw new Dibi\DriverException($err['message'] ?? 'Unknown error', $err['code'] ?? 0);
 		}
 
 		$this->autocommit = true;
@@ -170,7 +173,7 @@ class OracleDriver implements Dibi\Driver
 	{
 		if (!oci_rollback($this->connection)) {
 			$err = oci_error($this->connection);
-			throw new Dibi\DriverException($err['message'], $err['code']);
+			throw new Dibi\DriverException($err['message'] ?? 'Unknown error', $err['code'] ?? 0);
 		}
 
 		$this->autocommit = true;

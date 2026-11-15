@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -77,7 +75,7 @@ class SqliteResult implements Dibi\ResultDriver
 				'name' => $this->resultSet->columnName($i),
 				'table' => null,
 				'fullname' => $this->resultSet->columnName($i),
-				'nativetype' => $types[$this->resultSet->columnType($i)] ?? null, // buggy in PHP 7.4.4 & 7.3.16, bug 79414
+				'nativetype' => $types[$this->resultSet->columnType($i)] ?? '',
 			];
 		}
 

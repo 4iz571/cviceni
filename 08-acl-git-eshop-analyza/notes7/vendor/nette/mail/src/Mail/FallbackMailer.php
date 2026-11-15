@@ -1,43 +1,31 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Mail;
 
 use Nette;
 
 
+/**
+ * Tries multiple mailers in sequence with retries; throws FallbackMailerException only when all attempts fail.
+ */
 class FallbackMailer implements Mailer
 {
-	use Nette\SmartObject;
-
-	/** @var callable[]  function (FallbackMailer $sender, SendException $e, Mailer $mailer, Message $mail): void */
-	public $onFailure;
-
-	/** @var Mailer[] */
-	private $mailers;
-
-	/** @var int */
-	private $retryCount;
-
-	/** @var int in miliseconds */
-	private $retryWaitTime;
+	/** @var array<callable(static, SendException, Mailer, Message): void> */
+	public array $onFailure = [];
 
 
-	/**
-	 * @param Mailer[]  $mailers
-	 * @param int  $retryWaitTime in miliseconds
-	 */
-	public function __construct(array $mailers, int $retryCount = 3, int $retryWaitTime = 1000)
-	{
-		$this->mailers = $mailers;
-		$this->retryCount = $retryCount;
-		$this->retryWaitTime = $retryWaitTime;
+	public function __construct(
+		/** @var list<Mailer> */
+		private array $mailers,
+		private readonly int $retryCount = 3,
+		/** in milliseconds */
+		private readonly int $retryWaitTime = 1000,
+	) {
 	}
 
 
@@ -52,19 +40,27 @@ class FallbackMailer implements Mailer
 		}
 
 		$failures = [];
-		for ($i = 0; $i < $this->retryCount; $i++) {
+		$candidates = $this->mailers; // mailers still worth another attempt
+
+		for ($i = 0; $i < $this->retryCount && $candidates; $i++) {
 			if ($i > 0) {
 				usleep($this->retryWaitTime * 1000);
 			}
 
-			foreach ($this->mailers as $mailer) {
+			foreach ($candidates as $key => $mailer) {
 				try {
 					$mailer->send($mail);
 					return;
 
 				} catch (SendException $e) {
 					$failures[] = $e;
-					$this->onFailure($this, $e, $mailer, $mail);
+					Nette\Utils\Arrays::invoke($this->onFailure, $this, $e, $mailer, $mail);
+
+					if ($e->isPermanent()) {
+						// the server has already made up its mind (a 5xx reply, bad credentials);
+						// asking it the same thing again only delays the fallback
+						unset($candidates[$key]);
+					}
 				}
 			}
 		}
@@ -75,8 +71,7 @@ class FallbackMailer implements Mailer
 	}
 
 
-	/** @return static */
-	public function addMailer(Mailer $mailer)
+	public function addMailer(Mailer $mailer): static
 	{
 		$this->mailers[] = $mailer;
 		return $this;

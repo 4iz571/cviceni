@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
@@ -32,7 +30,8 @@ final class Method
 
 
 	/**
-	 * @param  string|array{object|string, string}|\Closure  $method
+	 * Creates an instance from a method name, callable array, or closure reflection.
+	 * @param  string|array{object|string, string}|(\Closure(): mixed)  $method
 	 */
 	public static function from(string|array|\Closure $method): static
 	{
@@ -86,6 +85,7 @@ final class Method
 
 
 	/**
+	 * Adds a constructor-promoted parameter. If it already exists, overwrites it.
 	 * @param  string  $name without $
 	 */
 	public function addPromotedParameter(string $name, mixed $defaultValue = null): PromotedParameter

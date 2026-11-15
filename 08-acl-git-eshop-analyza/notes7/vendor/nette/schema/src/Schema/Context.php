@@ -1,40 +1,44 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Schema;
 
-use Nette;
+use function count;
 
 
+/**
+ * Accumulates errors and warnings during schema validation and tracks the current path.
+ */
 final class Context
 {
-	use Nette\SmartObject;
+	public bool $skipDefaults = false;
 
-	/** @var bool */
-	public $skipDefaults = false;
+	/**
+	 * @internal path at which a null is not coerced to an empty value, because the enclosing anyOf() accepts it
+	 * @var ?list<int|string>
+	 */
+	public ?array $keepNullAt = null;
 
-	/** @var string[] */
-	public $path = [];
+	/** @var list<int|string> */
+	public array $path = [];
 
-	/** @var bool */
-	public $isKey = false;
+	public bool $isKey = false;
 
-	/** @var Message[] */
-	public $errors = [];
+	/** @var list<Message> */
+	public array $errors = [];
 
-	/** @var Message[] */
-	public $warnings = [];
+	/** @var list<Message> */
+	public array $warnings = [];
 
-	/** @var array[] */
-	public $dynamics = [];
+	/** @var list<array{DynamicParameter, string, list<int|string>}> */
+	public array $dynamics = [];
 
 
+	/** @param  array<string, mixed>  $variables */
 	public function addError(string $message, string $code, array $variables = []): Message
 	{
 		$variables['isKey'] = $this->isKey;
@@ -42,18 +46,21 @@ final class Context
 	}
 
 
+	/** @param  array<string, mixed>  $variables */
 	public function addWarning(string $message, string $code, array $variables = []): Message
 	{
+		$variables['isKey'] = $this->isKey;
 		return $this->warnings[] = new Message($message, $code, $this->path, $variables);
 	}
 
 
-	/** @return \Closure(): bool */
+	/**
+	 * Returns a closure that returns true as long as no new errors have been added since the call.
+	 * @return \Closure(): bool
+	 */
 	public function createChecker(): \Closure
 	{
 		$count = count($this->errors);
-		return function () use ($count): bool {
-			return $count === count($this->errors);
-		};
+		return fn(): bool => $count === count($this->errors);
 	}
 }

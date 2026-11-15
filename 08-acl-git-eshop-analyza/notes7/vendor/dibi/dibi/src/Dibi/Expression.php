@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
@@ -15,15 +13,17 @@ namespace Dibi;
  */
 class Expression
 {
+	/** @var list<mixed> */
 	private readonly array $values;
 
 
-	public function __construct(...$values)
+	public function __construct(mixed ...$values)
 	{
-		$this->values = $values;
+		$this->values = array_values($values);
 	}
 
 
+	/** @return list<mixed> */
 	public function getValues(): array
 	{
 		return $this->values;

@@ -1,19 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * Nette Forms containers example.
  */
 
-declare(strict_types=1);
 
-
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
 use Nette\Forms\Form;
-use Tracy\Debugger;
-use Tracy\Dumper;
+use Tracy\{Debugger, Dumper};
 
 Debugger::enable();
 

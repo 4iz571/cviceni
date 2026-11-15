@@ -1,15 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\DI\Definitions;
-
-use Nette;
 
 
 /**
@@ -17,20 +13,18 @@ use Nette;
  */
 final class Reference
 {
-	use Nette\SmartObject;
-
 	public const Self = 'self';
 
 	/** @deprecated use Reference::Self */
 	public const SELF = self::Self;
 
-	/** @var string */
-	private $value;
 
-
-	public static function fromType(string $value): self
+	/**
+	 * Creates a type-based reference (resolved by class name rather than service name).
+	 */
+	public static function fromType(string $value): static
 	{
-		if (strpos($value, '\\') === false) {
+		if (!str_contains($value, '\\')) {
 			$value = '\\' . $value;
 		}
 
@@ -38,9 +32,9 @@ final class Reference
 	}
 
 
-	public function __construct(string $value)
-	{
-		$this->value = $value;
+	public function __construct(
+		private readonly string $value,
+	) {
 	}
 
 
@@ -52,13 +46,13 @@ final class Reference
 
 	public function isName(): bool
 	{
-		return strpos($this->value, '\\') === false && $this->value !== self::Self;
+		return !str_contains($this->value, '\\') && $this->value !== self::Self;
 	}
 
 
 	public function isType(): bool
 	{
-		return strpos($this->value, '\\') !== false;
+		return str_contains($this->value, '\\');
 	}
 
 

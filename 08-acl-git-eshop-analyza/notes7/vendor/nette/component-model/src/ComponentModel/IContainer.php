@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\ComponentModel;
 
@@ -13,15 +11,14 @@ use Nette;
 
 
 /**
- * Containers are objects that logically contain zero or more IComponent components.
+ * Defines functionality for objects that can contain other components.
  */
 interface IContainer extends IComponent
 {
 	/**
 	 * Adds the component to the container.
-	 * @return static
 	 */
-	function addComponent(IComponent $component, ?string $name);
+	function addComponent(IComponent $component, ?string $name): static;
 
 	/**
 	 * Removes the component from the container.
@@ -35,8 +32,8 @@ interface IContainer extends IComponent
 	function getComponent(string $name): ?IComponent;
 
 	/**
-	 * Iterates over descendants components.
-	 * @return \Iterator<int|string,IComponent>
+	 * Returns immediate child components.
+	 * @return IComponent[]
 	 */
-	function getComponents(): \Iterator;
+	function getComponents(): array;
 }

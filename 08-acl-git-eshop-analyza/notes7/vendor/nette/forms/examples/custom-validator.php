@@ -1,19 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * Nette Forms custom validator example.
  */
 
-declare(strict_types=1);
 
-
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
 use Nette\Forms\Form;
-use Tracy\Debugger;
-use Tracy\Dumper;
+use Tracy\{Debugger, Dumper};
 
 Debugger::enable();
 
@@ -49,7 +46,7 @@ if ($form->isSuccess()) {
 <meta charset="utf-8">
 <title>Nette Forms custom validator example</title>
 <link rel="stylesheet" media="screen" href="assets/style.css" />
-<script src="https://unpkg.com/nette-forms@3/src/assets/netteForms.js"></script>
+<script src="https://unpkg.com/nette-forms@3"></script>
 
 <script>
 	Nette.validators.MyValidators_divisibilityValidator = function(elem, args, val) {

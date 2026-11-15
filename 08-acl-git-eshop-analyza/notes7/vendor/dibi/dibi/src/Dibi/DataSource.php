@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
@@ -22,8 +20,14 @@ class DataSource implements IDataSource
 	private ?Result $result = null;
 	private ?int $count = null;
 	private ?int $totalCount = null;
+
+	/** @var array<?string>  column name => alias */
 	private array $cols = [];
+
+	/** @var array<string>  column name => direction */
 	private array $sorting = [];
+
+	/** @var list<array<mixed>> */
 	private array $conds = [];
 	private ?int $offset = null;
 	private ?int $limit = null;
@@ -43,7 +47,7 @@ class DataSource implements IDataSource
 
 	/**
 	 * Selects columns to query.
-	 * @param  string|array  $col  column name or array of column names
+	 * @param  string|array<?string>  $col  column name or array of column names
 	 * @param  string  $as        column alias
 	 */
 	public function select(string|array $col, ?string $as = null): static
@@ -62,7 +66,7 @@ class DataSource implements IDataSource
 	/**
 	 * Adds conditions to query.
 	 */
-	public function where($cond): static
+	public function where(mixed $cond): static
 	{
 		$this->conds[] = is_array($cond)
 			? $cond // TODO: not consistent with select and orderBy
@@ -74,7 +78,7 @@ class DataSource implements IDataSource
 
 	/**
 	 * Selects columns to order by.
-	 * @param  string|array  $row  column name or array of column names
+	 * @param  string|array<string>  $row  column name or array of column names
 	 */
 	public function orderBy(string|array $row, string $direction = 'ASC'): static
 	{
@@ -150,6 +154,7 @@ class DataSource implements IDataSource
 
 	/**
 	 * Fetches all records from table.
+	 * @return list<Row|mixed[]>
 	 */
 	public function fetchAll(): array
 	{
@@ -159,6 +164,7 @@ class DataSource implements IDataSource
 
 	/**
 	 * Fetches all records from table and returns associative tree.
+	 * @return mixed[]
 	 */
 	public function fetchAssoc(string $assoc): array
 	{
@@ -168,6 +174,7 @@ class DataSource implements IDataSource
 
 	/**
 	 * Fetches all records from table like $key => $value pairs.
+	 * @return mixed[]
 	 */
 	public function fetchPairs(?string $key = null, ?string $value = null): array
 	{
@@ -231,6 +238,7 @@ class DataSource implements IDataSource
 
 	/**
 	 * Returns the number of rows in a given data source.
+	 * @return int<0, max>
 	 */
 	public function count(): int
 	{
@@ -242,7 +250,7 @@ class DataSource implements IDataSource
 				: $this->getTotalCount();
 		}
 
-		return $this->count;
+		return max(0, $this->count);
 	}
 
 

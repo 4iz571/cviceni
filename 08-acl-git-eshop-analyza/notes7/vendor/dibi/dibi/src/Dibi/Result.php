@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.nette.org)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
@@ -22,18 +20,20 @@ class Result implements IDataSource
 {
 	private ?ResultDriver $driver;
 
-	/** Translate table */
+	/** @var array<?string>  column name => Type constant */
 	private array $types = [];
 	private ?Reflection\Result $meta;
 
 	/** Already fetched? Used for allowance for first seek(0) */
 	private bool $fetched = false;
 
-	/** returned object class */
+	/** @var ?class-string<Row> */
 	private ?string $rowClass = Row::class;
 
-	/** @var callable|null  returned object factory */
-	private $rowFactory;
+	/** @var ?\Closure(mixed[]): mixed */
+	private ?\Closure $rowFactory = null;
+
+	/** @var array<string, ?string>  Type constant => format string */
 	private array $formats = [];
 
 
@@ -92,7 +92,7 @@ class Result implements IDataSource
 	 */
 	final public function count(): int
 	{
-		return $this->getResultDriver()->getRowCount();
+		return max(0, $this->getResultDriver()->getRowCount());
 	}
 
 
@@ -128,6 +128,7 @@ class Result implements IDataSource
 
 	/**
 	 * Set fetched object class. This class should extend the Row class.
+	 * @param ?class-string<Row>  $class
 	 */
 	public function setRowClass(?string $class): static
 	{
@@ -138,6 +139,7 @@ class Result implements IDataSource
 
 	/**
 	 * Returns fetched object class name.
+	 * @return ?class-string<Row>
 	 */
 	public function getRowClass(): ?string
 	{
@@ -147,10 +149,11 @@ class Result implements IDataSource
 
 	/**
 	 * Set a factory to create fetched object instances. These should extend the Row class.
+	 * @param  callable(mixed[]): mixed  $callback
 	 */
 	public function setRowFactory(callable $callback): static
 	{
-		$this->rowFactory = $callback;
+		$this->rowFactory = $callback(...);
 		return $this;
 	}
 
@@ -197,12 +200,12 @@ class Result implements IDataSource
 
 	/**
 	 * Fetches all records from table.
-	 * @return Row[]|array[]
+	 * @return list<Row|mixed[]>
 	 */
 	final public function fetchAll(?int $offset = null, ?int $limit = null): array
 	{
 		$limit ??= -1;
-		$this->seek($offset ?: 0);
+		$this->seek($offset ?? 0);
 		$row = $this->fetch();
 		if (!$row) {
 			return [];  // empty result set
@@ -229,6 +232,7 @@ class Result implements IDataSource
 	 *   builds a tree:          $tree[$val1][$index][$val2]->col3[$val3] = {record}
 	 * - associative descriptor: col1|col2->col3=col4
 	 *   builds a tree:          $tree[$val1][$val2]->col3[$val3] = val4
+	 * @return array<mixed>
 	 * @throws \InvalidArgumentException
 	 */
 	final public function fetchAssoc(string $assoc): array
@@ -244,9 +248,10 @@ class Result implements IDataSource
 		}
 
 		$data = null;
+		$origAssoc = $assoc;
 		$assoc = preg_split('#(\[\]|->|=|\|)#', $assoc, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 		if (!$assoc) {
-			throw new \InvalidArgumentException("Invalid descriptor '$assoc'.");
+			throw new \InvalidArgumentException("Invalid descriptor '$origAssoc'.");
 		}
 
 		// check columns
@@ -297,13 +302,15 @@ class Result implements IDataSource
 		} while ($row = $this->fetch());
 
 		unset($x);
-		/** @var mixed[] $data */
 		return $data;
 	}
 
 
-	/** @deprecated */
-	private function oldFetchAssoc(string $assoc)
+	/**
+	 * @deprecated
+	 * @return array<mixed>
+	 */
+	private function oldFetchAssoc(string $assoc): array
 	{
 		$this->seek(0);
 		$row = $this->fetch();
@@ -364,12 +371,13 @@ class Result implements IDataSource
 		} while ($row = $this->fetch());
 
 		unset($x);
-		return $data;
+		return $data ?? [];
 	}
 
 
 	/**
 	 * Fetches all records from table like $key => $value pairs.
+	 * @return mixed[]
 	 * @throws \InvalidArgumentException
 	 */
 	final public function fetchPairs(?string $key = null, ?string $value = null): array
@@ -439,13 +447,14 @@ class Result implements IDataSource
 			foreach ($this->getResultDriver()->getResultColumns() as $col) {
 				$this->types[$col['name']] = $col['type'] ?? $cache->{$col['nativetype']};
 			}
-		} catch (NotSupportedException $e) {
+		} catch (NotSupportedException) {
 		}
 	}
 
 
 	/**
 	 * Converts values to specified type and format.
+	 * @param  mixed[]  $row
 	 */
 	private function normalize(array &$row): void
 	{
@@ -455,7 +464,7 @@ class Result implements IDataSource
 			}
 
 			$value = $row[$key];
-			$format = $this->formats[$type] ?? null;
+			$format = $this->formats[$type ?? ''] ?? null;
 
 			if ($type === null || $format === 'native') {
 				$row[$key] = $value;
@@ -532,7 +541,7 @@ class Result implements IDataSource
 
 	/**
 	 * Define column type.
-	 * @param  string|null  $type  use constant Type::*
+	 * @param  ?string  $type  use constant Type::*
 	 */
 	final public function setType(string $column, ?string $type): static
 	{
@@ -552,6 +561,7 @@ class Result implements IDataSource
 
 	/**
 	 * Returns columns type.
+	 * @return array<?string>
 	 */
 	final public function getTypes(): array
 	{
@@ -571,6 +581,7 @@ class Result implements IDataSource
 
 	/**
 	 * Sets type formats.
+	 * @param  array<string, ?string>  $formats
 	 */
 	final public function setFormats(array $formats): static
 	{

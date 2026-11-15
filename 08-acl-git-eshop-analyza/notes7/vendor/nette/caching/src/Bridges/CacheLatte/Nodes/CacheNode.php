@@ -1,20 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Latte (https://latte.nette.org)
  * Copyright (c) 2008 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Bridges\CacheLatte\Nodes;
 
-use Latte\Compiler\Nodes\AreaNode;
+use Latte\Compiler\Nodes\{AreaNode, StatementNode};
 use Latte\Compiler\Nodes\Php\Expression\ArrayNode;
-use Latte\Compiler\Nodes\StatementNode;
-use Latte\Compiler\Position;
-use Latte\Compiler\PrintContext;
-use Latte\Compiler\Tag;
+use Latte\Compiler\{Position, PrintContext, Tag};
 
 
 /**
@@ -27,10 +22,10 @@ class CacheNode extends StatementNode
 	public ?Position $endLine;
 
 
-	/** @return \Generator<int, ?array, array{AreaNode, ?Tag}, static> */
+	/** @return \Generator<int, ?list<string>, array{AreaNode, ?Tag}, static> */
 	public static function create(Tag $tag): \Generator
 	{
-		$node = new static;
+		$node = $tag->node = new static;
 		$node->args = $tag->parser->parseArguments();
 		[$node->content, $endTag] = yield;
 		$node->endLine = $endTag?->position;

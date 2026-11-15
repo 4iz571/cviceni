@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms\Controls;
 
 use Nette;
+use Stringable;
 
 
 /**
@@ -17,10 +16,7 @@ use Nette;
  */
 class TextArea extends TextBase
 {
-	/**
-	 * @param  string|object  $label
-	 */
-	public function __construct($label = null)
+	public function __construct(string|Stringable|null $label = null)
 	{
 		parent::__construct($label);
 		$this->control->setName('textarea');
