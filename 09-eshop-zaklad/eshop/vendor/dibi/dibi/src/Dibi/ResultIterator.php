@@ -1,17 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi;
 
 
 /**
  * External result set iterator.
+ * @implements \Iterator<int, Row|mixed[]>
  */
 class ResultIterator implements \Iterator, \Countable
 {
@@ -39,7 +38,6 @@ class ResultIterator implements \Iterator, \Countable
 	/**
 	 * Returns the key of the current element.
 	 */
-	#[\ReturnTypeWillChange]
 	public function key(): mixed
 	{
 		return $this->pointer;
@@ -49,7 +47,6 @@ class ResultIterator implements \Iterator, \Countable
 	/**
 	 * Returns the current element.
 	 */
-	#[\ReturnTypeWillChange]
 	public function current(): mixed
 	{
 		return $this->row;
@@ -77,9 +74,10 @@ class ResultIterator implements \Iterator, \Countable
 
 	/**
 	 * Required by the Countable interface.
+	 * @return int<0, max>
 	 */
 	public function count(): int
 	{
-		return $this->result->getRowCount();
+		return max(0, $this->result->getRowCount());
 	}
 }

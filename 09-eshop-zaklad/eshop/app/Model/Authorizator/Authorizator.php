@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Model\Authorization;
+namespace App\Model\Authorizator;
 
 use App\Model\Entities\Category;
 use App\Model\Entities\Permission;
 use App\Model\Facades\UsersFacade;
+use Nette\Security\Resource;
 use Nette\Security\Role;
 
 /**
@@ -20,7 +21,7 @@ class Authorizator extends \Nette\Security\Permission {
    * @param string|null $privilege
    * @return bool
    */
-  public function isAllowed($role=self::ALL, $resource=self::ALL, $privilege=self::ALL):bool {
+  public function isAllowed(string|Role|null $role=self::All, string|Resource|null $resource=self::All, ?string $privilege=self::All):bool {
 
     //TODO tady mohou být kontroly pro jednotlivé entity
     if ($resource instanceof Category){

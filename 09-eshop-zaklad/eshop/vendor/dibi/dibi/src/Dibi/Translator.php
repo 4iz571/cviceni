@@ -1,15 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Dibi;
 
-use function array_filter, array_keys, array_splice, array_values, count, explode, get_debug_type, gettype, implode, is_array, is_bool, is_float, is_int, is_numeric, is_object, is_scalar, is_string, iterator_to_array, key, ltrim, number_format, preg_last_error, preg_match, preg_replace_callback, reset, rtrim, str_contains, str_replace, strcspn, strlen, strncasecmp, strtoupper, substr, trim;
+use function count, gettype, is_array, is_bool, is_float, is_int, is_object, is_scalar, is_string, strlen;
 
 
 /**
@@ -17,9 +15,10 @@ use function array_filter, array_keys, array_splice, array_values, count, explod
  */
 final class Translator
 {
-	private readonly Connection $connection;
 	private readonly Driver $driver;
 	private int $cursor = 0;
+
+	/** @var list<mixed>  SQL arguments */
 	private array $args;
 
 	/** @var string[] */
@@ -29,12 +28,12 @@ final class Translator
 	private int $ifLevelStart = 0;
 	private ?int $limit = null;
 	private ?int $offset = null;
-	private HashMap $identifiers;
+	private readonly HashMap $identifiers;
 
 
-	public function __construct(Connection $connection)
-	{
-		$this->connection = $connection;
+	public function __construct(
+		private readonly Connection $connection,
+	) {
 		$this->driver = $connection->getDriver();
 		$this->identifiers = new HashMap($this->delimite(...));
 	}
@@ -42,6 +41,7 @@ final class Translator
 
 	/**
 	 * Generates SQL. Can be called only once.
+	 * @param  mixed[]  $args
 	 * @throws Exception
 	 */
 	public function translate(array $args): string
@@ -204,7 +204,7 @@ final class Translator
 						}
 					}
 
-					return '(' . implode(') ' . strtoupper($modifier) . ' (', $vx) . ')';
+					return '(' . implode(') ' . strtoupper($modifier ?? '') . ' (', $vx) . ')';
 
 				case 'n':  // key, key, ... identifier names
 					foreach ($value as $k => $v) {
@@ -218,7 +218,6 @@ final class Translator
 
 					return implode(', ', $vx);
 
-
 				case 'a': // key=val, key=val, ...
 					foreach ($value as $k => $v) {
 						$pair = explode('%', (string) $k, 2); // split into identifier & modifier
@@ -228,8 +227,7 @@ final class Translator
 
 					return implode(', ', $vx);
 
-
-				case 'in':// replaces scalar %in modifier!
+				case 'in': // replaces scalar %in modifier!
 				case 'l': // (val, val, ...)
 					foreach ($value as $k => $v) {
 						$pair = explode('%', (string) $k, 2); // split into identifier & modifier
@@ -237,7 +235,6 @@ final class Translator
 					}
 
 					return '(' . (($vx || $modifier === 'l') ? implode(', ', $vx) : 'NULL') . ')';
-
 
 				case 'v': // (key, key, ...) VALUES (val, val, ...)
 					foreach ($value as $k => $v) {
@@ -290,7 +287,10 @@ final class Translator
 					return implode(', ', $vx);
 
 				case 'ex!':
-					trigger_error('Use Dibi\Expression instead of array: ' . implode(', ', array_filter($value, 'is_scalar')), E_USER_WARNING);
+					trigger_error(
+						'Use Dibi\Expression instead of array: ' . implode(', ', array_filter($value, is_scalar(...))),
+						E_USER_WARNING,
+					);
 					// break omitted
 				case 'ex':
 				case 'sql':
@@ -348,7 +348,7 @@ final class Translator
 						? 'NULL'
 						: $this->driver->escapeText((string) $value);
 
-				case 'bin':// binary
+				case 'bin': // binary
 					return $value === null
 						? 'NULL'
 						: $this->driver->escapeBinary($value);
@@ -382,7 +382,6 @@ final class Translator
 					} else {
 						return (string) (int) $value;
 					}
-					// break omitted
 				case 'f':  // float
 					if ($value === null) {
 						return 'NULL';
@@ -395,7 +394,6 @@ final class Translator
 					} else {
 						return rtrim(rtrim(number_format($value + 0, 10, '.', ''), '0'), '.');
 					}
-					// break omitted
 				case 'd':  // date
 				case 't':  // datetime
 				case 'dt': // datetime
@@ -511,6 +509,7 @@ final class Translator
 
 	/**
 	 * PREG callback from translate() or formatValue().
+	 * @param  array<int, string>  $matches
 	 */
 	private function cb(array $matches): string
 	{

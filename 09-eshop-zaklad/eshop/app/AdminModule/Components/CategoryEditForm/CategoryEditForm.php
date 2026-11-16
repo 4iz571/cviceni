@@ -38,7 +38,7 @@ class CategoryEditForm extends Form{
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    */
-  public function __construct(CategoriesFacade $categoriesFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(CategoriesFacade $categoriesFacade, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->setRenderer(new Bs4FormRenderer(FormLayout::VERTICAL));
     $this->categoriesFacade=$categoriesFacade;
@@ -82,7 +82,7 @@ class CategoryEditForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults($values, bool $erase = false):static {
     if ($values instanceof Category){
       $values = [
         'categoryId'=>$values->categoryId,

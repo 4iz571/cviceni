@@ -1,13 +1,11 @@
-<?php
-declare(strict_types=1);
-?>
+<?php declare(strict_types=1); ?>
 <!DOCTYPE html><link rel="stylesheet" href="data/style.css">
 
 <h1>Using Logger | Dibi</h1>
 
 <?php
 
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
@@ -31,8 +29,9 @@ try {
 	$res = $dibi->query('SELECT * FROM [customers] WHERE [customer_id] < ?', 5);
 
 	$res = $dibi->query('SELECT FROM [customers] WHERE [customer_id] < ?', 38);
+
 } catch (Dibi\Exception $e) {
-	echo '<p>', get_class($e), ': ', $e->getMessage(), '</p>';
+	echo '<p>', $e::class, ': ', $e->getMessage(), '</p>';
 }
 
 

@@ -30,9 +30,9 @@ class UserLoginControl extends Control{
    */
   public function handleLogin():never {
     if ($this->user->isLoggedIn()){
-      $this->presenter->redirect('this');
+      $this->getPresenter()->redirect('this');
     }else{
-      $this->presenter->redirect(':Front:User:login',['backlink'=>$this->presenter->storeRequest()]);
+      $this->getPresenter()->redirect(':Front:User:login',['backlink'=>$this->getPresenter()->storeRequest()]);
     }
   }
 

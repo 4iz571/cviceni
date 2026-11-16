@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
@@ -21,13 +19,11 @@ final class InterfaceType extends ClassLike
 	use Traits\MethodsAware;
 	use Traits\PropertiesAware;
 
-	/** @var string[] */
+	/** @var list<string> */
 	private array $extends = [];
 
 
-	/**
-	 * @param  string|string[]  $names
-	 */
+	/** @param string|list<string>  $names */
 	public function setExtends(string|array $names): static
 	{
 		$names = (array) $names;
@@ -37,13 +33,16 @@ final class InterfaceType extends ClassLike
 	}
 
 
-	/** @return string[] */
+	/** @return list<string> */
 	public function getExtends(): array
 	{
 		return $this->extends;
 	}
 
 
+	/**
+	 * Adds a parent interface.
+	 */
 	public function addExtend(string $name): static
 	{
 		$this->validateNames([$name]);
@@ -53,7 +52,8 @@ final class InterfaceType extends ClassLike
 
 
 	/**
-	 * Adds a member. If it already exists, throws an exception or overwrites it if $overwrite is true.
+	 * Adds a member to the interface.
+	 * @throws Nette\InvalidStateException if the member already exists and $overwrite is false
 	 */
 	public function addMember(Method|Constant|Property $member, bool $overwrite = false): static
 	{
@@ -87,9 +87,8 @@ final class InterfaceType extends ClassLike
 	public function __clone(): void
 	{
 		parent::__clone();
-		$clone = fn($item) => clone $item;
-		$this->consts = array_map($clone, $this->consts);
-		$this->methods = array_map($clone, $this->methods);
-		$this->properties = array_map($clone, $this->properties);
+		$this->consts = array_map(fn(Constant $c) => clone $c, $this->consts);
+		$this->methods = array_map(fn(Method $m) => clone $m, $this->methods);
+		$this->properties = array_map(fn(Property $p) => clone $p, $this->properties);
 	}
 }

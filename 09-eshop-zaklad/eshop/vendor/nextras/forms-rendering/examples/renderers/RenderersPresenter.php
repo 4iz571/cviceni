@@ -2,6 +2,7 @@
 
 namespace NextrasDemos\FormsRendering\Renderers;
 
+use Nette\Application\Attributes\Persistent;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Presenter;
 use Nextras\FormsRendering\Renderers\Bs3FormRenderer;
@@ -14,25 +15,25 @@ class RenderersPresenter extends Presenter
 {
 	/**
 	 * @var string
-	 * @persistent
 	 */
+	#[Persistent]
 	public $renderer = 'bs3';
 
 	/**
 	 * @var bool
-	 * @persistent
 	 */
+	#[Persistent]
 	public $showBulky = true;
 
 
-	public function actionDefault()
+	public function actionDefault(): void
 	{
 		$this->template->renderer = $this->renderer;
 		$this->template->showBulky = $this->showBulky;
 	}
 
 
-	public function createComponentForm()
+	public function createComponentForm(): Form
 	{
 		$form = new Form();
 		$form->addText('text', 'Name');

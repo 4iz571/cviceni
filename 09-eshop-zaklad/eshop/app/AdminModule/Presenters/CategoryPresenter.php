@@ -29,7 +29,7 @@ class CategoryPresenter extends BasePresenter{
   public function renderEdit(int $id):void {
     try{
       $category=$this->categoriesFacade->getCategory($id);
-    }catch (\Exception $e){
+    }catch (\Exception){
       $this->flashMessage('Požadovaná kategorie nebyla nalezena.', 'error');
       $this->redirect('default');
     }
@@ -46,7 +46,7 @@ class CategoryPresenter extends BasePresenter{
   public function actionDelete(int $id):void {
     try{
       $category=$this->categoriesFacade->getCategory($id);
-    }catch (\Exception $e){
+    }catch (\Exception){
       $this->flashMessage('Požadovaná kategorie nebyla nalezena.', 'error');
       $this->redirect('default');
     }

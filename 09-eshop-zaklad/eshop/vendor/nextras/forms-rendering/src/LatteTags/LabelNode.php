@@ -1,0 +1,53 @@
+<?php declare(strict_types = 1);
+
+/**
+ * This file is part of the Nextras community extensions of Nette Framework
+ *
+ * @license    MIT
+ * @link       https://github.com/nextras/forms-rendering
+ */
+
+namespace Nextras\FormsRendering\LatteTags;
+
+use Latte\Compiler\Nodes\Php\Scalar\StringNode;
+use Latte\Compiler\PrintContext;
+use Nette\Bridges\FormsLatte\Nodes\LabelNode as NetteLabelNode;
+use Nette\Forms\Controls\BaseControl;
+use Nette\Utils\Html;
+
+
+/**
+ * These are fake properties to satisfy PHPStan, at least one of them
+ * should exist depending on the versions of installed dependencies.
+ * TODO: Drop these once we no longer support forms < 3.3.
+ * @property-read array<mixed> $tagRanges
+ * @property-read mixed $endLine
+ */
+abstract class LabelNode extends NetteLabelNode
+{
+	public function print(PrintContext $context): string
+	{
+		return $context->format(
+			($this->name instanceof StringNode
+				? 'if ($ʟ_label = ($ʟ_input = end($this->global->formsStack)[%node])->'
+				: '$ʟ_input = is_object($ʟ_tmp = %node) ? $ʟ_tmp : end($this->global->formsStack)[$ʟ_tmp]; if ($ʟ_label = $ʟ_input->')
+			. ($this->part ? ('getLabelPart(%node)') : 'getLabel()')
+			. ') echo ' . static::class . '::label($ʟ_label'
+			. ($this->attributes->items ? '->addAttributes(%2.node)' : '')
+			. ($this->void ? ' %3.line, $ʟ_input, %1.dump);' : '->startTag() %3.line, $ʟ_input, %1.dump); %4.node if ($ʟ_label) echo $ʟ_label->endTag() %5.line;'),
+			$this->name,
+			$this->part !== null,
+			$this->attributes,
+			$this->position,
+			$this->content,
+			// TODO: Drop the `endLine` support once we no longer support forms < 3.3.
+			isset($this->endLine) ? $this->endLine : end($this->tagRanges),
+		);
+	}
+
+
+	public static function label(Html $label, BaseControl $control, bool $isSubItem): Html
+	{
+		return $label;
+	}
+}

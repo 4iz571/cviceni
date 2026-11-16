@@ -1,60 +1,39 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Security;
-
-use Nette;
 
 
 /**
- * Trivial implementation of Authenticator.
+ * Trivial implementation of Authenticator. Passwords may be stored in plain text
+ * or as crypt-format hashes (e.g. from password_hash()); the format is detected automatically.
  */
 class SimpleAuthenticator implements Authenticator
 {
-	use Nette\SmartObject;
-
-	/** @var array */
-	private $passwords;
-
-	/** @var array */
-	private $roles;
-
-	/** @var array */
-	private $data;
-
-
-	/**
-	 * @param  array  $passwords list of pairs username => password
-	 * @param  array  $roles list of pairs username => role[]
-	 * @param  array  $data list of pairs username => mixed[]
-	 */
 	public function __construct(
+		/** @var array<string, string>  username => password or crypt-format hash */
 		#[\SensitiveParameter]
-		array $passwords,
-		array $roles = [],
-		array $data = []
+		private readonly array $passwords,
+		/** @var array<string, string|list<string>|null> */
+		private readonly array $roles = [],
+		/** @var array<string, array<string, mixed>> */
+		private readonly array $data = [],
 	) {
-		$this->passwords = $passwords;
-		$this->roles = $roles;
-		$this->data = $data;
 	}
 
 
 	/**
-	 * Performs an authentication against e.g. database.
-	 * and returns IIdentity on success or throws AuthenticationException
+	 * Authenticates against the in-memory list of users (case-insensitive username).
 	 * @throws AuthenticationException
 	 */
 	public function authenticate(
 		string $username,
 		#[\SensitiveParameter]
-		string $password
+		string $password,
 	): IIdentity
 	{
 		foreach ($this->passwords as $name => $pass) {
@@ -73,6 +52,9 @@ class SimpleAuthenticator implements Authenticator
 
 	protected function verifyPassword(string $password, string $passOrHash): bool
 	{
-		return $password === $passOrHash;
+		// the crypt-format '$ident$' prefix + length marks a hash; unknown algorithms fail closed in password_verify()
+		return preg_match('~^\$[^$]+\$.{20,}~', $passOrHash)
+			? password_verify($password, $passOrHash)
+			: hash_equals($passOrHash, $password);
 	}
 }

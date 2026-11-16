@@ -1,16 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Loggers;
 
 use Dibi;
-use function sprintf;
 use const FILE_APPEND, LOCK_EX;
 
 
@@ -48,15 +45,16 @@ class FileLogger
 			$this->writeToFile(
 				$event,
 				"ERROR: $message"
-					. "\n-- SQL: " . $event->sql,
+				. "\n-- SQL: " . $event->sql,
 			);
+
 		} else {
 			$this->writeToFile(
 				$event,
 				'OK: ' . $event->sql
-					. ($event->count ? ";\n-- rows: " . $event->count : '')
-					. "\n-- takes: " . sprintf('%0.3f ms', $event->time * 1000)
-					. "\n-- source: " . implode(':', $event->source),
+				. ($event->count ? ";\n-- rows: " . $event->count : '')
+				. "\n-- takes: " . sprintf('%0.3f ms', $event->time * 1000)
+				. "\n-- source: " . implode(':', $event->source ?? []),
 			);
 		}
 	}

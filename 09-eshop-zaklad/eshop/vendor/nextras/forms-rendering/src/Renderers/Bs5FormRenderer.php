@@ -9,9 +9,11 @@
 
 namespace Nextras\FormsRendering\Renderers;
 
+use Nette\Forms\Container;
+use Nette\Forms\Control;
+use Nette\Forms\ControlGroup;
 use Nette\Forms\Controls;
 use Nette\Forms\Form;
-use Nette\Forms\IControl;
 use Nette\Forms\Rendering\DefaultFormRenderer;
 use Nette\Utils\Html;
 
@@ -21,7 +23,7 @@ use Nette\Utils\Html;
  */
 class Bs5FormRenderer extends DefaultFormRenderer
 {
-	/** @var Controls\Button */
+	/** @var Controls\Button|null */
 	public $primaryButton;
 
 	/** @var bool */
@@ -31,7 +33,10 @@ class Bs5FormRenderer extends DefaultFormRenderer
 	private $layout;
 
 
-	public function __construct($layout = FormLayout::HORIZONTAL)
+	/**
+	 * @param FormLayout::* $layout
+	 */
+	public function __construct(string $layout = FormLayout::HORIZONTAL)
 	{
 		$this->layout = $layout;
 
@@ -62,9 +67,9 @@ class Bs5FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function render(Form $form, string $mode = null): string
+	public function render(Form $form, ?string $mode = null): string
 	{
-		if ($this->form !== $form) {
+		if (!isset($this->form) || $this->form !== $form) {
 			$this->controlsInit = false;
 		}
 
@@ -92,7 +97,9 @@ class Bs5FormRenderer extends DefaultFormRenderer
 		return parent::renderBody();
 	}
 
-
+	/**
+	 * @param Container|ControlGroup $parent
+	 */
 	public function renderControls($parent): string
 	{
 		$this->controlsInit();
@@ -100,7 +107,7 @@ class Bs5FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function renderPair(IControl $control): string
+	public function renderPair(Control $control): string
 	{
 		$this->controlsInit();
 		return parent::renderPair($control);
@@ -114,21 +121,21 @@ class Bs5FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function renderLabel(IControl $control): Html
+	public function renderLabel(Control $control): Html
 	{
 		$this->controlsInit();
 		return parent::renderLabel($control);
 	}
 
 
-	public function renderControl(IControl $control): Html
+	public function renderControl(Control $control): Html
 	{
 		$this->controlsInit();
 		return parent::renderControl($control);
 	}
 
 
-	private function controlsInit()
+	private function controlsInit(): void
 	{
 		if ($this->controlsInit) {
 			return;
@@ -144,32 +151,38 @@ class Bs5FormRenderer extends DefaultFormRenderer
 		}
 
 		foreach ($this->form->getControls() as $control) {
-			if ($this->layout === FormLayout::INLINE) {
+			if ($this->layout === FormLayout::INLINE && method_exists($control, 'getLabelPrototype')) {
 				// Unfortunately, the aforementioned solution does not seem to expect labels
 				// so we need to add some hacks. Notably, `.form-control`, `.form-select` and
 				// others add `display: block`, forcing the control onto a next line.
 				// The checkboxes are exception since they have their own inline class.
 
-				if (!$control instanceof Controls\Checkbox && !$control instanceof Controls\CheckboxList && !$control instanceof Controls\RadioList) {
-					$control->getControlPrototype()->addClass('d-inline-block');
+				if (!$control instanceof Controls\Checkbox && !$control instanceof Controls\CheckboxList && !$control instanceof Controls\RadioList && method_exists($control, 'getControlPrototype')) {
+					$controlPrototype = $control->getControlPrototype();
+					\assert($controlPrototype instanceof Html); // For PHPStan
+
+					$controlPrototype->addClass('d-inline-block');
 
 					// But setting `display: inline-block` is not enough since the widgets will inherit
 					// `width: 100%` from `.form-control` and end up wrapped anyway.
 					// Let’s counter that using `width: auto`.
-					$control->getControlPrototype()->addClass('w-auto');
+					$controlPrototype->addClass('w-auto');
 					if ($control instanceof Controls\TextBase && $control->control->type === 'color') {
 						// `input[type=color]` is a special case since `width: auto` would make it squish.
-						$control->getControlPrototype()->addStyle('min-width', '3rem');
+						$controlPrototype->addStyle('min-width', '3rem');
 					}
 				}
 
+				$labelPrototype = $control->getLabelPrototype();
+				\assert($labelPrototype instanceof Html); // For PHPStan
+
 				// Also, we need to add some spacing between the label and the control.
-				$control->getLabelPrototype()->addClass('me-2');
+				$labelPrototype->addClass('me-2');
 			}
 
 			if ($control instanceof Controls\Button) {
 				// Mark first form button (or the one provided) as primary.
-				$markAsPrimary = $control === $this->primaryButton || (!isset($this->primaryButton) && $control->parent instanceof Form);
+				$markAsPrimary = $control === $this->primaryButton || (!isset($this->primaryButton) && $control->getParent() instanceof Form);
 				if ($markAsPrimary) {
 					$class = 'btn btn-primary';
 					$this->primaryButton = $control;
@@ -197,7 +210,8 @@ class Bs5FormRenderer extends DefaultFormRenderer
 				$control->getControlPrototype()->addClass('form-check-input');
 
 				// They also need to be individually wrapped in `div.form-check`.
-				$control->getSeparatorPrototype()
+				$wrapper = $control instanceof Controls\Checkbox ? $control->getContainerPrototype() : $control->getSeparatorPrototype();
+				$wrapper
 					->setName('div')
 					->appendAttribute('class', 'form-check')
 					// They support being displayed inline with `.form-check-inline`.

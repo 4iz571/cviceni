@@ -1,17 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
 use Dibi\Helpers;
-use function is_resource;
+use function extension_loaded, ini_get, is_resource;
 
 
 /**
@@ -22,7 +20,7 @@ use function is_resource;
  *   - username (or user)
  *   - password (or pass)
  *   - charset => character encoding to set
- *   - buffers (int) => buffers is the number of database buffers to allocate for the server-side cache. If 0 or omitted, server chooses its own default.
+ *   - buffers (int) => number of database buffers for the server-side cache; if 0 or omitted, server chooses its own default
  *   - resource (resource) => existing connection resource
  */
 class FirebirdDriver implements Dibi\Driver
@@ -40,7 +38,10 @@ class FirebirdDriver implements Dibi\Driver
 	private bool $inTransaction = false;
 
 
-	/** @throws Dibi\NotSupportedException */
+	/**
+	 * @param  array<string, mixed>  $config
+	 * @throws Dibi\NotSupportedException
+	 */
 	public function __construct(array $config)
 	{
 		if (!extension_loaded('interbase')) {
@@ -63,8 +64,8 @@ class FirebirdDriver implements Dibi\Driver
 			];
 
 			$this->connection = empty($config['persistent'])
-				? @ibase_connect($config['database'], $config['username'], $config['password'], $config['charset'], $config['buffers']) // intentionally @
-				: @ibase_pconnect($config['database'], $config['username'], $config['password'], $config['charset'], $config['buffers']); // intentionally @
+				? @ibase_connect($config['database'], $config['username'], $config['password'], $config['charset'], $config['buffers']) // @ is escalated to exception
+				: @ibase_pconnect($config['database'], $config['username'], $config['password'], $config['charset'], $config['buffers']); // @ is escalated to exception
 
 			if (!is_resource($this->connection)) {
 				throw new Dibi\DriverException(ibase_errmsg(), ibase_errcode());
@@ -89,23 +90,20 @@ class FirebirdDriver implements Dibi\Driver
 	public function query(string $sql): ?Dibi\ResultDriver
 	{
 		$resource = $this->inTransaction
-			? $this->transaction
+			? $this->transaction ?? $this->connection
 			: $this->connection;
 		$res = ibase_query($resource, $sql);
-
-		if ($res === false) {
-			if (ibase_errcode() === self::ERROR_EXCEPTION_THROWN) {
+		if (!is_resource($res)) {
+			if ((int) ibase_errcode() === self::ErrorExceptionThrown) {
 				preg_match('/exception (\d+) (\w+) (.*)/i', ibase_errmsg(), $match);
-				throw new Dibi\ProcedureException($match[3], $match[1], $match[2], $sql);
+				throw new Dibi\ProcedureException($match[3], (int) $match[1], $match[2], $sql);
 
 			} else {
-				throw new Dibi\DriverException(ibase_errmsg(), ibase_errcode(), $sql);
+				throw new Dibi\DriverException(ibase_errmsg(), (int) ibase_errcode(), $sql);
 			}
-		} elseif (is_resource($res)) {
-			return $this->createResultDriver($res);
 		}
 
-		return null;
+		return $this->createResultDriver($res);
 	}
 
 
@@ -123,7 +121,9 @@ class FirebirdDriver implements Dibi\Driver
 	 */
 	public function getInsertId(?string $sequence): ?int
 	{
-		return Helpers::false2Null(ibase_gen_id($sequence, 0, $this->connection));
+		return $sequence === null
+			? null
+			: Helpers::false2Null(ibase_gen_id($sequence, 0, $this->connection));
 	}
 
 
@@ -137,7 +137,7 @@ class FirebirdDriver implements Dibi\Driver
 			throw new Dibi\NotSupportedException('Savepoints are not supported in Firebird/Interbase.');
 		}
 
-		$this->transaction = ibase_trans($this->getResource());
+		$this->transaction = ibase_trans(IBASE_DEFAULT, $this->connection);
 		$this->inTransaction = true;
 	}
 
@@ -152,6 +152,7 @@ class FirebirdDriver implements Dibi\Driver
 			throw new Dibi\NotSupportedException('Savepoints are not supported in Firebird/Interbase.');
 		}
 
+		assert($this->transaction !== null);
 		if (!ibase_commit($this->transaction)) {
 			throw new Dibi\DriverException('Unable to handle operation - failure when commiting transaction.');
 		}
@@ -170,6 +171,7 @@ class FirebirdDriver implements Dibi\Driver
 			throw new Dibi\NotSupportedException('Savepoints are not supported in Firebird/Interbase.');
 		}
 
+		assert($this->transaction !== null);
 		if (!ibase_rollback($this->transaction)) {
 			throw new Dibi\DriverException('Unable to handle operation - failure when rolbacking transaction.');
 		}

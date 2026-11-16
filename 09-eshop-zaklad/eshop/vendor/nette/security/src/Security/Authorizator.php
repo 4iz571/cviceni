@@ -1,18 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Security;
 
 
 /**
- * Authorizator checks if a given role has authorization
- * to access a given resource.
+ * Checks whether a given role has access to a given resource.
  */
 interface Authorizator
 {
@@ -25,17 +22,19 @@ interface Authorizator
 	/** Permission type: deny */
 	public const Deny = false;
 
+	/** @deprecated use Authorizator::All */
 	public const ALL = self::All;
+
+	/** @deprecated use Authorizator::Allow */
 	public const ALLOW = self::Allow;
+
+	/** @deprecated use Authorizator::Deny */
 	public const DENY = self::Deny;
 
 	/**
 	 * Performs a role-based authorization.
-	 * @param  string|null  $role
-	 * @param  string|null  $resource
-	 * @param  string|null  $privilege
 	 */
-	function isAllowed($role, $resource, $privilege): bool;
+	function isAllowed(?string $role, ?string $resource, ?string $privilege): bool;
 }
 
 

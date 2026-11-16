@@ -28,9 +28,6 @@ class CategoriesFacade{
 
   /**
    * Metoda pro vyhledání kategorií
-   * @param array|null $params = null
-   * @param int $offset = null
-   * @param int $limit = null
    * @return Category[]
    */
   public function findCategories(?array $params=null,?int $offset=null,?int $limit=null):array {
@@ -63,7 +60,7 @@ class CategoriesFacade{
   public function deleteCategory(Category $category):bool {
     try{
       return (bool)$this->categoryRepository->delete($category);
-    }catch (\Exception $e){
+    }catch (\Exception){
       return false;
     }
   }

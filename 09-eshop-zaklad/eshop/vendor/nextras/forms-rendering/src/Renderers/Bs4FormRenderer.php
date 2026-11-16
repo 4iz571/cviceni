@@ -9,9 +9,11 @@
 
 namespace Nextras\FormsRendering\Renderers;
 
+use Nette\Forms\Container;
+use Nette\Forms\Control;
+use Nette\Forms\ControlGroup;
 use Nette\Forms\Controls;
 use Nette\Forms\Form;
-use Nette\Forms\IControl;
 use Nette\Forms\Rendering\DefaultFormRenderer;
 use Nette\Utils\Html;
 
@@ -21,7 +23,7 @@ use Nette\Utils\Html;
  */
 class Bs4FormRenderer extends DefaultFormRenderer
 {
-	/** @var Controls\Button */
+	/** @var Controls\Button|null */
 	public $primaryButton;
 
 	/** @var bool */
@@ -31,7 +33,10 @@ class Bs4FormRenderer extends DefaultFormRenderer
 	private $layout;
 
 
-	public function __construct($layout = FormLayout::HORIZONTAL)
+	/**
+	 * @param FormLayout::* $layout
+	 */
+	public function __construct(string $layout = FormLayout::HORIZONTAL)
 	{
 		$this->layout = $layout;
 
@@ -60,9 +65,9 @@ class Bs4FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function render(Form $form, string $mode = null): string
+	public function render(Form $form, ?string $mode = null): string
 	{
-		if ($this->form !== $form) {
+		if (!isset($this->form) || $this->form !== $form) {
 			$this->controlsInit = false;
 		}
 
@@ -91,6 +96,9 @@ class Bs4FormRenderer extends DefaultFormRenderer
 	}
 
 
+	/**
+	 * @param Container|ControlGroup $parent
+	 */
 	public function renderControls($parent): string
 	{
 		$this->controlsInit();
@@ -98,7 +106,7 @@ class Bs4FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function renderPair(IControl $control): string
+	public function renderPair(Control $control): string
 	{
 		$this->controlsInit();
 		return parent::renderPair($control);
@@ -112,21 +120,21 @@ class Bs4FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function renderLabel(IControl $control): Html
+	public function renderLabel(Control $control): Html
 	{
 		$this->controlsInit();
 		return parent::renderLabel($control);
 	}
 
 
-	public function renderControl(IControl $control): Html
+	public function renderControl(Control $control): Html
 	{
 		$this->controlsInit();
 		return parent::renderControl($control);
 	}
 
 
-	private function controlsInit()
+	private function controlsInit(): void
 	{
 		if ($this->controlsInit) {
 			return;
@@ -139,12 +147,15 @@ class Bs4FormRenderer extends DefaultFormRenderer
 		}
 
 		foreach ($this->form->getControls() as $control) {
-			if ($this->layout === FormLayout::INLINE && !$control instanceof Controls\Checkbox) {
-				$control->getLabelPrototype()->addClass('my-1')->addClass('mr-2');
+			if ($this->layout === FormLayout::INLINE && !$control instanceof Controls\Checkbox && method_exists($control, 'getLabelPrototype')) {
+				$labelPrototype = $control->getLabelPrototype();
+				\assert($labelPrototype instanceof Html); // For PHPStan
+
+				$labelPrototype->addClass('my-1')->addClass('mr-2');
 			}
 
 			if ($control instanceof Controls\Button) {
-				$markAsPrimary = $control === $this->primaryButton || (!isset($this->primaryButton) && empty($usedPrimary) && $control->parent instanceof Form);
+				$markAsPrimary = $control === $this->primaryButton || (!isset($this->primaryButton) && empty($usedPrimary) && $control->getParent() instanceof Form);
 				if ($markAsPrimary) {
 					$class = 'btn btn-primary';
 					$usedPrimary = true;
@@ -159,7 +170,8 @@ class Bs4FormRenderer extends DefaultFormRenderer
 			} elseif ($control instanceof Controls\Checkbox || $control instanceof Controls\CheckboxList || $control instanceof Controls\RadioList) {
 				$control->getControlPrototype()->addClass('form-check-input');
 
-				$control->getSeparatorPrototype()
+				$wrapper = $control instanceof Controls\Checkbox ? $control->getContainerPrototype() : $control->getSeparatorPrototype();
+				$wrapper
 					->setName('div')
 					->appendAttribute('class', 'form-check')
 					->appendAttribute('class', 'form-check-inline', $this->layout == FormLayout::INLINE);

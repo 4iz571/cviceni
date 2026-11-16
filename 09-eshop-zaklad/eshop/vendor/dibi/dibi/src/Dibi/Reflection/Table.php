@@ -1,16 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Reflection;
 
 use Dibi;
-use function array_values, strtolower;
 
 
 /**
@@ -18,17 +15,16 @@ use function array_values, strtolower;
  *
  * @property-read string $name
  * @property-read bool $view
- * @property-read array $columns
- * @property-read array $columnNames
- * @property-read array $foreignKeys
- * @property-read array $indexes
+ * @property-read list<Column> $columns
+ * @property-read list<string> $columnNames
+ * @property-read list<ForeignKey> $foreignKeys
+ * @property-read list<Index> $indexes
  * @property-read Index $primaryKey
  */
 class Table
 {
-	private readonly Dibi\Reflector $reflector;
-	private string $name;
-	private bool $view;
+	private readonly string $name;
+	private readonly bool $view;
 
 	/** @var Column[] */
 	private array $columns;
@@ -38,12 +34,14 @@ class Table
 
 	/** @var Index[] */
 	private array $indexes;
-	private ?Index $primaryKey;
+	private ?Index $primaryKey = null;
 
 
-	public function __construct(Dibi\Reflector $reflector, array $info)
-	{
-		$this->reflector = $reflector;
+	/** @param  array{name: string, view?: bool}  $info */
+	public function __construct(
+		private readonly Dibi\Reflector $reflector,
+		array $info,
+	) {
 		$this->name = $info['name'];
 		$this->view = !empty($info['view']);
 	}
@@ -118,7 +116,7 @@ class Table
 	}
 
 
-	public function getPrimaryKey(): Index
+	public function getPrimaryKey(): ?Index
 	{
 		$this->initIndexes();
 		return $this->primaryKey;
@@ -142,10 +140,12 @@ class Table
 			$this->initColumns();
 			$this->indexes = [];
 			foreach ($this->reflector->getIndexes($this->name) as $info) {
-				foreach ($info['columns'] as $key => $name) {
-					$info['columns'][$key] = $this->columns[strtolower($name)];
+				$cols = [];
+				foreach ($info['columns'] as $name) {
+					$cols[] = $this->columns[strtolower($name)];
 				}
 
+				$info['columns'] = $cols;
 				$this->indexes[strtolower($info['name'])] = new Index($info);
 				if (!empty($info['primary'])) {
 					$this->primaryKey = $this->indexes[strtolower($info['name'])];

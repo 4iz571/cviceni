@@ -1,13 +1,11 @@
-<?php
-declare(strict_types=1);
-?>
+<?php declare(strict_types=1); ?>
 <!DOCTYPE html><link rel="stylesheet" href="data/style.css">
 
 <h1>Using Fluent Syntax | Dibi</h1>
 
 <?php
 
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
@@ -31,7 +29,8 @@ $record = [
 $dibi->select('product_id')->as('id')
 	->select('title')
 	->from('products')
-	->innerJoin('orders')->using('(product_id)')
+	->innerJoin('orders')
+	->using('(product_id)')
 	->innerJoin('customers USING (customer_id)')
 	->orderBy('title')
 	->test();

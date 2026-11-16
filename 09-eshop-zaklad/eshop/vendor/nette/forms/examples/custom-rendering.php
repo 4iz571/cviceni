@@ -1,20 +1,17 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * Nette Forms custom rendering example.
  */
 
-declare(strict_types=1);
 
-
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
 use Nette\Forms\Form;
 use Nette\Utils\Html;
-use Tracy\Debugger;
-use Tracy\Dumper;
+use Tracy\{Debugger, Dumper};
 
 Debugger::enable();
 
@@ -118,7 +115,7 @@ if ($form->isSuccess()) {
 		background: #EEE;
 	}
 </style>
-<script src="https://unpkg.com/nette-forms@3/src/assets/netteForms.js"></script>
+<script src="https://unpkg.com/nette-forms@3"></script>
 
 <h1>Nette Forms custom rendering example</h1>
 

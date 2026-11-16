@@ -54,9 +54,9 @@ class NewPasswordForm extends Form{
     $password=$this->addPassword('password','Heslo');
     $password
       ->setRequired('Zadejte požadované heslo')
-      ->addRule(Form::MIN_LENGTH,'Heslo musí obsahovat minimálně 5 znaků.',5);
+      ->addRule(Form::MinLength,'Heslo musí obsahovat minimálně 5 znaků.',5);
     $this->addPassword('password2','Heslo znovu:')
-      ->addRule(Form::EQUAL,'Hesla se neshodují',$password);
+      ->addRule(Form::Equal,'Hesla se neshodují',$password);
 
     $this->addSubmit('ok','uložit nové heslo')
       ->onClick[]=function(SubmitButton $button){
@@ -88,7 +88,7 @@ class NewPasswordForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults($values, bool $erase = false):static {
     if ($values instanceof User){
       $this->setDefaults(['userId'=>$values->userId]);
     }

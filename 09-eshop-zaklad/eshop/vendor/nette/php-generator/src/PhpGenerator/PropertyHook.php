@@ -1,10 +1,9 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
 use JetBrains\PhpStorm\Language;
+use Nette;
 
 
 /**
@@ -20,12 +19,16 @@ final class PropertyHook
 	private bool $final = false;
 	private bool $abstract = false;
 
-	/** @var Parameter[] */
+	/** @var array<string, Parameter> */
 	private array $parameters = [];
 	private bool $returnReference = false;
 
 
-	/** @param  ?mixed[]  $args */
+	/**
+	 * Sets the hook body. When $short is true, uses arrow-function style (=> expression).
+	 * Optionally accepts Dumper-style placeholders resolved against $args.
+	 * @param  ?mixed[]  $args
+	 */
 	public function setBody(
 		#[Language('PHP')]
 		string $code,
@@ -47,6 +50,9 @@ final class PropertyHook
 	}
 
 
+	/**
+	 * Returns true if the hook uses the arrow function style (=> expression), not a block body.
+	 */
 	public function isShort(): bool
 	{
 		return $this->short && trim($this->body) !== '';
@@ -80,7 +86,7 @@ final class PropertyHook
 
 
 	/**
-	 * @param  Parameter[]  $val
+	 * @param  list<Parameter>  $val
 	 * @internal
 	 */
 	public function setParameters(array $val): static
@@ -96,7 +102,7 @@ final class PropertyHook
 
 
 	/**
-	 * @return  Parameter[]
+	 * @return  array<string, Parameter>
 	 * @internal
 	 */
 	public function getParameters(): array
@@ -125,5 +131,14 @@ final class PropertyHook
 	public function getReturnReference(): bool
 	{
 		return $this->returnReference;
+	}
+
+
+	/** @throws Nette\InvalidStateException */
+	public function validate(): void
+	{
+		if ($this->abstract && $this->final) {
+			throw new Nette\InvalidStateException('Property hook cannot be both abstract and final.');
+		}
 	}
 }

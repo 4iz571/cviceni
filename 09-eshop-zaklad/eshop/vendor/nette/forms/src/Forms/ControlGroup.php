@@ -1,54 +1,46 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\Forms;
-
-use Nette;
 
 
 /**
- * A user group of form controls.
+ * Named group of form controls, typically rendered as a fieldset.
  */
 class ControlGroup
 {
-	use Nette\SmartObject;
+	/** @var \WeakMap<Control, null> */
+	protected \WeakMap $controls;
 
-	/** @var \SplObjectStorage */
-	protected $controls;
-
-	/** @var array user options */
-	private $options = [];
+	/** @var array<string, mixed> */
+	private array $options = [];
 
 
 	public function __construct()
 	{
-		$this->controls = new \SplObjectStorage;
+		$this->controls = new \WeakMap;
 	}
 
 
-	/** @return static */
-	public function add(...$items)
+	/** @param Control|Container|iterable<Control|Container> ...$items */
+	public function add(Control|Container|iterable ...$items): static
 	{
 		foreach ($items as $item) {
 			if ($item instanceof Control) {
-				$this->controls->attach($item);
+				$this->controls[$item] = null;
 
 			} elseif ($item instanceof Container) {
 				foreach ($item->getComponents() as $component) {
-					$this->add($component);
+					if ($component instanceof Control || $component instanceof Container) {
+						$this->add($component);
+					}
 				}
-			} elseif (is_iterable($item)) {
-				$this->add(...$item);
-
 			} else {
-				$type = is_object($item) ? get_class($item) : gettype($item);
-				throw new Nette\InvalidArgumentException("Control or Container items expected, $type given.");
+				$this->add(...$item);
 			}
 		}
 
@@ -58,39 +50,46 @@ class ControlGroup
 
 	public function remove(Control $control): void
 	{
-		$this->controls->detach($control);
+		unset($this->controls[$control]);
 	}
 
 
+	/**
+	 * Removes controls that are no longer attached to a form.
+	 */
 	public function removeOrphans(): void
 	{
-		foreach ($this->controls as $control) {
+		foreach ($this->controls as $control => $foo) {
 			if (!$control->getForm(false)) {
-				$this->controls->detach($control);
+				unset($this->controls[$control]);
 			}
 		}
 	}
 
 
-	/** @return Control[] */
+	/**
+	 * Returns all controls in this group.
+	 * @return list<Control>
+	 */
 	public function getControls(): array
 	{
-		return iterator_to_array($this->controls);
+		$res = [];
+		foreach ($this->controls as $control => $foo) {
+			$res[] = $control;
+		}
+		return $res;
 	}
 
 
 	/**
-	 * Sets user-specific option.
-	 * Options recognized by DefaultFormRenderer
-	 * - 'label' - textual or Nette\HtmlStringable object label
-	 * - 'visual' - indicates visual group
-	 * - 'container' - container as Html object
-	 * - 'description' - textual or Nette\HtmlStringable object description
-	 * - 'embedNext' - describes how render next group
-	 *
-	 * @return static
+	 * Sets a rendering option. Options recognized by DefaultFormRenderer:
+	 * - 'label' - group label (string or HtmlStringable)
+	 * - 'visual' - whether the group is rendered as a visual fieldset
+	 * - 'container' - custom container Html element
+	 * - 'description' - group description (string or HtmlStringable)
+	 * - 'embedNext' - whether to embed the next group inside this group's container
 	 */
-	public function setOption(string $key, $value)
+	public function setOption(string $key, mixed $value): static
 	{
 		if ($value === null) {
 			unset($this->options[$key]);
@@ -104,20 +103,17 @@ class ControlGroup
 
 
 	/**
-	 * Returns user-specific option.
-	 * @return mixed
+	 * Returns a rendering option value.
 	 */
-	public function getOption(string $key)
+	public function getOption(string $key): mixed
 	{
-		if (func_num_args() > 1) {
-			$default = func_get_arg(1);
-		}
-		return $this->options[$key] ?? $default ?? null;
+		return $this->options[$key] ?? null;
 	}
 
 
 	/**
-	 * Returns user-specific options.
+	 * Returns all rendering options.
+	 * @return array<string, mixed>
 	 */
 	public function getOptions(): array
 	{

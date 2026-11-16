@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -33,12 +31,13 @@ class SqliteReflector implements Dibi\Reflector
 			UNION ALL
 			SELECT name, type = 'view' as view FROM sqlite_temp_master WHERE type IN ('table', 'view')
 			ORDER BY name
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 		$tables = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$tables[] = $row;
 		}
 
+		/** @var list<array{name: string, view: bool}> */
 		return $tables;
 	}
 
@@ -48,9 +47,10 @@ class SqliteReflector implements Dibi\Reflector
 	 */
 	public function getColumns(string $table): array
 	{
-		$res = $this->driver->query("PRAGMA table_info({$this->driver->escapeIdentifier($table)})");
+		$res = $this->driver->query("PRAGMA table_info({$this->driver->escapeIdentifier($table)})")
+			?? throw new \LogicException('Unexpected null result.');
 		$columns = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$column = $row['name'];
 			$type = explode('(', $row['type']);
 			$columns[] = [
@@ -75,16 +75,19 @@ class SqliteReflector implements Dibi\Reflector
 	 */
 	public function getIndexes(string $table): array
 	{
-		$res = $this->driver->query("PRAGMA index_list({$this->driver->escapeIdentifier($table)})");
+		$res = $this->driver->query("PRAGMA index_list({$this->driver->escapeIdentifier($table)})")
+			?? throw new \LogicException('Unexpected null result.');
 		$indexes = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$indexes[$row['name']]['name'] = $row['name'];
 			$indexes[$row['name']]['unique'] = (bool) $row['unique'];
+			$indexes[$row['name']]['columns'] = [];
 		}
 
 		foreach ($indexes as $index => $values) {
-			$res = $this->driver->query("PRAGMA index_info({$this->driver->escapeIdentifier($index)})");
-			while ($row = $res->fetch(true)) {
+			$res = $this->driver->query("PRAGMA index_info({$this->driver->escapeIdentifier($index)})")
+				?? throw new \LogicException('Unexpected null result.');
+			while ($row = $res->fetch(assoc: true)) {
 				$indexes[$index]['columns'][$row['seqno']] = $row['name'];
 			}
 		}
@@ -105,7 +108,7 @@ class SqliteReflector implements Dibi\Reflector
 
 		if (!$indexes) { // @see http://www.sqlite.org/lang_createtable.html#rowid
 			foreach ($columns as $column) {
-				if ($column['vendor']['pk']) {
+				if ($column['vendor']['pk'] ?? false) {
 					$indexes[] = [
 						'name' => 'ROWID',
 						'unique' => true,
@@ -126,9 +129,10 @@ class SqliteReflector implements Dibi\Reflector
 	 */
 	public function getForeignKeys(string $table): array
 	{
-		$res = $this->driver->query("PRAGMA foreign_key_list({$this->driver->escapeIdentifier($table)})");
+		$res = $this->driver->query("PRAGMA foreign_key_list({$this->driver->escapeIdentifier($table)})")
+			?? throw new \LogicException('Unexpected null result.');
 		$keys = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$keys[$row['id']]['name'] = $row['id']; // foreign key name
 			$keys[$row['id']]['local'][$row['seq']] = $row['from']; // local columns
 			$keys[$row['id']]['table'] = $row['table']; // referenced table
@@ -136,7 +140,7 @@ class SqliteReflector implements Dibi\Reflector
 			$keys[$row['id']]['onDelete'] = $row['on_delete'];
 			$keys[$row['id']]['onUpdate'] = $row['on_update'];
 
-			if ($keys[$row['id']]['foreign'][0] == null) {
+			if ($keys[$row['id']]['foreign'][0] == null) { // intentionally ==, skips null and empty string
 				$keys[$row['id']]['foreign'] = null;
 			}
 		}

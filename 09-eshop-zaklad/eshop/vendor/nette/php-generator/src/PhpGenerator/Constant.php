@@ -1,13 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\PhpGenerator;
+
+use Nette;
 
 
 /**
@@ -62,5 +62,14 @@ final class Constant
 	public function getType(): ?string
 	{
 		return $this->type;
+	}
+
+
+	/** @throws Nette\InvalidStateException */
+	public function validate(): void
+	{
+		if ($this->final && $this->isPrivate()) {
+			throw new Nette\InvalidStateException("Constant $this->name cannot be final and private at the same time.");
+		}
 	}
 }

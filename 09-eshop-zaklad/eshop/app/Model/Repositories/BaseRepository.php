@@ -2,13 +2,16 @@
 
 namespace App\Model\Repositories;
 
+use LeanMapper\Entity;
+use LeanMapper\Exception\InvalidStateException;
+
 abstract class BaseRepository extends \LeanMapper\Repository {
   /**
    * @param int $id
-   * @return mixed
+   * @return Entity
    * @throws \Exception
    */
-  public function find($id) {
+  public function find(int $id):Entity {
     $row = $this->connection->select('*')
       ->from($this->getTable())
       ->where($this->mapper->getPrimaryKey($this->getTable()) . '= %i', $id)
@@ -21,9 +24,9 @@ abstract class BaseRepository extends \LeanMapper\Repository {
   }
 
   /**
-   * @return array
+   * @return Entity[]
    */
-  public function findAll() {
+  public function findAll():array {
     return $this->createEntities(
       $this->connection->select('*')
         ->from($this->getTable())
@@ -32,11 +35,11 @@ abstract class BaseRepository extends \LeanMapper\Repository {
   }
 
   /**
-   * @param null $whereArr
-   * @return mixed
+   * @param null|array $whereArr = null
+   * @return Entity
    * @throws \Exception
    */
-  public function findBy($whereArr = null) {
+  public function findBy(?array $whereArr = null):Entity {
     $query = $this->connection->select('*')->from($this->getTable());
     if ($whereArr != null) {
       $query = $query->where($whereArr);
@@ -52,9 +55,9 @@ abstract class BaseRepository extends \LeanMapper\Repository {
    * @param null|array $whereArr
    * @param null|int $offset
    * @param null|int $limit
-   * @return array
+   * @return Entity[]
    */
-  public function findAllBy($whereArr = null, $offset = null, $limit = null) {
+  public function findAllBy(?array $whereArr = null, ?int $offset = null, ?int $limit = null):array {
     $query = $this->connection->select('*')->from($this->getTable());
     if (isset($whereArr['order'])) {
       $query->orderBy($whereArr['order']);
@@ -68,9 +71,10 @@ abstract class BaseRepository extends \LeanMapper\Repository {
 
   /**
    * @param array|null $whereArr
-   * @return mixed
+   * @return int
+   * @throws InvalidStateException
    */
-  public function findCountBy($whereArr = null) {
+  public function findCountBy(?array $whereArr = null):int {
     $query = $this->connection->select('count(*) as pocet')->from($this->getTable());
     if ($whereArr != null) {
       $query = $query->where($whereArr);

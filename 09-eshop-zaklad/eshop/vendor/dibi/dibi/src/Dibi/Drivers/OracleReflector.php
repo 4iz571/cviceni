@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -28,9 +26,9 @@ class OracleReflector implements Dibi\Reflector
 	 */
 	public function getTables(): array
 	{
-		$res = $this->driver->query('SELECT * FROM cat');
+		$res = $this->driver->query('SELECT * FROM cat') ?? throw new \LogicException('Unexpected null result.');
 		$tables = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			if ($row[1] === 'TABLE' || $row[1] === 'VIEW') {
 				$tables[] = [
 					'name' => $row[0],
@@ -48,9 +46,10 @@ class OracleReflector implements Dibi\Reflector
 	 */
 	public function getColumns(string $table): array
 	{
-		$res = $this->driver->query('SELECT * FROM "ALL_TAB_COLUMNS" WHERE "TABLE_NAME" = ' . $this->driver->escapeText($table));
+		$res = $this->driver->query('SELECT * FROM "ALL_TAB_COLUMNS" WHERE "TABLE_NAME" = ' . $this->driver->escapeText($table))
+			?? throw new \LogicException('Unexpected null result.');
 		$columns = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$columns[] = [
 				'table' => $row['TABLE_NAME'],
 				'name' => $row['COLUMN_NAME'],

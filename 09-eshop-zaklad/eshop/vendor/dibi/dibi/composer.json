@@ -1,8 +1,8 @@
 {
 	"name": "dibi/dibi",
-	"description": "Dibi is Database Abstraction Library for PHP",
-	"keywords": ["database", "dbal", "mysql", "postgresql", "sqlite", "mssql", "sqlsrv", "oracle", "access", "pdo", "odbc"],
-	"homepage": "https://dibiphp.com",
+	"description": "💽 Dibi: smart database layer for PHP. You write SQL, and placeholders turn arrays into conditions or rows and escape values and identifiers correctly for MySQL, PostgreSQL, SQLite, SQL Server, Oracle and more.",
+	"keywords": ["database", "dbal", "sql", "query builder", "mysql", "postgresql", "sqlite", "mssql", "oracle", "pdo", "odbc"],
+	"homepage": "https://dibi.deegee.dev",
 	"license": ["BSD-3-Clause", "GPL-2.0-only", "GPL-3.0-only"],
 	"authors": [
 		{
@@ -11,13 +11,15 @@
 		}
 	],
 	"require": {
-		"php": "8.2 - 8.5"
+		"php": "8.2 - 8.6"
 	},
 	"require-dev": {
 		"tracy/tracy": "^2.9",
 		"nette/tester": "^2.5",
 		"nette/di": "^3.1",
-		"phpstan/phpstan-nette": "^2.0@stable",
+		"phpstan/phpstan": "^2.1@stable",
+		"phpstan/extension-installer": "^1.4@stable",
+		"nette/phpstan-rules": "^1.0",
 		"jetbrains/phpstorm-attributes": "^1.0"
 	},
 	"replace": {
@@ -37,6 +39,11 @@
 	"extra": {
 		"branch-alias": {
 			"dev-master": "5.1-dev"
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"phpstan/extension-installer": true
 		}
 	}
 }

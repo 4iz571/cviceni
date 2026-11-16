@@ -1,15 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
-declare(strict_types=1);
-
 namespace Nette\ComponentModel;
 
 use Nette;
+use function is_int;
 
 
 /**
@@ -48,7 +47,7 @@ trait ArrayAccess
 	public function offsetExists($name): bool
 	{
 		$name = is_int($name) ? (string) $name : $name;
-		return $this->getComponent($name, false) !== null;
+		return $this->getComponent($name, throw: false) !== null;
 	}
 
 
@@ -59,7 +58,7 @@ trait ArrayAccess
 	public function offsetUnset($name): void
 	{
 		$name = is_int($name) ? (string) $name : $name;
-		if ($component = $this->getComponent($name, false)) {
+		if ($component = $this->getComponent($name, throw: false)) {
 			$this->removeComponent($component);
 		}
 	}

@@ -9,9 +9,11 @@
 
 namespace Nextras\FormsRendering\Renderers;
 
+use Nette\Forms\Container;
+use Nette\Forms\Control;
+use Nette\Forms\ControlGroup;
 use Nette\Forms\Controls;
 use Nette\Forms\Form;
-use Nette\Forms\IControl;
 use Nette\Forms\Rendering\DefaultFormRenderer;
 use Nette\Utils\Html;
 
@@ -21,7 +23,7 @@ use Nette\Utils\Html;
  */
 class Bs3FormRenderer extends DefaultFormRenderer
 {
-	/** @var Controls\Button */
+	/** @var Controls\Button|null */
 	public $primaryButton = null;
 
 	/** @var bool */
@@ -42,9 +44,9 @@ class Bs3FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function render(Form $form, string $mode = null): string
+	public function render(Form $form, ?string $mode = null): string
 	{
-		if ($this->form !== $form) {
+		if (!isset($this->form) || $this->form !== $form) {
 			$this->controlsInit = false;
 		}
 
@@ -73,6 +75,9 @@ class Bs3FormRenderer extends DefaultFormRenderer
 	}
 
 
+	/**
+	 * @param Container|ControlGroup $parent
+	 */
 	public function renderControls($parent): string
 	{
 		$this->controlsInit();
@@ -80,7 +85,7 @@ class Bs3FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function renderPair(IControl $control): string
+	public function renderPair(Control $control): string
 	{
 		$this->controlsInit();
 		return parent::renderPair($control);
@@ -94,21 +99,21 @@ class Bs3FormRenderer extends DefaultFormRenderer
 	}
 
 
-	public function renderLabel(IControl $control): Html
+	public function renderLabel(Control $control): Html
 	{
 		$this->controlsInit();
 		return parent::renderLabel($control);
 	}
 
 
-	public function renderControl(IControl $control): Html
+	public function renderControl(Control $control): Html
 	{
 		$this->controlsInit();
 		return parent::renderControl($control);
 	}
 
 
-	private function controlsInit()
+	private function controlsInit(): void
 	{
 		if ($this->controlsInit) {
 			return;
@@ -118,7 +123,7 @@ class Bs3FormRenderer extends DefaultFormRenderer
 		$this->form->getElementPrototype()->addClass('form-horizontal');
 		foreach ($this->form->getControls() as $control) {
 			if ($control instanceof Controls\Button) {
-				$markAsPrimary = $control === $this->primaryButton || (!isset($this->primaryButton) && empty($usedPrimary) && $control->parent instanceof Form);
+				$markAsPrimary = $control === $this->primaryButton || (!isset($this->primaryButton) && empty($usedPrimary) && $control->getParent() instanceof Form);
 				if ($markAsPrimary) {
 					$class = 'btn btn-primary';
 					$usedPrimary = true;
@@ -130,9 +135,13 @@ class Bs3FormRenderer extends DefaultFormRenderer
 				$control->getControlPrototype()->addClass('form-control');
 			} elseif ($control instanceof Controls\Checkbox || $control instanceof Controls\CheckboxList || $control instanceof Controls\RadioList) {
 				if ($control instanceof Controls\Checkbox) {
-					$control->getSeparatorPrototype()->setName('div')->appendAttribute('class', $control->getControlPrototype()->type);
+					$control->getContainerPrototype()->setName('div')->appendAttribute('class', $control->getControlPrototype()->type);
 				} else {
-					$control->getItemLabelPrototype()->addClass($control->getControlPrototype()->type . '-inline');
+					$type = $control->getControlPrototype()->type;
+					// For PHPStan: Both control types initialize it to constructor in string.
+					\assert(is_string($type));
+
+					$control->getItemLabelPrototype()->addClass($type . '-inline');
 				}
 			}
 		}

@@ -1,17 +1,14 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
 use Dibi\Helpers;
-use const SQLITE3_ASSOC, SQLITE3_BLOB, SQLITE3_FLOAT, SQLITE3_INTEGER, SQLITE3_NULL, SQLITE3_NUM, SQLITE3_TEXT;
 
 
 /**
@@ -71,13 +68,20 @@ class SqliteResult implements Dibi\ResultDriver
 	{
 		$count = $this->resultSet->numColumns();
 		$columns = [];
-		$types = [SQLITE3_INTEGER => 'int', SQLITE3_FLOAT => 'float', SQLITE3_TEXT => 'text', SQLITE3_BLOB => 'blob', SQLITE3_NULL => 'null'];
+		$types = [
+			SQLITE3_INTEGER => 'int',
+			SQLITE3_FLOAT => 'float',
+			SQLITE3_TEXT => 'text',
+			SQLITE3_BLOB => 'blob',
+			SQLITE3_NULL => 'null',
+		];
 		for ($i = 0; $i < $count; $i++) {
+			$name = (string) $this->resultSet->columnName($i);
 			$columns[] = [
-				'name' => $this->resultSet->columnName($i),
+				'name' => $name,
 				'table' => null,
-				'fullname' => $this->resultSet->columnName($i),
-				'nativetype' => $types[$this->resultSet->columnType($i)] ?? null, // buggy in PHP 7.4.4 & 7.3.16, bug 79414
+				'fullname' => $name,
+				'nativetype' => $types[$this->resultSet->columnType($i)] ?? '',
 			];
 		}
 

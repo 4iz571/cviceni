@@ -6,10 +6,14 @@ use App\FrontModule\Components\UserLoginControl\UserLoginControl;
 use App\FrontModule\Components\UserLoginControl\UserLoginControlFactory;
 use Nette\Application\AbortException;
 use Nette\Application\ForbiddenRequestException;
+use Nette\Bridges\ApplicationLatte\DefaultTemplate;
+use Nette\Security\User;
 
 /**
  * Class BasePresenter
  * @package App\FrontModule\Presenters
+ * @property-read User $user
+ * @property-read DefaultTemplate $template
  */
 abstract class BasePresenter extends \Nette\Application\UI\Presenter {
   private UserLoginControlFactory $userLoginControlFactory;
@@ -20,8 +24,8 @@ abstract class BasePresenter extends \Nette\Application\UI\Presenter {
    */
   protected function startup():void {
     parent::startup();
-    $presenterName = $this->request->presenterName;
-    $action = !empty($this->request->parameters['action'])?$this->request->parameters['action']:'';
+    $presenterName = $this->getRequest()->getPresenterName();
+    $action = $this->getRequest()->getParameter('action') ?? '';
 
     if (!$this->user->isAllowed($presenterName,$action)){
       if ($this->user->isLoggedIn()){

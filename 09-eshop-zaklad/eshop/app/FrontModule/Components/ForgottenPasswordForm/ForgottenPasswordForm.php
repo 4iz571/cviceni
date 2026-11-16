@@ -82,8 +82,8 @@ class ForgottenPasswordForm extends Form{
         $mail = new Nette\Mail\Message();
         $mail->setFrom($this->mailFromEmail, $this->mailFromName);
         $mail->addTo($user->email, $user->name);
-        $mail->subject = 'Obnova zapomenutého hesla';
-        $mail->htmlBody = 'Obdrželi jsme vaši žádost na obnovu zapomenutého hesla. Pokud si přejete heslo změnit, <a href="'.$mailLink.'">klikněte zde</a>.';
+        $mail->setSubject('Obnova zapomenutého hesla');
+        $mail->setHtmlBody('Obdrželi jsme vaši žádost na obnovu zapomenutého hesla. Pokud si přejete heslo změnit, <a href="'.$mailLink.'">klikněte zde</a>.');
         #endregion endregion příprava textu mailu
 
         //odeslání mailu pomocí PHP funkce mail

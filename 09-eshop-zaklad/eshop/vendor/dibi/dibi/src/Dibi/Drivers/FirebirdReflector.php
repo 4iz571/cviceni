@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -33,9 +31,9 @@ class FirebirdReflector implements Dibi\Reflector
 				CASE RDB\$VIEW_BLR WHEN NULL THEN 'TRUE' ELSE 'FALSE' END
 			FROM RDB\$RELATIONS
 			WHERE RDB\$SYSTEM_FLAG = 0;
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 		$tables = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			$tables[] = [
 				'name' => $row[0],
 				'view' => $row[1] === 'TRUE',
@@ -80,9 +78,9 @@ class FirebirdReflector implements Dibi\Reflector
 				LEFT JOIN RDB\$FIELDS f ON r.RDB\$FIELD_SOURCE = f.RDB\$FIELD_NAME
 			WHERE r.RDB\$RELATION_NAME = '$table'
 			ORDER BY r.RDB\$FIELD_POSITION;
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 		$columns = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$key = $row['FIELD_NAME'];
 			$columns[$key] = [
 				'name' => $key,
@@ -95,7 +93,7 @@ class FirebirdReflector implements Dibi\Reflector
 			];
 		}
 
-		return $columns;
+		return array_values($columns);
 	}
 
 
@@ -117,9 +115,9 @@ class FirebirdReflector implements Dibi\Reflector
 				LEFT JOIN RDB\$RELATION_CONSTRAINTS r ON r.RDB\$INDEX_NAME = s.RDB\$INDEX_NAME
 			WHERE UPPER(i.RDB\$RELATION_NAME) = '$table'
 			ORDER BY s.RDB\$FIELD_POSITION
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 		$indexes = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$key = $row['INDEX_NAME'];
 			$indexes[$key]['name'] = $key;
 			$indexes[$key]['unique'] = $row['UNIQUE_FLAG'] === 1;
@@ -128,7 +126,7 @@ class FirebirdReflector implements Dibi\Reflector
 			$indexes[$key]['columns'][$row['FIELD_POSITION']] = $row['FIELD_NAME'];
 		}
 
-		return $indexes;
+		return array_values($indexes);
 	}
 
 
@@ -146,9 +144,9 @@ class FirebirdReflector implements Dibi\Reflector
 			WHERE UPPER(i.RDB\$RELATION_NAME) = '$table'
 				AND r.RDB\$CONSTRAINT_TYPE = 'FOREIGN KEY'
 			ORDER BY s.RDB\$FIELD_POSITION
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 		$keys = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$key = $row['INDEX_NAME'];
 			$keys[$key] = [
 				'name' => $key,
@@ -163,6 +161,7 @@ class FirebirdReflector implements Dibi\Reflector
 
 	/**
 	 * Returns list of indices in given table (the constraints are not listed).
+	 * @return list<mixed>
 	 */
 	public function getIndices(string $table): array
 	{
@@ -172,9 +171,9 @@ class FirebirdReflector implements Dibi\Reflector
 			WHERE RDB\$RELATION_NAME = UPPER('$table')
 				AND RDB\$UNIQUE_FLAG IS NULL
 				AND RDB\$FOREIGN_KEY IS NULL;
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 		$indices = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			$indices[] = $row[0];
 		}
 
@@ -184,6 +183,7 @@ class FirebirdReflector implements Dibi\Reflector
 
 	/**
 	 * Returns list of constraints in given table.
+	 * @return list<mixed>
 	 */
 	public function getConstraints(string $table): array
 	{
@@ -195,9 +195,9 @@ class FirebirdReflector implements Dibi\Reflector
 					RDB\$UNIQUE_FLAG IS NOT NULL
 					OR RDB\$FOREIGN_KEY IS NOT NULL
 			);
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 		$constraints = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			$constraints[] = $row[0];
 		}
 
@@ -208,6 +208,7 @@ class FirebirdReflector implements Dibi\Reflector
 	/**
 	 * Returns metadata for all triggers in a table or database.
 	 * (Only if user has permissions on ALTER TABLE, INSERT/UPDATE/DELETE record in table)
+	 * @return list<mixed[]>
 	 */
 	public function getTriggersMeta(?string $table = null): array
 	{
@@ -237,9 +238,9 @@ class FirebirdReflector implements Dibi\Reflector
 			FROM RDB\$TRIGGERS
 			WHERE RDB\$SYSTEM_FLAG = 0"
 			. ($table === null ? ';' : " AND RDB\$RELATION_NAME = UPPER('$table');"),
-		);
+		) ?? throw new \LogicException('Unexpected null result.');
 		$triggers = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$triggers[$row['TRIGGER_NAME']] = [
 				'name' => $row['TRIGGER_NAME'],
 				'table' => $row['TABLE_NAME'],
@@ -249,13 +250,14 @@ class FirebirdReflector implements Dibi\Reflector
 			];
 		}
 
-		return $triggers;
+		return array_values($triggers);
 	}
 
 
 	/**
 	 * Returns list of triggers for given table.
 	 * (Only if user has permissions on ALTER TABLE, INSERT/UPDATE/DELETE record in table)
+	 * @return list<mixed>
 	 */
 	public function getTriggers(?string $table = null): array
 	{
@@ -266,9 +268,9 @@ class FirebirdReflector implements Dibi\Reflector
 			? ';'
 			: " AND RDB\$RELATION_NAME = UPPER('$table')";
 
-		$res = $this->driver->query($q);
+		$res = $this->driver->query($q) ?? throw new \LogicException('Unexpected null result.');
 		$triggers = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			$triggers[] = $row[0];
 		}
 
@@ -278,6 +280,7 @@ class FirebirdReflector implements Dibi\Reflector
 
 	/**
 	 * Returns metadata from stored procedures and their input and output parameters.
+	 * @return list<mixed[]>
 	 */
 	public function getProceduresMeta(): array
 	{
@@ -312,9 +315,9 @@ class FirebirdReflector implements Dibi\Reflector
 			FROM RDB\$PROCEDURE_PARAMETERS p
 				LEFT JOIN RDB\$FIELDS f ON f.RDB\$FIELD_NAME = p.RDB\$FIELD_SOURCE
 			ORDER BY p.RDB\$PARAMETER_TYPE, p.RDB\$PARAMETER_NUMBER;
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 		$procedures = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$key = $row['PROCEDURE_NAME'];
 			$io = trim($row['PARAMETER_TYPE']);
 			$num = $row['PARAMETER_NUMBER'];
@@ -324,21 +327,22 @@ class FirebirdReflector implements Dibi\Reflector
 			$procedures[$key]['params'][$io][$num]['size'] = $row['FIELD_LENGTH'];
 		}
 
-		return $procedures;
+		return array_values($procedures);
 	}
 
 
 	/**
 	 * Returns list of stored procedures.
+	 * @return list<mixed>
 	 */
 	public function getProcedures(): array
 	{
 		$res = $this->driver->query('
 			SELECT TRIM(RDB$PROCEDURE_NAME)
 			FROM RDB$PROCEDURES;
-		');
+		') ?? throw new \LogicException('Unexpected null result.');
 		$procedures = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			$procedures[] = $row[0];
 		}
 
@@ -348,6 +352,7 @@ class FirebirdReflector implements Dibi\Reflector
 
 	/**
 	 * Returns list of generators.
+	 * @return list<mixed>
 	 */
 	public function getGenerators(): array
 	{
@@ -355,9 +360,9 @@ class FirebirdReflector implements Dibi\Reflector
 			SELECT TRIM(RDB$GENERATOR_NAME)
 			FROM RDB$GENERATORS
 			WHERE RDB$SYSTEM_FLAG = 0;
-		');
+		') ?? throw new \LogicException('Unexpected null result.');
 		$generators = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			$generators[] = $row[0];
 		}
 
@@ -367,6 +372,7 @@ class FirebirdReflector implements Dibi\Reflector
 
 	/**
 	 * Returns list of user defined functions (UDF).
+	 * @return list<mixed>
 	 */
 	public function getFunctions(): array
 	{
@@ -374,9 +380,9 @@ class FirebirdReflector implements Dibi\Reflector
 			SELECT TRIM(RDB$FUNCTION_NAME)
 			FROM RDB$FUNCTIONS
 			WHERE RDB$SYSTEM_FLAG = 0;
-		');
+		') ?? throw new \LogicException('Unexpected null result.');
 		$functions = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			$functions[] = $row[0];
 		}
 

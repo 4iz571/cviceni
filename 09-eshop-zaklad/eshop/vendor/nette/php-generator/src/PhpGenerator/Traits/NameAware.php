@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator\Traits;
 
@@ -17,16 +15,12 @@ use Nette;
  */
 trait NameAware
 {
-	private string $name;
-
-
-	public function __construct(string $name)
-	{
+	public function __construct(
+		private string $name,
+	) {
 		if (!Nette\PhpGenerator\Helpers::isIdentifier($name)) {
 			throw new Nette\InvalidArgumentException("Value '$name' is not valid name.");
 		}
-
-		$this->name = $name;
 	}
 
 

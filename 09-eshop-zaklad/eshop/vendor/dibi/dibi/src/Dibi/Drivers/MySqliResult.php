@@ -1,16 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
-use const MYSQLI_TYPE_LONG, MYSQLI_TYPE_SHORT, MYSQLI_TYPE_TIME, MYSQLI_TYPE_TINY;
 
 
 /**
@@ -34,7 +31,7 @@ class MySqliResult implements Dibi\ResultDriver
 			throw new Dibi\NotSupportedException('Row count is not available for unbuffered queries.');
 		}
 
-		return $this->resultSet->num_rows;
+		return (int) $this->resultSet->num_rows;
 	}
 
 
@@ -45,7 +42,7 @@ class MySqliResult implements Dibi\ResultDriver
 	public function fetch(bool $assoc): ?array
 	{
 		return $assoc
-			? $this->resultSet->fetch_assoc()
+			? (($row = $this->resultSet->fetch_assoc()) === false ? null : $row)
 			: $this->resultSet->fetch_row();
 	}
 
@@ -80,10 +77,10 @@ class MySqliResult implements Dibi\ResultDriver
 	{
 		static $types;
 		if ($types === null) {
-			$consts = get_defined_constants(true);
+			$consts = get_defined_constants(categorize: true);
 			$types = [];
 			foreach ($consts['mysqli'] ?? [] as $key => $value) {
-				if (strncmp($key, 'MYSQLI_TYPE_', 12) === 0) {
+				if (str_starts_with($key, 'MYSQLI_TYPE_')) {
 					$types[$value] = substr($key, 12);
 				}
 			}

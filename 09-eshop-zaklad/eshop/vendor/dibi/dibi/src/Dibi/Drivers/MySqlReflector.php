@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -29,9 +27,9 @@ class MySqlReflector implements Dibi\Reflector
 	 */
 	public function getTables(): array
 	{
-		$res = $this->driver->query('SHOW FULL TABLES');
+		$res = $this->driver->query('SHOW FULL TABLES') ?? throw new \LogicException('Unexpected null result.');
 		$tables = [];
-		while ($row = $res->fetch(false)) {
+		while ($row = $res->fetch(assoc: false)) {
 			$tables[] = [
 				'name' => $row[0],
 				'view' => isset($row[1]) && $row[1] === 'VIEW',
@@ -47,9 +45,10 @@ class MySqlReflector implements Dibi\Reflector
 	 */
 	public function getColumns(string $table): array
 	{
-		$res = $this->driver->query("SHOW FULL COLUMNS FROM {$this->driver->escapeIdentifier($table)}");
+		$res = $this->driver->query("SHOW FULL COLUMNS FROM {$this->driver->escapeIdentifier($table)}")
+			?? throw new \LogicException('Unexpected null result.');
 		$columns = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$type = explode('(', $row['Type']);
 			$columns[] = [
 				'name' => $row['Field'],
@@ -72,9 +71,10 @@ class MySqlReflector implements Dibi\Reflector
 	 */
 	public function getIndexes(string $table): array
 	{
-		$res = $this->driver->query("SHOW INDEX FROM {$this->driver->escapeIdentifier($table)}");
+		$res = $this->driver->query("SHOW INDEX FROM {$this->driver->escapeIdentifier($table)}")
+			?? throw new \LogicException('Unexpected null result.');
 		$indexes = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$indexes[$row['Key_name']]['name'] = $row['Key_name'];
 			$indexes[$row['Key_name']]['unique'] = !$row['Non_unique'];
 			$indexes[$row['Key_name']]['primary'] = $row['Key_name'] === 'PRIMARY';
@@ -91,7 +91,9 @@ class MySqlReflector implements Dibi\Reflector
 	 */
 	public function getForeignKeys(string $table): array
 	{
-		$data = $this->driver->query("SELECT `ENGINE` FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = {$this->driver->escapeText($table)}")->fetch(true);
+		$data = ($this->driver->query("SELECT `ENGINE` FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = {$this->driver->escapeText($table)}")
+			?? throw new \LogicException('Unexpected null result.'))->fetch(assoc: true);
+
 		if ($data['ENGINE'] !== 'InnoDB') {
 			throw new Dibi\NotSupportedException("Foreign keys are not supported in {$data['ENGINE']} tables.");
 		}
@@ -107,10 +109,10 @@ class MySqlReflector implements Dibi\Reflector
 			WHERE rc.CONSTRAINT_SCHEMA = DATABASE()
 				AND rc.TABLE_NAME = {$this->driver->escapeText($table)}
 			GROUP BY rc.CONSTRAINT_NAME
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		$foreignKeys = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$keyName = $row['CONSTRAINT_NAME'];
 
 			$foreignKeys[$keyName]['name'] = $keyName;

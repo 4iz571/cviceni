@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -48,12 +46,13 @@ class PostgreReflector implements Dibi\Reflector
 			WHERE
 				schemaname = ANY (current_schemas(false))";
 
-		$res = $this->driver->query($query);
+		$res = $this->driver->query($query) ?? throw new \LogicException('Unexpected null result.');
 		$tables = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$tables[] = $row;
 		}
 
+		/** @var list<array{name: string, view: bool}> */
 		return $tables;
 	}
 
@@ -63,16 +62,16 @@ class PostgreReflector implements Dibi\Reflector
 	 */
 	public function getColumns(string $table): array
 	{
-		$_table = $this->driver->escapeText($this->driver->escapeIdentifier($table));
+		$quotedTable = $this->driver->escapeText($this->driver->escapeIdentifier($table));
 
 		$res = $this->driver->query("
 			SELECT *
 			FROM information_schema.columns c
 			JOIN pg_class ON pg_class.relname = c.table_name
 			JOIN pg_namespace nsp ON nsp.oid = pg_class.relnamespace AND nsp.nspname = c.table_schema
-			WHERE pg_class.oid = $_table::regclass
+			WHERE pg_class.oid = $quotedTable::regclass
 			ORDER BY c.ordinal_position
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		if (!$res->getRowCount()) {
 			$res = $this->driver->query("
@@ -92,15 +91,15 @@ class PostgreReflector implements Dibi\Reflector
 					LEFT JOIN pg_attrdef adef ON adef.adnum = a.attnum AND adef.adrelid = a.attrelid
 				WHERE
 					cls.relkind IN ('r', 'v', 'mv')
-					AND a.attrelid = $_table::regclass
+					AND a.attrelid = $quotedTable::regclass
 					AND a.attnum > 0
 					AND NOT a.attisdropped
 				ORDER BY ordinal_position
-			");
+			") ?? throw new \LogicException('Unexpected null result.');
 		}
 
 		$columns = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$size = (int) max($row['character_maximum_length'], $row['numeric_precision']);
 			$columns[] = [
 				'name' => $row['column_name'],
@@ -123,7 +122,7 @@ class PostgreReflector implements Dibi\Reflector
 	 */
 	public function getIndexes(string $table): array
 	{
-		$_table = $this->driver->escapeText($this->driver->escapeIdentifier($table));
+		$quotedTable = $this->driver->escapeText($this->driver->escapeIdentifier($table));
 		$res = $this->driver->query("
 			SELECT
 				a.attnum AS ordinal_position,
@@ -132,14 +131,14 @@ class PostgreReflector implements Dibi\Reflector
 				pg_attribute a
 				JOIN pg_class cls ON a.attrelid = cls.oid
 			WHERE
-				a.attrelid = $_table::regclass
+				a.attrelid = $quotedTable::regclass
 				AND a.attnum > 0
 				AND NOT a.attisdropped
 			ORDER BY ordinal_position
-		");
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		$columns = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$columns[$row['ordinal_position']] = $row['column_name'];
 		}
 
@@ -148,11 +147,11 @@ class PostgreReflector implements Dibi\Reflector
 			FROM pg_class
 			LEFT JOIN pg_index on pg_class.oid = pg_index.indrelid
 			INNER JOIN pg_class as pg_class2 on pg_class2.oid = pg_index.indexrelid
-			WHERE pg_class.oid = $_table::regclass
-		");
+			WHERE pg_class.oid = $quotedTable::regclass
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		$indexes = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			$indexes[$row['relname']]['name'] = $row['relname'];
 			$indexes[$row['relname']]['unique'] = $row['indisunique'] === 't' || $row['indisunique'] === true;
 			$indexes[$row['relname']]['primary'] = $row['indisprimary'] === 't' || $row['indisprimary'] === true;
@@ -173,7 +172,7 @@ class PostgreReflector implements Dibi\Reflector
 	 */
 	public function getForeignKeys(string $table): array
 	{
-		$_table = $this->driver->escapeText($this->driver->escapeIdentifier($table));
+		$quotedTable = $this->driver->escapeText($this->driver->escapeIdentifier($table));
 
 		$res = $this->driver->query("
 			SELECT
@@ -211,11 +210,11 @@ class PostgreReflector implements Dibi\Reflector
 			WHERE
 				c.contype = 'f'
 				AND
-				c.conrelid = $_table::regclass
-		");
+				c.conrelid = $quotedTable::regclass
+		") ?? throw new \LogicException('Unexpected null result.');
 
 		$fKeys = $references = [];
-		while ($row = $res->fetch(true)) {
+		while ($row = $res->fetch(assoc: true)) {
 			if (!isset($fKeys[$row['name']])) {
 				$fKeys[$row['name']] = [
 					'name' => $row['name'],

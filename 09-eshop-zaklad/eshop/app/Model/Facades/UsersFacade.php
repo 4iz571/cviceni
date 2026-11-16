@@ -137,7 +137,7 @@ class UsersFacade{
    * @param string $code
    * @return bool
    */
-  public function isValidForgottenPasswordCode($user, string $code):bool {
+  public function isValidForgottenPasswordCode(User|int $user, string $code):bool {
     if ($user instanceof User){
       $user=$user->userId;
     }
@@ -145,7 +145,7 @@ class UsersFacade{
     try{
       $this->forgottenPasswordRepository->findBy(['user_id'=>$user, 'code'=>$code]);
       return true;
-    }catch (\Exception $e){
+    }catch (\Exception){
       return false;
     }
   }

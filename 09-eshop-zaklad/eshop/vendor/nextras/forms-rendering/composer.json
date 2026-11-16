@@ -11,23 +11,23 @@
 		}
 	],
 	"require": {
-		"php": ">=7.1",
-		"nette/forms": "~3.0",
-		"nette/utils": "~3.0",
-		"latte/latte": "~2.5"
+		"php": ">=8.0",
+		"latte/latte": "^3.0",
+		"nette/forms": "^3.1",
+		"nette/utils": "^3.0 || ^4.0"
 	},
 	"require-dev": {
-		"nette/application": "~3.0",
-		"nette/bootstrap": "~3.0",
-		"nette/di": "~3.0",
-		"nette/robot-loader": "~3.0",
-		"phpstan/phpstan-nette": "0.11",
-		"phpstan/phpstan-shim": "0.11.5",
-		"tracy/tracy": "~2.5"
+		"nette/application": "^3.0",
+		"nette/bootstrap": "^3.1",
+		"nette/di": "^3.0",
+		"phpstan/phpstan": "^2.2",
+		"phpstan/phpstan-deprecation-rules": "^2.0",
+		"phpstan/phpstan-nette": "^2.0",
+		"tracy/tracy": "^2.5"
 	},
 	"extra": {
 		"branch-alias": {
-			"dev-master": "1.0-dev"
+			"dev-master": "2.0-dev"
 		}
 	},
 	"config": {
@@ -35,5 +35,18 @@
 	},
 	"autoload": {
 		"psr-4": { "Nextras\\FormsRendering\\": "src/" }
+	},
+	"scripts": {
+		"phpstan": "phpstan analyze"
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"NextrasDemos\\FormsRendering\\LatteMacros\\": "examples/lattemacros/",
+			"NextrasDemos\\FormsRendering\\Renderers\\": "examples/renderers/"
+		},
+		"exclude-from-classmap": [
+			"examples/lattemacros/temp/",
+			"examples/renderers/temp/"
+		]
 	}
 }

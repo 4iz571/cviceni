@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * This file is part of the Nette Framework (https://nette.org)
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Nette\PhpGenerator;
 
@@ -13,16 +11,20 @@ use Nette;
 use const PHP_VERSION_ID;
 
 
+/**
+ * Provides advanced manipulation of a ClassType, such as inheriting members from parent classes or implementing interfaces.
+ */
 final class ClassManipulator
 {
 	public function __construct(
-		private ClassType $class,
+		private readonly ClassType $class,
 	) {
 	}
 
 
 	/**
-	 * Inherits property from parent class.
+	 * Copies a property from a parent class into this class for overriding.
+	 * @throws Nette\InvalidStateException if the property already exists or the parent is not set
 	 */
 	public function inheritProperty(string $name, bool $returnIfExists = false): Property
 	{
@@ -36,6 +38,7 @@ final class ClassManipulator
 			?: throw new Nette\InvalidStateException("Class '{$this->class->getName()}' has neither setExtends() nor setImplements() set.");
 
 		foreach ($parents as $parent) {
+			/** @var class-string $parent */
 			try {
 				$rp = new \ReflectionProperty($parent, $name);
 			} catch (\ReflectionException) {
@@ -49,7 +52,8 @@ final class ClassManipulator
 
 
 	/**
-	 * Inherits method from parent class or interface.
+	 * Copies a method from a parent class or interface into this class for overriding.
+	 * @throws Nette\InvalidStateException if the method already exists or the parent is not set
 	 */
 	public function inheritMethod(string $name, bool $returnIfExists = false): Method
 	{
@@ -76,7 +80,8 @@ final class ClassManipulator
 
 
 	/**
-	 * Implements all methods from the given interface or abstract class.
+	 * Adds stub implementations for all abstract methods and properties from the given interface or abstract class.
+	 * @param  class-string  $name
 	 */
 	public function implement(string $name): void
 	{
@@ -120,13 +125,5 @@ final class ClassManipulator
 		$property->setHooks([])->setAbstract(false);
 		$this->class->addMember($property);
 		return $property;
-	}
-
-
-	/** @deprecated use implement() */
-	public function implementInterface(string $interfaceName): void
-	{
-		trigger_error(__METHOD__ . '() is deprecated, use implement()', E_USER_DEPRECATED);
-		$this->implement($interfaceName);
 	}
 }

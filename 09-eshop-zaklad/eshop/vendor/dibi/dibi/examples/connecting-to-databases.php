@@ -1,13 +1,11 @@
-<?php
-declare(strict_types=1);
-?>
+<?php declare(strict_types=1); ?>
 <!DOCTYPE html><link rel="stylesheet" href="data/style.css">
 
 <h1>Connecting to Databases | Dibi</h1>
 
 <?php
 
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
@@ -21,7 +19,7 @@ try {
 	]);
 	echo 'OK';
 } catch (Dibi\Exception $e) {
-	echo get_class($e), ': ', $e->getMessage(), "\n";
+	echo $e::class, ': ', $e->getMessage(), "\n";
 }
 echo "</p>\n";
 
@@ -35,7 +33,7 @@ try {
 	]);
 	echo 'OK';
 } catch (Dibi\Exception $e) {
-	echo get_class($e), ': ', $e->getMessage(), "\n";
+	echo $e::class, ': ', $e->getMessage(), "\n";
 }
 echo "</p>\n";
 
@@ -56,7 +54,7 @@ try {
 	]);
 	echo 'OK';
 } catch (Dibi\Exception $e) {
-	echo get_class($e), ': ', $e->getMessage(), "\n";
+	echo $e::class, ': ', $e->getMessage(), "\n";
 }
 echo "</p>\n";
 
@@ -72,7 +70,7 @@ try {
 	]);
 	echo 'OK';
 } catch (Dibi\Exception $e) {
-	echo get_class($e), ': ', $e->getMessage(), "\n";
+	echo $e::class, ': ', $e->getMessage(), "\n";
 }
 echo "</p>\n";
 
@@ -87,7 +85,7 @@ try {
 	]);
 	echo 'OK';
 } catch (Dibi\Exception $e) {
-	echo get_class($e), ': ', $e->getMessage(), "\n";
+	echo $e::class, ': ', $e->getMessage(), "\n";
 }
 echo "</p>\n";
 
@@ -101,7 +99,7 @@ try {
 	]);
 	echo 'OK';
 } catch (Dibi\Exception $e) {
-	echo get_class($e), ': ', $e->getMessage(), "\n";
+	echo $e::class, ': ', $e->getMessage(), "\n";
 }
 echo "</p>\n";
 
@@ -118,7 +116,7 @@ try {
 	]);
 	echo 'OK';
 } catch (Dibi\Exception $e) {
-	echo get_class($e), ': ', $e->getMessage(), "\n";
+	echo $e::class, ': ', $e->getMessage(), "\n";
 }
 echo "</p>\n";
 
@@ -134,6 +132,6 @@ try {
 	]);
 	echo 'OK';
 } catch (Dibi\Exception $e) {
-	echo get_class($e), ': ', $e->getMessage(), "\n";
+	echo $e::class, ': ', $e->getMessage(), "\n";
 }
 echo "</p>\n";

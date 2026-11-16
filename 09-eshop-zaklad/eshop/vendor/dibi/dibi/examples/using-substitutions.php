@@ -1,13 +1,11 @@
-<?php
-declare(strict_types=1);
-?>
+<?php declare(strict_types=1); ?>
 <!DOCTYPE html><link rel="stylesheet" href="data/style.css">
 
 <h1>Using Substitutions | Dibi</h1>
 
 <?php
 
-if (@!include __DIR__ . '/../vendor/autoload.php') {
+if (@!include __DIR__ . '/../vendor/autoload.php') { // @ dependencies may not be installed
 	die('Install packages using `composer install`');
 }
 
@@ -29,6 +27,7 @@ $dibi->test('SELECT * FROM [:blog:items]');
 $dibi->getSubstitutes()->{''} = 'my_';
 
 $dibi->test("UPDATE ::table SET [text]='Hello World'");
+
 // -> UPDATE my_table SET [text]='Hello World'
 
 

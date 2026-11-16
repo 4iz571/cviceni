@@ -1,11 +1,11 @@
-[Dibi](https://dibiphp.com) - smart database layer for PHP  [![Buy me a coffee](https://files.nette.org/images/coffee1s.png)](https://nette.org/make-donation?to=dibi)
+[Dibi](https://dibi.deegee.dev) - smart database layer for PHP  [![Buy me a coffee](https://files.nette.org/images/coffee1s.png)](https://nette.org/make-donation?to=dibi)
 =========================================================
 
 [![Downloads this Month](https://img.shields.io/packagist/dm/dibi/dibi.svg)](https://packagist.org/packages/dibi/dibi)
-[![Tests](https://github.com/dg/dibi/workflows/Tests/badge.svg?branch=master)](https://github.com/dg/dibi/actions)
-[![Build Status Windows](https://ci.appveyor.com/api/projects/status/github/dg/dibi?branch=master&svg=true)](https://ci.appveyor.com/project/dg/dibi/branch/master)
-[![Latest Stable Version](https://poser.pugx.org/dibi/dibi/v/stable)](https://github.com/dg/dibi/releases)
-[![License](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://github.com/dg/dibi/blob/master/license.md)
+[![Tests](https://github.com/dibi/dibi/workflows/Tests/badge.svg?branch=master)](https://github.com/dibi/dibi/actions)
+[![Build Status Windows](https://ci.appveyor.com/api/projects/status/github/dibi/dibi?branch=master&svg=true)](https://ci.appveyor.com/project/dibi/dibi/branch/master)
+[![Latest Stable Version](https://poser.pugx.org/dibi/dibi/v/stable)](https://github.com/dibi/dibi/releases)
+[![License](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://github.com/dibi/dibi/blob/master/license.md)
 
 
 Introduction
@@ -34,14 +34,32 @@ Install Dibi via Composer:
 composer require dibi/dibi
 ```
 
-The Dibi 5.1 requires PHP version 8.2 and supports PHP up to 8.5.
+The Dibi 5.1 requires PHP version 8.2 and supports PHP up to 8.6.
+
+
+Running Tests
+-------------
+
+Run tests against SQLite (no setup needed):
+
+```
+composer run tester
+```
+
+To test against MySQL, PostgreSQL, etc., start the Docker containers and copy the configuration:
+
+```
+docker compose up -d
+cp tests/databases.docker.ini tests/databases.ini
+vendor/bin/tester tests -s -c tests/php-win.ini
+```
 
 
 Usage
 -----
 
 Refer to the `examples` directory for examples. Dibi documentation is
-available on the [homepage](https://dibiphp.com).
+available on the [homepage](https://dibi.deegee.dev).
 
 
 ### Connecting to database

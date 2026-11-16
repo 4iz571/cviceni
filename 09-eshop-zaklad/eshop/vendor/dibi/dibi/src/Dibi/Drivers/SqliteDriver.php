@@ -1,17 +1,16 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
 use Dibi;
 use Dibi\Helpers;
 use SQLite3;
+use function extension_loaded;
 
 
 /**
@@ -30,7 +29,10 @@ class SqliteDriver implements Dibi\Driver
 	private string $fmtDateTime;
 
 
-	/** @throws Dibi\NotSupportedException */
+	/**
+	 * @param  array<string, mixed>  $config
+	 * @throws Dibi\NotSupportedException
+	 */
 	public function __construct(array $config)
 	{
 		if (!extension_loaded('sqlite3')) {
@@ -75,7 +77,7 @@ class SqliteDriver implements Dibi\Driver
 	 */
 	public function query(string $sql): ?Dibi\ResultDriver
 	{
-		$res = @$this->connection->query($sql); // intentionally @
+		$res = @$this->connection->query($sql); // @ is escalated to exception
 		if ($code = $this->connection->lastErrorCode()) {
 			throw static::createException($this->connection->lastErrorMsg(), $code, $sql);
 
@@ -87,7 +89,7 @@ class SqliteDriver implements Dibi\Driver
 	}
 
 
-	public static function createException(string $message, $code, string $sql): Dibi\DriverException
+	public static function createException(string $message, int|string $code, string $sql): Dibi\DriverException
 	{
 		if ($code !== 19) {
 			return new Dibi\DriverException($message, $code, $sql);
@@ -267,6 +269,7 @@ class SqliteDriver implements Dibi\Driver
 
 	/**
 	 * Registers an user defined function for use in SQL statements.
+	 * @param  callable(mixed...): mixed  $callback
 	 */
 	public function registerFunction(string $name, callable $callback, int $numArgs = -1): void
 	{
@@ -276,6 +279,8 @@ class SqliteDriver implements Dibi\Driver
 
 	/**
 	 * Registers an aggregating user defined function for use in SQL statements.
+	 * @param  callable(mixed, int, mixed...): mixed  $rowCallback
+	 * @param  callable(mixed, int): mixed  $agrCallback
 	 */
 	public function registerAggregateFunction(
 		string $name,

@@ -1,11 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * This file is part of the Dibi, smart database abstraction layer (https://dibiphp.com)
+ * This file is part of the Dibi, smart database abstraction layer (https://dibi.deegee.dev)
  * Copyright (c) 2005 David Grudl (https://davidgrudl.com)
  */
-
-declare(strict_types=1);
 
 namespace Dibi\Drivers;
 
@@ -20,7 +18,7 @@ use PDO;
 class PdoResult implements Dibi\ResultDriver
 {
 	public function __construct(
-		private ?\PDOStatement $resultSet,
+		private \PDOStatement $resultSet,
 		private readonly string $driverName,
 	) {
 	}
@@ -59,7 +57,7 @@ class PdoResult implements Dibi\ResultDriver
 	 */
 	public function free(): void
 	{
-		$this->resultSet = null;
+		unset($this->resultSet);
 	}
 
 
@@ -72,7 +70,7 @@ class PdoResult implements Dibi\ResultDriver
 		$count = $this->resultSet->columnCount();
 		$columns = [];
 		for ($i = 0; $i < $count; $i++) {
-			$row = @$this->resultSet->getColumnMeta($i); // intentionally @
+			$row = @$this->resultSet->getColumnMeta($i); // @ is escalated to exception
 			if ($row === false) {
 				throw new Dibi\NotSupportedException('Driver does not support meta data.');
 			}
@@ -101,7 +99,7 @@ class PdoResult implements Dibi\ResultDriver
 	 */
 	public function getResultResource(): ?\PDOStatement
 	{
-		return $this->resultSet;
+		return $this->resultSet ?? null;
 	}
 
 
