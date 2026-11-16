@@ -44,9 +44,7 @@ class HomepagePresenter extends BasePresenter{
   /**
    * Akce pro smazání poznámky
    * @param int $id
-   * @throws Nette\Application\AbortException
    * @throws Nette\Application\BadRequestException
-   * @throws \LeanMapper\Exception\InvalidStateException
    */
   public function actionDelete(int $id):void {
     try{
@@ -68,7 +66,7 @@ class HomepagePresenter extends BasePresenter{
    * Formulář pro editaci poznámek
    * @return NoteEditForm
    */
-  protected function createComponentNoteEditForm():NoteEditForm {
+  protected function createComponentNoteEditForm():NoteEditForm{
     $form = $this->noteEditFormFactory->create();
     $form->onCancel[]=function(){
       $this->redirect('default');
@@ -86,11 +84,11 @@ class HomepagePresenter extends BasePresenter{
   }
 
   #region injections
-  public function injectNotesFacade(NotesFacade $notesFacade):void {
+  public function injectNotesFacade(NotesFacade $notesFacade):void{
     $this->notesFacade=$notesFacade;
   }
 
-  public function injectNoteEditFormFactory(NoteEditFormFactory $noteEditFormFactory):void {
+  public function injectNoteEditFormFactory(NoteEditFormFactory $noteEditFormFactory):void{
     $this->noteEditFormFactory=$noteEditFormFactory;
   }
   #endregion injections

@@ -27,7 +27,7 @@ class Authenticator implements \Nette\Security\Authenticator{
   function authenticate(string $email, string $password):IIdentity{
     try{
       $user=$this->usersFacade->getUserByEmail($email);
-    }catch (\Exception $e){
+    }catch (\Exception){
       //uživatel nebyl nalezen
       throw new AuthenticationException('Uživatelský účet neexistuje.');
     }

@@ -26,11 +26,11 @@ class NoteEditForm extends Form{
   use SmartObject;
 
   /** @var callable[] $onFinished */
-  public $onFinished = [];
+  public array $onFinished = [];
   /** @var callable[] $onFailed */
-  public $onFailed = [];
+  public array $onFailed = [];
   /** @var callable[] $onCancel */
-  public $onCancel = [];
+  public array $onCancel = [];
 
   private CategoriesFacade $categoriesFacade;
   private NotesFacade $notesFacade;
@@ -47,7 +47,7 @@ class NoteEditForm extends Form{
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
    */
-  public function __construct(Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(Nette\Security\User $currentUser, CategoriesFacade $categoriesFacade, NotesFacade $notesFacade, UsersFacade $usersFacade, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->categoriesFacade=$categoriesFacade;
     $this->notesFacade=$notesFacade;
@@ -57,7 +57,7 @@ class NoteEditForm extends Form{
       try{
         $this->user=$this->usersFacade->getUser($currentUser->id);
         $this->currentUser = $currentUser;
-      }catch (\Exception $e){/*chybu přeskočíme - hned za načtením je zařazena kontrola přihlášeného uživatele*/}
+      }catch (\Exception){/*chybu přeskočíme - hned za načtením je zařazena kontrola přihlášeného uživatele*/}
     }
     if (!$this->user){
       //uživatel není přihlášen, nebo již není v DB
@@ -101,7 +101,7 @@ class NoteEditForm extends Form{
               $this->onFailed('Tuto poznámku nemůžete upravovat.');
             }
 
-          }catch (\Exception $e){
+          }catch (\Exception){
             $this->onFailed('Požadovaná poznámka nebyla nalezena.');
             return;
           }
@@ -111,7 +111,7 @@ class NoteEditForm extends Form{
 
         try{
           $category=$this->categoriesFacade->getCategory($values['categoryId']);
-        }catch (\Exception $e){
+        }catch (\Exception){
           $this->onFailed('Požadovaná kategorie nebyla nalezena.');
           return;
         }
@@ -141,7 +141,7 @@ class NoteEditForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults($values, bool $erase = false):static {
     if ($values instanceof Note){
       $values = [
         'noteId'=>$values->noteId,

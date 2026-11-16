@@ -33,27 +33,27 @@ class NewPasswordForm extends Form{
 
   /**
    * ForgottenPasswordForm constructor.
-   * @param UsersFacade $usersFacade
-   * @param Nette\Security\Passwords $passwords
    * @param Nette\ComponentModel\IContainer|null $parent
    * @param string|null $name
+   * @param UsersFacade $usersFacade
+   * @param Nette\Security\Passwords $passwords
    */
-  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords,Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->passwords=$passwords;
     $this->createSubcomponents();
   }
 
-  private function createSubcomponents():void {
+  private function createSubcomponents():void{
     $this->addHidden('userId');
 
     $password=$this->addPassword('password','Heslo');
     $password
       ->setRequired('Zadejte požadované heslo')
-      ->addRule(Form::MIN_LENGTH,'Heslo musí obsahovat minimálně 5 znaků.',5);
+      ->addRule(Form::MinLength,'Heslo musí obsahovat minimálně 5 znaků.',5);
     $this->addPassword('password2','Heslo znovu:')
-      ->addRule(Form::EQUAL,'Hesla se neshodují',$password);
+      ->addRule(Form::Equal,'Hesla se neshodují',$password);
 
     $this->addSubmit('ok','uložit nové heslo')
       ->setHtmlAttribute('class','btn btn-primary')
@@ -63,7 +63,7 @@ class NewPasswordForm extends Form{
 
         try{
           $user = $this->usersFacade->getUser($values['userId']);
-        }catch (\Exception $e){
+        }catch (\Exception){
           $this->onFailed('Zvolený uživatelský účet nebyl nalezen.');
           return;
         }
@@ -87,7 +87,7 @@ class NewPasswordForm extends Form{
    * @param bool $erase = false
    * @return $this
    */
-  public function setDefaults($values, bool $erase = false):self {
+  public function setDefaults($values, bool $erase = false):static{
     if ($values instanceof User){
       $this->setDefaults(['userId'=>$values->userId]);
     }

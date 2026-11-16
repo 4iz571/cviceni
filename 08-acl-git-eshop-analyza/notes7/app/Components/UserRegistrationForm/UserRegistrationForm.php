@@ -2,12 +2,13 @@
 
 namespace App\Components\UserRegistrationForm;
 
-use App\Model\Entities\Category;
 use App\Model\Entities\User;
 use App\Model\Facades\UsersFacade;
 use Nette;
 use Nette\Application\UI\Form;
+use Nette\ComponentModel\IContainer;
 use Nette\Forms\Controls\SubmitButton;
+use Nette\Security\Passwords;
 use Nette\SmartObject;
 
 /**
@@ -32,11 +33,11 @@ class UserRegistrationForm extends Form{
   /**
    * UserRegistrationForm constructor.
    * @param UsersFacade $usersFacade
-   * @param Nette\Security\Passwords $passwords
-   * @param Nette\ComponentModel\IContainer|null $parent
+   * @param Passwords $passwords
+   * @param IContainer|null $parent
    * @param string|null $name
    */
-  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords, Nette\ComponentModel\IContainer $parent = null, string $name = null){
+  public function __construct(UsersFacade $usersFacade, Nette\Security\Passwords $passwords, ?Nette\ComponentModel\IContainer $parent = null, ?string $name = null){
     parent::__construct($parent, $name);
     $this->usersFacade=$usersFacade;
     $this->passwords=$passwords;
@@ -47,13 +48,13 @@ class UserRegistrationForm extends Form{
     $this->addText('name','Jméno a příjmení:')
       ->setRequired('Zadejte své jméno')
       ->setHtmlAttribute('maxlength',40)
-      ->addRule(Form::MAX_LENGTH,'Jméno je příliš dlouhé, může mít maximálně 40 znaků.',40);
+      ->addRule(Form::MaxLength,'Jméno je příliš dlouhé, může mít maximálně 40 znaků.',40);
     $this->addEmail('email','E-mail')
       ->setRequired('Zadejte platný email')
       ->addRule(function(Nette\Forms\Controls\TextInput $input){
         try{
           $this->usersFacade->getUserByEmail($input->value);
-        }catch (\Exception $e){
+        }catch (\Exception){
           //pokud nebyl uživatel nalezen (tj. je vyhozena výjimka), je to z hlediska registrace v pořádku
           return true;
         }
@@ -62,9 +63,9 @@ class UserRegistrationForm extends Form{
     $password=$this->addPassword('password','Heslo');
     $password
       ->setRequired('Zadejte požadované heslo')
-      ->addRule(Form::MIN_LENGTH,'Heslo musí obsahovat minimálně 5 znaků.',5);
+      ->addRule(Form::MinLength,'Heslo musí obsahovat minimálně 5 znaků.',5);
     $this->addPassword('password2','Heslo znovu:')
-      ->addRule(Form::EQUAL,'Hesla se neshodují',$password);
+      ->addRule(Form::Equal,'Hesla se neshodují',$password);
 
     $this->addSubmit('ok','registrovat se')
       ->setHtmlAttribute('class','btn btn-primary')

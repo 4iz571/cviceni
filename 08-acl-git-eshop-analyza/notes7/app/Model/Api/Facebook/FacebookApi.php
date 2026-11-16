@@ -3,6 +3,7 @@
 namespace App\Model\Api\Facebook;
 
 use Facebook\Facebook;
+use Facebook\GraphNodes\GraphUser;
 
 /**
  * Class FacebookApi
@@ -73,7 +74,7 @@ class FacebookApi{
 
     //získáme jméno a e-mail uživatele
     $response=$this->getFacebook()->get('/me?fields=name,email', $accessToken);
-    $graphUser=$response->getGraphUser();
+    $graphUser=$response->getGraphNode(GraphUser::class);
 
     $facebookUser->email=$graphUser->getEmail();
     $facebookUser->name=$graphUser->getName();

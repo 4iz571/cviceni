@@ -47,7 +47,6 @@ class UsersFacade{
    * @throws \Exception
    */
   public function getUser(int $id):User {
-    /** @noinspection PhpIncompatibleReturnTypeInspection */
     return $this->userRepository->find($id);
   }
 
@@ -58,7 +57,6 @@ class UsersFacade{
    * @throws \Exception
    */
   public function getUserByEmail(string $email):User {
-    /** @noinspection PhpIncompatibleReturnTypeInspection */
     return $this->userRepository->findBy(['email'=>$email]);
   }
 
@@ -156,12 +154,12 @@ class UsersFacade{
    * Metoda pro jednoduché smazání kódů pro obnovu hesla pro konkrétního uživatele
    * @param User|int $user
    */
-  public function deleteForgottenPasswordsByUser($user):void {
+  public function deleteForgottenPasswordsByUser(User|int $user):void {
     try{
       if ($user instanceof User){
         $user=$user->userId;
       }
-      $this->forgottenPasswordRepository->deleteForgottenPasswordsByUserId((int)$user);
+      $this->forgottenPasswordRepository->delete(['user_id' => $user]);
     }catch (InvalidStateException $e){
       //ignore error
     }

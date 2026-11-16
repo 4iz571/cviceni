@@ -19,7 +19,7 @@ class CategoryPresenter extends BasePresenter {
    * Výchozí akce - zatím jen přesměrovává na seznam kategorií
    * @throws \Nette\Application\AbortException
    */
-  public function actionDefault():void{
+  public function actionDefault():never{
     $this->redirect('list');
   }
 
